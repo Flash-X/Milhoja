@@ -6,7 +6,9 @@
 #include "Milhoja_TileAmrex.h"
 
 #include "Milhoja_Logger.h"
+#ifndef RUNTIME_MUST_USE_TILEITER
 #include "Milhoja_Grid.h"
+#endif
 
 namespace milhoja {
 
@@ -94,6 +96,15 @@ unsigned int    TileAmrex::nFluxVariables(void) const {
     assert(nFluxVars >= 0);
     return static_cast<unsigned int>(nFluxVars);
 }
+
+#ifndef RUNTIME_MUST_USE_TILEITER
+/**
+ * \brief Get deltas for appropriate level.
+ */
+RealVect TileAmrex::deltas(void) const {
+    return Grid::instance().getDeltas(level());
+}
+#endif
 
 /**
  * \brief Gets index of lo cell in the Tile

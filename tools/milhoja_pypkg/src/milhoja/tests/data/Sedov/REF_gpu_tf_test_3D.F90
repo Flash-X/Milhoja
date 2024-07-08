@@ -40,7 +40,7 @@ contains
         use iso_c_binding, ONLY : C_PTR
         use openacc
 
-        use milhoja_types_mode, ONLY : MILHOJA_INT
+        use milhoja_types_mod, ONLY : MILHOJA_INT
 
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_X_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_Y_gpu_oacc

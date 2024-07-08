@@ -21,6 +21,7 @@
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_RuntimeAction.h"
 
+#ifdef FULL_MILHOJAGRID
 extern "C" {
     /**
      * Perform all Milhoja initializations needed for calling code to begin
@@ -744,4 +745,4 @@ extern "C" {
         return MILHOJA_SUCCESS;
      }
 }
-
+#endif

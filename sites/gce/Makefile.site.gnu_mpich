@@ -1,7 +1,25 @@
 # TODO: We need to look up AMReX library by platform (e.g., sandybridge,
 # skylake) as well.
 BASEDIR      = $(MILHOJA_CODE_REPO)
-AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+# Made conditional below:
+#AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+
+#----------------------------------------------------------------------------
+# Set the AMReX library path -- installation for multiple variants
+#----------------------------------------------------------------------------
+ifeq ("$(USEOPENMP)","1")
+  AMREX_PATH=${FLASHX_AMREX_OMP${NDIM}D_DIR}
+else
+  AMREX_PATH=${FLASHX_AMREX${NDIM}D_DIR}
+endif
+
+ifneq ($(AMREX_PATH),)
+# The env variables FLASHX_AMREXOMPnD_DIR, FLASHX_AMREXnD_DIR have presumably
+# been set by a command like 'module load FlashX-TestEnv-gcc'. Use if nonempty.
+  AMREXDIR     = ${AMREX_PATH}
+else
+  AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+endif
 GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
 JSONDIR      = $(MILHOJA_TEST_CLONE)/gce/gnu_current/json/single_include
 CUDADIR      =
@@ -10,7 +28,7 @@ CXXCOMPNAME  = gnu
 CXXCOMP      = mpicxx
 
 CXXFLAGS_PROD    = -O3
-CXXFLAGS_DEBUG   = -g -O0 -DGRID_LOG
+CXXFLAGS_DEBUG   = -g3 -Og -DGRID_LOG -DRUNTIME_PERTILE_LOG # -DDEBUG_RUNTIME
 
 CUCOMP       =
 CUFLAGS_PROD =
@@ -22,7 +40,7 @@ F90FLAGS_PROD  = \
 	-finit-real=snan -finit-derived \
 	-finline-functions
 F90FLAGS_DEBUG = \
-	-g -O0 -cpp -fbacktrace \
+	-g3 -Og -cpp -fbacktrace \
 	-fdefault-real-8 -fdefault-double-8 \
 	-finit-real=snan -finit-derived \
 	-fbounds-check \
@@ -31,7 +49,7 @@ F90FLAGS_DEBUG = \
 	-Wsurprising -Wconversion -Wunderflow \
 	-fimplicit-none -fstack-protector-all
 
-LDFLAGS_STD = -lpthread -lstdc++ -lgfortran
+LDFLAGS_STD = -g3 -lpthread -lstdc++ -lgfortran
 
 CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
 CXXFLAGS_GTEST   = -I$(GTESTDIR)/include

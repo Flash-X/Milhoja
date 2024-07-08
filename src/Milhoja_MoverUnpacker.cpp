@@ -194,7 +194,15 @@ void MoverUnpacker::handleTransferFinished(void* userData) {
     // Transfer the ownership of the data items in the packet to the next team
     if (dataReceiver) {
         while (packet->nTiles() > 0) {
-            dataReceiver->enqueue( std::move(packet->popTile()) );
+#if(0)
+            std::shared_ptr<Tile> curTile = std::move(packet->popTile());
+            std::shared_ptr<TileWrapper> wrappedTile =
+                  unpacker->tileProto_->clone( std::move(curTile) );
+            dataReceiver->enqueue( std::move(wrappedTile) );
+#endif
+            dataReceiver->enqueue(
+                  unpacker->tileProto_->clone(packet->popTile())
+                );
         }
         dataReceiver = nullptr;
     }
@@ -302,6 +310,16 @@ void MoverUnpacker::wait(void) {
     }
 
     pthread_mutex_unlock(&mutex_);
+}
+
+void MoverUnpacker::setReceiverProto(TileWrapper const * w) {
+
+    if (state_ != State::Idle) {
+        throw std::logic_error("[MoverUnpacker::setReceiverProto] "
+                               "This setter should only be called in Idle state");
+    }
+    tileProto_ = w;
+
 }
 
 }

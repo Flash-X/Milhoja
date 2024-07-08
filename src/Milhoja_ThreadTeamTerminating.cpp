@@ -22,7 +22,7 @@ ThreadTeamTerminating::ThreadTeamTerminating(ThreadTeam* team)
     if (!team_) {
         std::string  msg("[ThreadTeamTerminating::ThreadTeamTerminating] ");
         msg += team_->hdr_;
-        msg += "\n\tGiven thread team in NULL";
+        msg += "\n\tGiven thread team is NULL";
         throw std::logic_error(msg);
     }
 }

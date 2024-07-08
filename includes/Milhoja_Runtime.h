@@ -14,11 +14,14 @@
 
 #include "Milhoja.h"
 #include "Milhoja_ThreadTeam.h"
+#ifndef RUNTIME_MUST_USE_TILEITER
+#include "Milhoja_FlashxrTileRaw.h"
+#endif
 #include "Milhoja_TileWrapper.h"
 #include "Milhoja_DataPacket.h"
 #include "Milhoja_RuntimeAction.h"
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
 #include "Milhoja_MoverUnpacker.h"
 #endif
 
@@ -47,15 +50,38 @@ public:
         return maxThreadsPerTeam_;
     }
 
+#ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuTasks(const std::string& actionName,
+                                  const RuntimeAction& cpuAction);
+    void pushTileToPipeline(const std::string& actionName,
+                            const TileWrapper& prototype,
+                            const FlashxrTileRawPtrs& tP,
+                            const FlashxTileRawInts& tI,
+                            const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuTasks(const std::string& actionName);
+#endif
     void executeCpuTasks(const std::string& actionName,
                          const RuntimeAction& cpuAction,
                          const TileWrapper& prototype);
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForGpuTasks(const std::string& bundleName,
+                                  const unsigned int stagger_usec,
+                                  const RuntimeAction& gpuAction,
+                                  const DataPacket& packetPrototype);
+    void pushTileToGpuPipeline(const std::string& bundleName,
+                               const DataPacket& packetPrototype,
+                               const FlashxrTileRawPtrs& tP,
+                               const FlashxTileRawInts& tI,
+                               const FlashxTileRawReals& tR);
+    void teardownPipelineForGpuTasks(const std::string& bundleName);
+#  endif
     void executeGpuTasks(const std::string& actionName,
                          const unsigned int nDistributorThreads,
                          const unsigned int stagger_usec,
                          const RuntimeAction& gpuAction,
                          const DataPacket& packetPrototype);
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
     void executeGpuTasks_timed(const std::string& actionName,
                                const unsigned int nDistributorThreads,
                                const unsigned int stagger_usec,
@@ -63,16 +89,59 @@ public:
                                const DataPacket& packetPrototype,
                                const unsigned int stepNumber,
                                const MPI_Comm comm);
+#  endif
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuGpuTasks(const std::string& bundleName,
+                                     const RuntimeAction& gpuAction,
+                                     const RuntimeAction& cpuAction,
+                                     const DataPacket& packetPrototype);
+    void pushTileToCpuGpuPipeline(const std::string& bundleName,
+                                  const TileWrapper& tilePrototype,
+                                  const DataPacket& packetPrototype,
+                                  const FlashxrTileRawPtrs& tP,
+                                  const FlashxTileRawInts& tI,
+                                  const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuGpuTasks(const std::string& bundleName);
+#  endif
     void executeCpuGpuTasks(const std::string& bundleName,
                             const RuntimeAction& cpuAction,
                             const TileWrapper& tilePrototype,
                             const RuntimeAction& gpuAction,
                             const DataPacket& packetPrototype);
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForExtGpuTasks(const std::string& bundleName,
+                                     const RuntimeAction& gpuAction,
+                                     const RuntimeAction& postGpuAction,
+                                     const DataPacket& packetPrototype,
+                                     const TileWrapper& tilePrototype);
+    void pushTileToExtGpuPipeline(const std::string& bundleName,
+                                  const DataPacket& packetPrototype,
+                                  const FlashxrTileRawPtrs& tP,
+                                  const FlashxTileRawInts& tI,
+                                  const FlashxTileRawReals& tR);
+    void teardownPipelineForExtGpuTasks(const std::string& bundleName);
+#  endif
     void executeExtendedGpuTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const RuntimeAction& gpuAction,
                                  const RuntimeAction& postGpuAction,
-                                 const DataPacket& packetPrototype);
+                                 const DataPacket& packetPrototype,
+                                 const TileWrapper& tilePrototype);
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForCpuGpuSplitTasks(const std::string& bundleName,
+                                          const unsigned int stagger_usec,
+                                          const RuntimeAction& gpuAction,
+                                          const RuntimeAction& cpuAction,
+                                          const DataPacket& packetPrototype,
+                                          const unsigned int nTilesPerCpuTurn);
+    void pushTileToCpuGpuSplitPipeline(const std::string& bundleName,
+                                       const TileWrapper& tilePrototype,
+                                       const DataPacket& packetPrototype,
+                                       const FlashxrTileRawPtrs& tP,
+                                       const FlashxTileRawInts& tI,
+                                       const FlashxTileRawReals& tR);
+    void teardownPipelineForCpuGpuSplitTasks(const std::string& bundleName);
+#  endif
     void executeCpuGpuSplitTasks(const std::string& bundleName,
                                  const unsigned int nDistributorThreads,
                                  const unsigned int stagger_usec,
@@ -81,6 +150,7 @@ public:
                                  const RuntimeAction& gpuAction,
                                  const DataPacket& packetPrototype,
                                  const unsigned int nTilesPerCpuTurn);
+#  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
     void executeCpuGpuSplitTasks_timed(const std::string& bundleName,
                                        const unsigned int nDistributorThreads,
                                        const unsigned int stagger_usec,
@@ -91,6 +161,7 @@ public:
                                        const unsigned int nTilesPerCpuTurn,
                                        const unsigned int stepNumber,
                                        const MPI_Comm comm);
+#  endif
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,
@@ -120,10 +191,23 @@ private:
     static unsigned int    maxThreadsPerTeam_;
     static bool            initialized_;
     static bool            finalized_;
+#if defined(RUNTIME_SUPPORT_DATAPACKETS) && defined(RUNTIME_SUPPORT_PUSH)
+    int                    nTilesPerPacket_;
+    int                    nTilesPerCpuTurn_;
+    bool                   isCpuTurn_;
+    int                    nInCpuTurn_;
+#endif
+#ifndef RUNTIME_MUST_USE_TILEITER
+#  ifdef RUNTIME_SUPPORT_DATAPACKETS
+    std::shared_ptr<DataPacket> packet_gpu_;
+#  else
+    std::unique_ptr<DataPacket> packet_gpu_;
+#  endif
+#endif
 
     ThreadTeam**     teams_;
 
-#ifdef MILHOJA_GPUS_SUPPORTED
+#ifdef RUNTIME_SUPPORT_DATAPACKETS
     MoverUnpacker    gpuToHost1_;
     MoverUnpacker    gpuToHost2_;
 #endif

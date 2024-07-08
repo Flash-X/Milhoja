@@ -13,9 +13,9 @@ from pathlib import Path
 #####----- VALID CONFIGURATION VALUES
 # All strings in lowercase so that arguments can be case insensitive
 _VALID_DIM     = [1, 2, 3]
-_VALID_GRID    = ['amrex']
+_VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
-_VALID_RUNTIME = ['none', 'cuda']
+_VALID_RUNTIME = ['none', 'cuda', 'hostmem']
 _VALID_OFFLOAD = ['none', 'openacc']
 
 #####----- DEFAULT CONFIGURATION VALUES
@@ -81,6 +81,9 @@ if __name__ == '__main__':
     parser.add_argument('--grid',    '-g',    type=str, default=_DEFAULT_GRID,    help=_GRID_HELP)
     parser.add_argument('--fps',     '-fp',   type=str, default=_DEFAULT_FPS,     help=_FPS_HELP)
     parser.add_argument('--offload', '-o',    type=str, default=_DEFAULT_OFFLOAD, help=_OFFLOAD_HELP)
+    parser.add_argument('--support_exec',     action="store_true", help="Request that the library support execute-style orchestration calls.")
+    parser.add_argument('--support_push',     action="store_true", help="Request that the library support push-style orchestration calls.")
+    parser.add_argument('--support_packets',  action="store_true", help="Request that the library support datapackets.")
 
     def print_and_exit(msg, error_code):
         print(file=sys.stderr)
@@ -118,6 +121,12 @@ if __name__ == '__main__':
         msg = f'Invalid computation offloading tool ({computation_offloading})'
         print_and_exit(msg, 6)
 
+    runtime_support_exec = args.support_exec
+    runtime_support_push = args.support_push
+    runtime_support_packets = args.support_packets
+    if not (runtime_support_exec or runtime_support_push):
+        print(f'{_ERROR}WARNING:{_NC} Support for neither execute-style not push-style orchestration calls was requested')
+
     #####----- GENERATE INTERMEDIATE DATA BASED ON ARGUMENTS
     # Dimension
     # Since the library doesn't do much computation, these are likely not
@@ -136,16 +145,33 @@ if __name__ == '__main__':
     elif runtime_backend.lower() == 'cuda':
         runtime_backend_macro = 'MILHOJA_CUDA_RUNTIME_BACKEND'
         gpu_support_included = True
+    elif runtime_backend.lower() == 'gengpu': # generic non-CUDA GPU
+        runtime_backend_macro = 'MILHOJA_GENGPU_RUNTIME_BACKEND'
+        gpu_support_included = True
+    elif runtime_backend.lower() == 'hostmem': # handle packets in host memory, "fake CUDA"
+        runtime_backend_macro = 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
+    elif runtime_backend.lower() == 'openmpi': # omp_ calls for mem calls / target coyping, can we do it?
+        runtime_backend_macro = 'MILHOJA_OPENMPI_RUNTIME_BACKEND'
+    elif runtime_backend.lower() == 'openacc': # oacc_ calls for mem alloc, device coyping, can we do it?
+        runtime_backend_macro = 'MILHOJA_OPENACC_RUNTIME_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - runtime_backend')
         exit(100)
 
+    if runtime_backend_macro != 'MILHOJA_NO_RUNTIME_BACKEND' and not runtime_support_packets:
+        print(f'{_ERROR}WARNING:{_NC} Support for datapackets should be requested')
+
     # Grid
-    if grid_backend.lower() == 'amrex':
+    if   grid_backend.lower() == 'none':
+        grid_backend_macro = 'MILHOJA_NO_GRID_BACKEND'
+    elif grid_backend.lower() == 'amrex':
         grid_backend_macro = 'MILHOJA_AMREX_GRID_BACKEND'
     else:
         print('PROGRAMMER LOGIC ERROR - grid_backend')
         exit(100)
+
+    if grid_backend_macro == 'MILHOJA_NO_GRID_BACKEND' and runtime_support_exec:
+        print(f'{_ERROR}WARNING:{_NC} Support for providing a Milhoja Grid implementation should be requested')
 
     # FPS
     if floating_point_system.lower() == 'double':
@@ -165,6 +191,13 @@ if __name__ == '__main__':
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)
 
+    runtime_can_use_tileiters = (
+        (grid_backend_macro != 'MILHOJA_NO_GRID_BACKEND')
+        )
+    runtime_must_use_tileiters = runtime_can_use_tileiters and (
+        not runtime_support_push
+        )
+
     #####----- OUTPUT FLAG INFORMATION FOR RECORD
     print()
     print('-' * 80)
@@ -175,6 +208,12 @@ if __name__ == '__main__':
     print(f'  Grid backend              {grid_backend}')
     print(f'  Runtime backend           {runtime_backend}')
     print(f'  Computation Offloading    {computation_offloading}')
+    print(f'  Real GPU support          {gpu_support_included}')
+    print(f'  Push-style Orchestration  {runtime_support_push}')
+    print(f'  Execute-Orchestration     {runtime_support_exec}')
+    print(f'  Implement Datapackets     {runtime_support_packets}')
+    print(f'  Runtime CAN use tileiters {runtime_can_use_tileiters}')
+    print(f'  Runtime MUST use tileiters {runtime_must_use_tileiters}')
     print('-' * 80)
     print()
 
@@ -235,7 +274,22 @@ if __name__ == '__main__':
         fptr.write(f'#define {offload_macro}\n')
         fptr.write( '\n')
         if gpu_support_included:
-            fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n')
+            fptr.write( '#define MILHOJA_GPUS_SUPPORTED\n') # Current library code does not use this one any more - KW
+            fptr.write( '\n')
+        if args.support_exec:
+            fptr.write( '#define RUNTIME_SUPPORT_EXECUTE\n')
+        if args.support_push:
+            fptr.write( '#define RUNTIME_SUPPORT_PUSH\n')
+        if args.support_packets:
+            fptr.write( '#define RUNTIME_SUPPORT_DATAPACKETS\n')
+            fptr.write( '\n')
+        if runtime_can_use_tileiters:
+            fptr.write( '#define RUNTIME_CAN_USE_TILEITER\n')
+        if runtime_must_use_tileiters:
+            fptr.write( '#define RUNTIME_MUST_USE_TILEITER\n')
+            fptr.write( '\n')
+        if runtime_support_exec and runtime_can_use_tileiters and grid_backend_macro == 'MILHOJA_AMREX_GRID_BACKEND':
+            fptr.write( '#define FULL_MILHOJAGRID\n')
             fptr.write( '\n')
         fptr.write( '#endif\n\n')
 

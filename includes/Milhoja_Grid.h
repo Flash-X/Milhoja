@@ -51,6 +51,7 @@ public:
     virtual void  finalize(void);
 
     // Pure virtual functions that must be implemented by derived class.
+#ifdef FULL_MILHOJAGRID
     virtual void destroyDomain(void) = 0;
     virtual void initDomain(INIT_BLOCK_NO_RUNTIME initBlock) = 0;
     virtual void initDomain(const RuntimeAction& cpuAction,
@@ -73,13 +74,15 @@ public:
     virtual RealVect       getProbLo() const = 0;
     virtual RealVect       getProbHi() const = 0;
     virtual unsigned int   getMaxRefinement() const = 0;
-    virtual unsigned int   getMaxLevel() const = 0;
     virtual unsigned int   getNumberLocalBlocks() = 0;
+#endif
+    virtual unsigned int   getMaxLevel(void) const = 0;
     virtual std::unique_ptr<TileIter> buildTileIter(const unsigned int lev) = 0;
+#ifdef FULL_MILHOJAGRID
     virtual TileIter*                 buildTileIter_forFortran(const unsigned int lev) = 0;
     virtual void writePlotfile(const std::string& filename,
                                const std::vector<std::string>& names) const = 0;
-
+#endif
 
     // Virtual functions with a default implementation that may be
     // overwritten by derived class.

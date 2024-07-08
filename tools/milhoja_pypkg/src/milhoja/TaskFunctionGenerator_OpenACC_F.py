@@ -135,7 +135,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write(f"{INDENT*2}use iso_c_binding, ONLY : C_PTR\n")
             fptr.write(f"{INDENT*2}use openacc\n\n")
             if self._tf_spec.n_streams > 1:
-                fptr.write(f"{INDENT*2}use milhoja_types_mode, ONLY : MILHOJA_INT\n\n")
+                fptr.write(f"{INDENT*2}use milhoja_types_mod, ONLY : MILHOJA_INT\n\n")
 
             offloading = []
             # Use in internal subroutines & export for OpenACC

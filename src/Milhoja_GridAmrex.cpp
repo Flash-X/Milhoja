@@ -49,7 +49,10 @@ bool GridAmrex::domainDestroyed_   = false;
   */
 GridAmrex::GridAmrex(void)
     : Grid(),
+#ifdef MILHOJA_AMREX_GRID_BACKEND
       AmrCore(),
+#endif
+#ifdef FULL_MILHOJAGRID
       unk_{static_cast<std::vector<amrex::MultiFab>::size_type>(max_level+1)},
       fluxes_{static_cast<std::vector<std::vector<amrex::MultiFab>>::size_type>(max_level+1)},
       bcs_{1},
@@ -60,14 +63,19 @@ GridAmrex::GridAmrex(void)
       nxb_{GridConfiguration::instance().nxb}, 
       nyb_{GridConfiguration::instance().nyb}, 
       nzb_{GridConfiguration::instance().nzb},
+#endif
+#ifdef MILHOJA_AMREX_GRID_BACKEND
       ccInterpolator_{nullptr},
       nGuard_{static_cast<int>(GridConfiguration::instance().nGuard)},
       nCcVars_{static_cast<int>(GridConfiguration::instance().nCcVars)},
       nFluxVars_{static_cast<int>(GridConfiguration::instance().nFluxVars)},
+#endif
+#ifdef FULL_MILHOJAGRID
       errorEst_{GridConfiguration::instance().errorEstimation},
       extBcFcn_{GridConfiguration::instance().externalBcRoutine},
       initBlock_noRuntime_{nullptr},
       initCpuAction_{},
+#endif
       initCpuPrototype_{nullptr}
 {
     std::string   msg = "[GridAmrex] Initializing...";
@@ -81,6 +89,7 @@ GridAmrex::GridAmrex(void)
     msg = "[GridAmrex] Created " + std::to_string(unk_.size()) + " empty CC MultiFab(s)";
     logger.log(msg);
 
+#ifdef FULL_MILHOJAGRID
     // When constructing a TileIterAmrex at a given level, we must pass in a
     // vector of flux MultiFabs for the level.  If there are no flux variables,
     // an empty vector is needed.  Therefore, always allocate this outer vector
@@ -339,6 +348,7 @@ GridAmrex::GridAmrex(void)
 #endif
 
     logger.log("[GridAmrex] Created and ready for use");
+#endif
 }
 
 /**
@@ -375,6 +385,7 @@ void  GridAmrex::finalize(void) {
     msg =   "[GridAmrex] Destroying cell-centered MultiFab array with "
           + std::to_string(unk_.size()) + " level(s)";
     Logger::instance().log(msg);
+#ifdef FULL_MILHOJAGRID
     std::vector<amrex::MultiFab>().swap(unk_);
 
     for (auto level=0; level<fluxes_.size(); ++level) {
@@ -393,6 +404,7 @@ void  GridAmrex::finalize(void) {
           + std::to_string(fluxes_.size()) + " level(s)";
     Logger::instance().log(msg);
     std::vector<std::vector<amrex::MultiFab>>().swap(fluxes_);
+#endif
 
     // This is the ugliest part of the multiple inheritance design of this class
     // because we finalize AMReX before AmrCore is destroyed, which occurs
@@ -404,6 +416,7 @@ void  GridAmrex::finalize(void) {
     Logger::instance().log("[GridAmrex] Finalized");
 }
 
+#ifdef FULL_MILHOJAGRID
 /**
  *  Destroy the domain.  It is a logical error to call this if initDomain has
  *  not already been called or to call it multiple times.
@@ -663,6 +676,7 @@ unsigned int GridAmrex::getMaxRefinement() const {
     }
     return static_cast<unsigned int>(max_level);
 }
+#endif
 
 /**
   * getMaxLevel returns the highest level of blocks actually in existence.
@@ -671,13 +685,14 @@ unsigned int GridAmrex::getMaxRefinement() const {
   *
   * @return The max level of existing blocks (0 is coarsest).
   */
-unsigned int GridAmrex::getMaxLevel() const {
+unsigned int GridAmrex::getMaxLevel(void) const {
     if (finest_level < 0) {
         throw std::logic_error("[GridAmrex::getMaxLevel] finest_level negative");
     }
     return static_cast<unsigned int>(finest_level);
 }
 
+#ifdef FULL_MILHOJAGRID
 /**
   * Obtain the total number of blocks managed by the process.
   *
@@ -734,6 +749,7 @@ void    GridAmrex::writePlotfile(const std::string& filename,
     Logger::instance().log("[GridAmrex] Wrote to plotfile " + filename);
 }
 
+#endif
 /**
   *
   * \todo Sanity check level value
@@ -744,6 +760,7 @@ std::unique_ptr<TileIter> GridAmrex::buildTileIter(const unsigned int level) {
                                                        fluxes_[level],
                                                        level}};
 }
+#ifdef FULL_MILHOJAGRID
 
 /**
   * It is intended that this routine only be used in the Fortran/C++
@@ -924,7 +941,9 @@ void    GridAmrex::fillCellVolumes(const unsigned int level,
     amrex::FArrayBox vol_fab{range, 1, volPtr};
     geom[level].CoordSys::SetVolume(vol_fab, range);
 }
+#endif
 
+#ifdef MILHOJA_AMREX_GRID_BACKEND
 /**
   * How does data get set?  We can get interpolation, but also for BCs.  How is
   * interpolation done and what method is used?
@@ -1263,6 +1282,7 @@ void    GridAmrex::ErrorEst(int level, amrex::TagBoxArray& tags,
     Logger::instance().log(msg);
 #endif
 }
+#endif
 
 }
 

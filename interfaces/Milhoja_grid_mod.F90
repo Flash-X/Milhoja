@@ -18,6 +18,7 @@ module milhoja_grid_mod
     implicit none
     private
 
+#ifdef FULL_MILHOJAGRID
     !!!!!----- PUBLIC INTERFACE
     public :: milhoja_grid_init
     public :: milhoja_grid_finalize
@@ -39,6 +40,7 @@ module milhoja_grid_mod
         module procedure :: milhoja_grid_initDomain_noRuntime
         module procedure :: milhoja_grid_initDomain_cpuOnly
     end interface milhoja_grid_initDomain
+#endif
 
     !!!!!----- FORTRAN INTERFACES TO MILHOJA FUNCTION POINTERS
     abstract interface
@@ -285,6 +287,7 @@ module milhoja_grid_mod
         end function milhoja_grid_fill_guardcells_C
     end interface
 
+#ifdef FULL_MILHOJAGRID
 contains
 
     !> Perform all Milhoja initializations needed for calling code to begin
@@ -679,6 +682,6 @@ contains
 
         ierr = milhoja_grid_fill_guardcells_C()
     end subroutine milhoja_grid_fillGuardCells
-
+#endif
 end module milhoja_grid_mod
 

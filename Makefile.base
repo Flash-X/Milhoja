@@ -17,6 +17,9 @@ include Makefile.generated
 # Default shell commands
 RM ?= /bin/rm
 
+# Library name
+LIBNAME ?= milhoja
+
 # Milhoja uses just the C++11 standard, but AMReX requires C++14.
 # Flags can differ by compiler.
 # -MMD generates a dependecy list for each file as a side effect
@@ -63,6 +66,10 @@ else
 CU_SRCS   =
 endif
 
+#ifeq ($(RUNTIME_BACKEND),HOSTMEM)
+#ALTCU_SRCS = $(FAKECU_SRCS_BASE)
+#endif
+
 ifeq ($(ENABLE_OPENACC_OFFLOAD),true)
 CXXFLAGS += $(OACC_FLAGS)
 LDFLAGS  += $(OACC_FLAGS)
@@ -84,7 +91,7 @@ endif
 
 
 # List of sources, objects, and dependencies
-C_SRCS    = $(SRCS_BASE) $(SRCS_TEST) $(SRCS_GENERATED)
+C_SRCS    = $(SRCS_BASE) $(SRCS_TEST) $(SRCS_GENERATED) $(ALTCU_SRCS)
 SRCS      = $(C_SRCS) $(CU_SRCS)
 
 C_OBJS    = $(addsuffix .o, $(basename $(notdir $(C_SRCS))))
@@ -113,7 +120,7 @@ test:
 	./$(BINARYNAME)
 
 # If code coverage is being build into the test, remove any previous gcda files to avoid conflict.
-$(BINARYNAME): $(OBJS_TEST) $(OBJS_GEN) $(MAKEFILES) $(LIB_MILHOJA)/lib/libmilhoja.a
+$(BINARYNAME): $(OBJS_TEST) $(OBJS_GEN) $(MAKEFILES) $(LIB_MILHOJA)/lib/lib$(LIBNAME).a
 ifeq ($(CODECOVERAGE), true)
 	$(RM) -f *.gcda
 endif

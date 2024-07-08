@@ -46,6 +46,7 @@
 
 #include <pthread.h>
 
+#include "Milhoja_TileWrapper.h"
 #include "Milhoja_RuntimeElement.h"
 
 namespace milhoja {
@@ -62,6 +63,7 @@ public:
     MoverUnpacker& operator=(const MoverUnpacker&) = delete;
     MoverUnpacker& operator=(MoverUnpacker&&)      = delete;
 
+    void setReceiverProto(TileWrapper const *);
     void startCycle(void);
     void increaseThreadCount(const unsigned int nThreads) override;
     void enqueue(std::shared_ptr<DataItem>&& dataItem) override;
@@ -78,6 +80,8 @@ private:
         std::shared_ptr<DataItem>*   dataItem = nullptr;
         MoverUnpacker*               unpacker = nullptr;
     };
+
+    const TileWrapper * tileProto_;
 
     static void handleTransferFinished(void* userData);
     void        handleTransferFinished_Stateful(void);
