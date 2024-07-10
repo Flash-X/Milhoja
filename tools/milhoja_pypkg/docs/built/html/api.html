@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3. Programmatic Interface &mdash; milhoja 0.0.4 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="4. Developers’ Guide" href="developers_guide.html" />
+    <link rel="prev" title="2. User Manual" href="users_manual.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            milhoja
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="get_started.html">1. Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="users_manual.html">2. User Manual</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Programmatic Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#infrastructure">3.1. Infrastructure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.AbcLogger"><code class="docutils literal notranslate"><span class="pre">AbcLogger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.AbcLogger.error"><code class="docutils literal notranslate"><span class="pre">AbcLogger.error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.AbcLogger.level"><code class="docutils literal notranslate"><span class="pre">AbcLogger.level</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.AbcLogger.log"><code class="docutils literal notranslate"><span class="pre">AbcLogger.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.AbcLogger.warn"><code class="docutils literal notranslate"><span class="pre">AbcLogger.warn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.BasicLogger"><code class="docutils literal notranslate"><span class="pre">BasicLogger</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#application-interface">3.2. Application Interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.generate_task_function"><code class="docutils literal notranslate"><span class="pre">generate_task_function()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.generate_data_item"><code class="docutils literal notranslate"><span class="pre">generate_data_item()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.SubroutineGroup"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.argument_list"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.argument_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.argument_specification"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.argument_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.external_specification"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.external_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.from_milhoja_json"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.from_milhoja_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.group_external_variables"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.group_external_variables</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.group_scratch_variables"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.group_scratch_variables</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.name"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.scratch_specification"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.scratch_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.specification"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.specification</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.subroutine_specification"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.subroutine_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.subroutines"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.subroutines</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.SubroutineGroup.variable_index_base"><code class="docutils literal notranslate"><span class="pre">SubroutineGroup.variable_index_base</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.TaskFunctionAssembler"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.argument_specification"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.argument_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.determine_access_patterns"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.determine_access_patterns()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.determine_variable_masks"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.determine_variable_masks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.dummy_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.dummy_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.external_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.external_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.from_milhoja_json"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.from_milhoja_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.grid_data_structures"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.grid_data_structures</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.scratch_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.scratch_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.tile_metadata_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.tile_metadata_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.to_milhoja_json"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.to_milhoja_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunctionAssembler.variable_index_base"><code class="docutils literal notranslate"><span class="pre">TaskFunctionAssembler.variable_index_base</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#milhoja.TaskFunction"><code class="docutils literal notranslate"><span class="pre">TaskFunction</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.argument_specification"><code class="docutils literal notranslate"><span class="pre">TaskFunction.argument_specification()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.constructor_dummy_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.constructor_dummy_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.dummy_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.dummy_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.external_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.external_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.from_milhoja_json"><code class="docutils literal notranslate"><span class="pre">TaskFunction.from_milhoja_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.function_name"><code class="docutils literal notranslate"><span class="pre">TaskFunction.function_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.internal_subroutine_graph"><code class="docutils literal notranslate"><span class="pre">TaskFunction.internal_subroutine_graph</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.lbound_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.lbound_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.n_streams"><code class="docutils literal notranslate"><span class="pre">TaskFunction.n_streams</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.output_filenames"><code class="docutils literal notranslate"><span class="pre">TaskFunction.output_filenames</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.scratch_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.scratch_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.subroutine_actual_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.subroutine_actual_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.subroutine_dummy_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.subroutine_dummy_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.subroutine_interface_file"><code class="docutils literal notranslate"><span class="pre">TaskFunction.subroutine_interface_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.tile_in_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.tile_in_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.tile_in_out_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.tile_in_out_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.tile_metadata_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.tile_metadata_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.tile_out_arguments"><code class="docutils literal notranslate"><span class="pre">TaskFunction.tile_out_arguments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.to_milhoja_json"><code class="docutils literal notranslate"><span class="pre">TaskFunction.to_milhoja_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#milhoja.TaskFunction.use_combined_array_bounds"><code class="docutils literal notranslate"><span class="pre">TaskFunction.use_combined_array_bounds</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developers_guide.html">4. Developers’ Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bibliography.html">5. Bibliography</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">milhoja</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3. </span>Programmatic Interface</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="programmatic-interface">
+<h1><span class="section-number">3. </span>Programmatic Interface<a class="headerlink" href="#programmatic-interface" title="Permalink to this heading"></a></h1>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+</tbody>
+</table>
+<section id="infrastructure">
+<h2><span class="section-number">3.1. </span>Infrastructure<a class="headerlink" href="#infrastructure" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="milhoja.AbcLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">AbcLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.AbcLogger" title="Permalink to this definition"></a></dt>
+<dd><p>It is intended that all Milhoja tools use objects instantiated from
+concrete logger classes derived from this class to communicate to users all
+general, warning, and error messages.  In this way, the Milhoja tools will
+present a common, uniform logging interface to all users using an
+application-specific logging standard.</p>
+<p>Note that this includes the Milhoja command line tools to be called by
+users.  For instance, these tools should log errors through a logger
+rather than printing to stdout/stderr themselves.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.AbcLogger.error">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">caller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.AbcLogger.error" title="Permalink to this definition"></a></dt>
+<dd><p>Log given message in such a way that it is clear that it is
+transmitting an error message to users.  This is printed regardless of
+the logger’s verbosity level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>caller</strong> – Name of calling code so that concrete logger can include
+this in actual logged message if so desired</p></li>
+<li><p><strong>msg</strong> – Error message to log</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.AbcLogger.level">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">level</span></span><a class="headerlink" href="#milhoja.AbcLogger.level" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>All log messages with a level less than or equal to this value
+will be logged.  Warning and errors are logged regardless of this
+value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.AbcLogger.log">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">caller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_level</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.AbcLogger.log" title="Permalink to this definition"></a></dt>
+<dd><p>Log the given message if the logger’s verbosity level is greater than
+or equal to the given logging threshold level.  The actual, final
+logged message, which includes the message provided by the caller,
+should not given any indication that the message indicates a warning or
+an error.</p>
+<p>It is a logical error for the given level to be LOG_LEVELS_NONE.
+Concrete loggers derived from this class are responsible for enforcing
+this.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>caller</strong> – Name of calling code so that concrete logger can include
+this in actual logged message if so desired</p></li>
+<li><p><strong>msg</strong> – Message to potentially log</p></li>
+<li><p><strong>min_level</strong> – Message’s log level</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.AbcLogger.warn">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">warn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">caller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.AbcLogger.warn" title="Permalink to this definition"></a></dt>
+<dd><p>Log given message in such a way that it is clear that it is
+transmitting a warning message to users.  This is printed regardless of
+the logger’s verbosity level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>caller</strong> – Name of calling code so that concrete logger can include
+this in actual logged message if so desired</p></li>
+<li><p><strong>msg</strong> – Warning message to log</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="milhoja.BasicLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">BasicLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.BasicLogger" title="Permalink to this definition"></a></dt>
+<dd><p>A concrete Milhoja logger class that is written for use by the Milhoja Test
+sub-system and command line tools.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Applications can use this logger so long as they understand that the
+implementation of this class might change as milhoja’s testing and
+tooling needs change.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="application-interface">
+<h2><span class="section-number">3.2. </span>Application Interface<a class="headerlink" href="#application-interface" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="milhoja.generate_task_function">
+<span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">generate_task_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tf_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.generate_task_function" title="Permalink to this definition"></a></dt>
+<dd><div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Add in all other code generators.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="milhoja.generate_data_item">
+<span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">generate_data_item</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tf_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">library_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.generate_data_item" title="Permalink to this definition"></a></dt>
+<dd><p>Generate all data item code related to the given task function.</p>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>Add in all other code generators.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tf_spec</strong> – TaskFunction specification including data item’s
+specification</p></li>
+<li><p><strong>destination</strong> – Pre-existing folder to which all code should be
+written</p></li>
+<li><p><strong>overwrite</strong> – Pre-existing header and source files in destination will
+be overwritten if True</p></li>
+<li><p><strong>library_path</strong> – Full path to Milhoja library installation that will
+use generated code</p></li>
+<li><p><strong>indent</strong> – Number of spaces to use for indent in generated code</p></li>
+<li><p><strong>logger</strong> – Derived from <a class="reference internal" href="#milhoja.AbcLogger" title="milhoja.AbcLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbcLogger</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">SubroutineGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup" title="Permalink to this definition"></a></dt>
+<dd><p>Class that provides read-only access to the contents of a subroutine group
+specification.  In particular, calling code can alter any specification
+results obtained from a SubroutineGroup object without altering the
+original specification.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.argument_list">
+<span class="sig-name descname"><span class="pre">argument_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.argument_list" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Argument list of given subroutine in correct order.  Calling
+code can alter the returned list without affecting the contents of
+the SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.argument_specification">
+<span class="sig-name descname"><span class="pre">argument_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">argument</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.argument_specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>subroutine</strong> – Name of subroutine in group</p></li>
+<li><p><strong>argument</strong> – Name of dummy argument for given subroutine</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Specification of given argument.  Calling code can alter the
+returned specification without affecting the contents of the
+SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.external_specification">
+<span class="sig-name descname"><span class="pre">external_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">external</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.external_specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>external</strong> – Name of group-level external variable</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Specification of given variable.  Calling code can alter the
+obtained data structure without affecting the contents of the
+SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.from_milhoja_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_milhoja_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.from_milhoja_json" title="Permalink to this definition"></a></dt>
+<dd><p>The given group specification is error checked completely so that
+results obtained from the returned object can be assumed to be correct.</p>
+<div class="admonition-todo admonition" id="id3">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>Add error checking of format info.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – Filename and path to Milhoja-JSON format subroutine
+group specification file.  This function does not alter the file.</p></li>
+<li><p><strong>logger</strong> – Logger derived from <a class="reference internal" href="#milhoja.AbcLogger" title="milhoja.AbcLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">milhoja.AbcLogger</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SubroutineGroup object that provides acccess to the
+specification provided in the given file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.group_external_variables">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">group_external_variables</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.group_external_variables" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of group-level external variables</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.group_scratch_variables">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">group_scratch_variables</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.group_scratch_variables" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of group-level scratch variables</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.name" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of subroutine group</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.scratch_specification">
+<span class="sig-name descname"><span class="pre">scratch_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scratch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.scratch_specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>scratch</strong> – Name of group-level scratch variable</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Specification of given variable.  Calling code can alter the
+obtained data structure without affecting the contents of the
+SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.specification">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">specification</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Milhoja-internal format of subroutine group specification as
+dict.  Calling code can alter the obtained data structure without
+affecting the contents of the SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.subroutine_specification">
+<span class="sig-name descname"><span class="pre">subroutine_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.SubroutineGroup.subroutine_specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Specification of given subroutine.  Calling code can alter the
+retured specification without affecting the contents of the
+SubroutineGroup object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.subroutines">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">subroutines</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.subroutines" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of subroutines in the group</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.SubroutineGroup.variable_index_base">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variable_index_base</span></span><a class="headerlink" href="#milhoja.SubroutineGroup.variable_index_base" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>All variable indices provided in R/RW/W fields in all
+subroutine specifications in the group must be elements of a single
+index set whose smallest index is this value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">TaskFunctionAssembler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal_call_graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_specs_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler" title="Permalink to this definition"></a></dt>
+<dd><p>A class for assembling a single task function from application-specified
+information and writing its full specification to file.</p>
+<div class="admonition-todo admonition" id="id4">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>This should be a read-only class</p></li>
+<li><p>Need lbound_arguments() in interface?</p></li>
+<li><p>We presently insist that all subroutine groups use the same variable
+index base.  Reasonable?</p></li>
+<li><p>internal_call_graph is used here and in TaskFunction.  It should
+likely become a class that checks the quality of the graph.</p></li>
+<li><p>Milhoja should have an internal parser that can figure out the
+R/W/RW status of each variable of the grid data arrays in each
+subroutine in the internal call graph.</p></li>
+<li><p>Very low-priority optimization is determine if a scratch variable
+for one subroutine can double as scratch variable for another
+subroutine so that we can limit amount of scratch needed by TF.</p></li>
+</ul>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.argument_specification">
+<span class="sig-name descname"><span class="pre">argument_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argument</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.argument_specification" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Deep copy of specification of given task function dummy
+argument</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.determine_access_patterns">
+<span class="sig-name descname"><span class="pre">determine_access_patterns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.determine_access_patterns" title="Permalink to this definition"></a></dt>
+<dd><p>For each grid data structure used by the task function, identify which
+of its variables are used and the access pattern for each of these
+throughout the execution of the internal call graph.</p>
+<p>This functionality is placed in a public member function for testing
+purposes.</p>
+<div class="admonition-todo admonition" id="id5">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>Add error checking to make sure that all subroutines within a
+single node use variables in a mutually consistent, correct way?</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Doubly-nested dict.  First key is dummy argument; second,
+variable name.  Each value is the ordered list of access patterns.
+A result of [“R”, “RW”, “W”, “R”] indicates that as the subroutines
+are executed in correct order, the variable was first read from,
+then written two a few times, and finally read from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.determine_variable_masks">
+<span class="sig-name descname"><span class="pre">determine_variable_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_accesses</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.determine_variable_masks" title="Permalink to this definition"></a></dt>
+<dd><p>This functionality is placed in a public member function for testing
+purposes.</p>
+<p>This assumes that a variable that is RW for the first subroutine that
+uses it is read before it is written to and, therefore, is marked as an
+‘in’ variable.  This seems reasonable since otherwise the variable
+should likely be specified as W.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>This assumes that a variable that is written to at any time should
+be marked as an ‘out’ variable regardless of how it is used
+afterward.  While this might not always be true, this tool does
+not presently have a means to determine this.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>variable_accesses</strong> – Result from determine_access_patterns()</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Doubly-nested dict.  First key is dummy argument; second,
+variable type.  Each value is (min, max) mask where min is the
+smallest variable needed of the type; max, the largest.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.dummy_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dummy_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.dummy_arguments" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of dummy arguments of assembled task function given in
+final ordering</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.external_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">external_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.external_arguments" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of task function’s dummy arguments that are classified as
+external arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.from_milhoja_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_milhoja_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal_call_graph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_jsons_all</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_json</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.from_milhoja_json" title="Permalink to this definition"></a></dt>
+<dd><p>Construct a TaskFunctionAssembler object using Milhoja-JSON format
+subroutine group specification files.</p>
+<div class="admonition-todo admonition" id="id6">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>grid_json is information that the application provides and
+should therefore be passed in as a dict.  There is no
+Milhoja-JSON format for that file.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the task function</p></li>
+<li><p><strong>internal_call_graph</strong> – Refer to documentation in constructor for
+same argument</p></li>
+<li><p><strong>group_jsons_all</strong> – Filenames with paths of all Milhoja-JSON
+format subroutine group specification files that together contain
+the specifications for the subroutines in the internal call graph</p></li>
+<li><p><strong>grid_json</strong> – Filename with path of grid specification file</p></li>
+<li><p><strong>logger</strong> – Derived from <a class="reference internal" href="#milhoja.AbcLogger" title="milhoja.AbcLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">milhoja.AbcLogger</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.grid_data_structures">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">grid_data_structures</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.grid_data_structures" title="Permalink to this definition"></a></dt>
+<dd><div class="admonition-todo admonition" id="id7">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>Should this include variable-in/-out information as well?</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of grid data structures whose data are read from or set by
+the task function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.scratch_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scratch_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.scratch_arguments" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of task function’s dummy arguments that are classified as
+scratch arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.tile_metadata_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tile_metadata_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.tile_metadata_arguments" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of task function’s dummy arguments that are classified as
+tile metatdata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.to_milhoja_json">
+<span class="sig-name descname"><span class="pre">to_milhoja_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf_spec_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.to_milhoja_json" title="Permalink to this definition"></a></dt>
+<dd><p>Write the assembled task function to the given file using the current
+version of the Milhoja-JSON task function specification format.</p>
+<div class="admonition-todo admonition" id="id8">
+<p class="admonition-title">Todo</p>
+<ul class="simple">
+<li><p>Milhoja should have an internal parser that gets the argument
+list for each subroutine in the internal call graph.  Then the
+given subroutine JSON files don’t need to specify that.</p></li>
+<li><p>Log arguments as debug information</p></li>
+<li><p>partial tf spec is information that the application provides and
+should therefore be passed in as a dict.  There is no
+Milhoja-JSON format for that file.</p></li>
+</ul>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – Name and full path of file to write to</p></li>
+<li><p><strong>tf_spec_filename</strong> – Name and full path of file that contains
+concrete task function specification</p></li>
+<li><p><strong>overwrite</strong> – Raise exception if the file exists and this is True</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunctionAssembler.variable_index_base">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variable_index_base</span></span><a class="headerlink" href="#milhoja.TaskFunctionAssembler.variable_index_base" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>All variable indices provided in the variable-in/-out fields
+of the task function specification are part of an index set whose
+smallest index is this value.  Valid values are either 0 or 1.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="milhoja.TaskFunction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">milhoja.</span></span><span class="sig-name descname"><span class="pre">TaskFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specification</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction" title="Permalink to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.argument_specification">
+<span class="sig-name descname"><span class="pre">argument_specification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argument</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.argument_specification" title="Permalink to this definition"></a></dt>
+<dd><div class="admonition-todo admonition" id="id9">
+<p class="admonition-title">Todo</p>
+<p>This should reinterpret variable types so that we return the
+correct type for the task function’s processor and device.</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.constructor_dummy_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">constructor_dummy_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.constructor_dummy_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.dummy_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dummy_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.dummy_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Returned in the proper order</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.external_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">external_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.external_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.from_milhoja_json">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_milhoja_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.from_milhoja_json" title="Permalink to this definition"></a></dt>
+<dd><p>Loads a TaskFunction specification from a json using the milhoja
+json format.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.function_name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">function_name</span></span><a class="headerlink" href="#milhoja.TaskFunction.function_name" title="Permalink to this definition"></a></dt>
+<dd><p>The name of the task function that’s called.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.internal_subroutine_graph">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">internal_subroutine_graph</span></span><a class="headerlink" href="#milhoja.TaskFunction.internal_subroutine_graph" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Generator for iterating in correct order over the nodes in the
+internal subroutine graph of the task function. Each node contains
+one or more subroutines.  If more than one, it is understood that
+the subroutines in that node can be run concurrently.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.lbound_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lbound_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.lbound_arguments" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of lower-bound dummy arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.n_streams">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_streams</span></span><a class="headerlink" href="#milhoja.TaskFunction.n_streams" title="Permalink to this definition"></a></dt>
+<dd><p>Raises an error if task function’s data item does not use streams.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Maximum number of streams required during execution of a
+DataPacket-based tasked function.  This is the number of internal
+subroutines that could be running concurrently during execution of
+the task function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.output_filenames">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">output_filenames</span></span><a class="headerlink" href="#milhoja.TaskFunction.output_filenames" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">dict</span></code> of filenames where value is a <code class="docutils literal notranslate"><span class="pre">dict</span></code>
+consisting of the key “source” and potentially “header”</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.scratch_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scratch_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.scratch_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>This is only scratch arguments explicitly requested in the
+specification.  In particular, it does not include scratch variables
+needed internally by Milhoja.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.subroutine_actual_arguments">
+<span class="sig-name descname"><span class="pre">subroutine_actual_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.subroutine_actual_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.subroutine_dummy_arguments">
+<span class="sig-name descname"><span class="pre">subroutine_dummy_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.subroutine_dummy_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.subroutine_interface_file">
+<span class="sig-name descname"><span class="pre">subroutine_interface_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subroutine</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.subroutine_interface_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.tile_in_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tile_in_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.tile_in_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.tile_in_out_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tile_in_out_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.tile_in_out_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.tile_metadata_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tile_metadata_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.tile_metadata_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.tile_out_arguments">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tile_out_arguments</span></span><a class="headerlink" href="#milhoja.TaskFunction.tile_out_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.to_milhoja_json">
+<span class="sig-name descname"><span class="pre">to_milhoja_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#milhoja.TaskFunction.to_milhoja_json" title="Permalink to this definition"></a></dt>
+<dd><p>Write the object’s full configuration to a Milhoja-native JSON file
+using the current version of the JSON format.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="milhoja.TaskFunction.use_combined_array_bounds">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_combined_array_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#milhoja.TaskFunction.use_combined_array_bounds" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list containing whether or not a subroutine in the call
+graph uses a tile_interior or tile_arrayBounds argument.
+If one of these is true, the generators should use a
+tile_interior array in place of tile_lo and tile_hi, and a
+tile_arrayBounds array in place of tile_lbound and
+tile_ubound.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="users_manual.html" class="btn btn-neutral float-left" title="2. User Manual" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="developers_guide.html" class="btn btn-neutral float-right" title="4. Developers’ Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Figure this out before making public!.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
