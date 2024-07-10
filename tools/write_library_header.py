@@ -192,7 +192,8 @@ if __name__ == '__main__':
         exit(100)
 
     runtime_can_use_tileiters = (
-        (grid_backend_macro != 'MILHOJA_NO_GRID_BACKEND')
+        (grid_backend_macro != 'MILHOJA_NO_GRID_BACKEND') and
+        runtime_support_exec
         )
     runtime_must_use_tileiters = runtime_can_use_tileiters and (
         not runtime_support_push
