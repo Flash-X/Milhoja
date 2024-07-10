@@ -3,7 +3,7 @@ How to Build Milhoja Docs
 =========================
 
 In order to build the Milhoja documentation, you will need to install the
-`sphinx`_ pypackage, as well as the sphinx extension sphinxcontrib.bibtex.
+`sphinx`_ pypackage, as well as the sphinx extension `sphinxcontrib.bibtex`.
 This can be done by running the command
 
 `pip install Sphinx sphinxcontrib.bibtex`
@@ -12,7 +12,7 @@ Once this is done, head to the directory
 
 `tools/milhoja_pypkg/docs/source`
 
-and run the following command
+inside of your Milhoja repository clone and run the following command
 
 `sphinx-build -M html ./ [build_directory]`
 
