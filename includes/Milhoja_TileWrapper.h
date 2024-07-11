@@ -17,6 +17,8 @@
 #ifndef MILHOJA_TILE_WRAPPER_H__
 #define MILHOJA_TILE_WRAPPER_H__
 
+#include <memory>
+
 #include "Milhoja_Tile.h"
 
 namespace milhoja {

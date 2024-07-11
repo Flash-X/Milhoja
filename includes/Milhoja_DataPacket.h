@@ -129,11 +129,10 @@
 #define MILHOJA_DATA_PACKET_H__
 
 #include <stdexcept>
+#include <memory>
+#include <deque>
 
 #include "Milhoja.h"
-#include "Milhoja_IntVect.h"
-#include "Milhoja_RealVect.h"
-#include "Milhoja_FArray4D.h"
 #include "Milhoja_Tile.h"
 #include "Milhoja_DataItem.h"
 #include "Milhoja_Stream.h"
