@@ -15,16 +15,6 @@
 
 namespace milhoja {
 
-/**
- * \brief Fully-implemented Tile class for use with AMReX.
- *
- * \todo lo/hi     -> interiorBox(lo, hi)
- * \todo loGC/hiGC -> dataArrayBox(lo, hi)
- * \todo need grownTileBox as well.
- *
- * Contains a reference to the multifab for the appropriate level
- * so pointers into it can be returned.
- */
 class TileFlashxr
     : public Tile
 {
