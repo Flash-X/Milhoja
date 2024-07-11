@@ -32,14 +32,6 @@ class TileFlashxr
     : public Tile
 {
 public:
-    TileFlashxr(const unsigned int level,
-                const int gridIdxOrBlkId,
-                const int tileIdx,
-                const amrex::Box&& interior,
-                const amrex::Box&& dataArray,
-                Real*  unkBlkPtr,
-                std::vector<Real*>&& fluxBlkPtrs);
-
     TileFlashxr(const FlashxrTileRawPtrs tP,
                 const FlashxTileRawInts tI,
                 const FlashxTileRawReals tR);
