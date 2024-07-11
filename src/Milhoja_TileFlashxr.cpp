@@ -7,6 +7,9 @@
 
 #include "Milhoja_Logger.h"
 
+#include <cassert>
+
+
 namespace milhoja {
 
 /**
