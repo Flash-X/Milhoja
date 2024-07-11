@@ -27,6 +27,7 @@ else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 BACKEND_BUILDDIR := $(BUILDDIR)/FakeCudaBackend
 endif
 
+GRID_BACKEND := $(shell echo $(GRID_BACKEND) | tr A-Z a-z)
 
 include $(CONFIG_MAKEFILE)
 
@@ -64,9 +65,20 @@ endif
 
 CPP_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cpp)
 CPP_HDRS := $(wildcard $(INCDIR)/Milhoja_*.h)
+CPP_SRCS_GRID := $(wildcard $(SRCDIR)/Milhoja_Grid*.cpp $(SRCDIR)/Milhoja_*Iter*.cpp)
+CPP_HDRS_GRID := $(wildcard $(INCDIR)/Milhoja_Grid*.h $(INCDIR)/Milhoja_*Iter*.h)
+
 ifeq ($(SUPPORT_PUSH),)
 CPP_SRCS := $(filter-out $(SRCDIR)/Milhoja_TileFlashxr.cpp,$(CPP_SRCS))
 CPP_HDRS := $(filter-out $(INCDIR)/Milhoja_TileFlashxr.h $(INCDIR)/Milhoja_FlashxrTileRaw.h,$(CPP_HDRS))
+endif
+ifeq ($(SUPPORT_EXEC),)
+CPP_SRCS := $(filter-out $(SRCDIR)/Milhoja_TileAmrex.cpp,$(CPP_SRCS))
+CPP_HDRS := $(filter-out $(INCDIR)/Milhoja_TileAmrex.h,$(CPP_HDRS))
+endif
+ifeq ($(GRID_BACKEND),none)
+CPP_SRCS := $(filter-out $(CPP_SRCS_GRID),$(CPP_SRCS))
+CPP_HDRS := $(filter-out $(CPP_HDRS_GRID),$(CPP_HDRS))
 endif
 
 CINT_SRCS := $(wildcard $(INTERFACEDIR)/Milhoja_*.cpp)
