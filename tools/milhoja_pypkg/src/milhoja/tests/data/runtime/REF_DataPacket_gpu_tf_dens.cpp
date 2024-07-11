@@ -2,7 +2,6 @@
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
-#include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
 
 std::unique_ptr<milhoja::DataPacket> DataPacket_gpu_tf_dens::clone(void) const {
