@@ -1,5 +1,6 @@
 #include "Milhoja_RuntimeBackend.h"
 
+#include <iostream>
 #include <stdexcept>
 
 #include "Milhoja.h"

@@ -27,9 +27,9 @@ else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 BACKEND_BUILDDIR := $(BUILDDIR)/FakeCudaBackend
 endif
 
-GRID_BACKEND := $(shell echo $(GRID_BACKEND) | tr A-Z a-z)
-
 include $(CONFIG_MAKEFILE)
+
+GRID_BACKEND := $(shell echo $(GRID_BACKEND) | tr A-Z a-z)
 
 LIBNAME ?= milhoja
 TARGET          := $(BUILDDIR)/lib$(LIBNAME).a
