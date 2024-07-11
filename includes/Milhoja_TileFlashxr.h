@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-
 #include "Milhoja.h"
 #include "Milhoja_RealVect.h"
 #include "Milhoja_IntVect.h"
