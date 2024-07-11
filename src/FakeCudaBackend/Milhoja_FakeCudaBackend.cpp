@@ -1,5 +1,7 @@
 #include "Milhoja_FakeCudaBackend.h"
 
+#include <cstring>
+
 #include "Milhoja_Logger.h"
 #include "Milhoja_FakeCudaGpuEnvironment.h"
 #include "Milhoja_FakeCudaStreamManager.h"
