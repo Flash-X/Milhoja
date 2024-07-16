@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include <AMReX.H>
-#include <AMReX_Box.H>
-
 #include "Milhoja.h"
 #include "Milhoja_RealVect.h"
 #include "Milhoja_IntVect.h"
@@ -18,28 +15,10 @@
 
 namespace milhoja {
 
-/**
- * \brief Fully-implemented Tile class for use with AMReX.
- *
- * \todo lo/hi     -> interiorBox(lo, hi)
- * \todo loGC/hiGC -> dataArrayBox(lo, hi)
- * \todo need grownTileBox as well.
- *
- * Contains a reference to the multifab for the appropriate level
- * so pointers into it can be returned.
- */
 class TileFlashxr
     : public Tile
 {
 public:
-    TileFlashxr(const unsigned int level,
-                const int gridIdxOrBlkId,
-                const int tileIdx,
-                const amrex::Box&& interior,
-                const amrex::Box&& dataArray,
-                Real*  unkBlkPtr,
-                std::vector<Real*>&& fluxBlkPtrs);
-
     TileFlashxr(const FlashxrTileRawPtrs tP,
                 const FlashxTileRawInts tI,
                 const FlashxTileRawReals tR);

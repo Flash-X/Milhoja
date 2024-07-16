@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
-#include <Milhoja_Grid.h>
 #include <Milhoja_RuntimeBackend.h>
 
 #if 0

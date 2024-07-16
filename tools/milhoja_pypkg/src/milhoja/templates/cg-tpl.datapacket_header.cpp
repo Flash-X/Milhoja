@@ -38,6 +38,9 @@
 /* _link:includes */
 #include <Milhoja.h>
 #include <Milhoja_real.h>
+#include <Milhoja_IntVect.h>
+#include <Milhoja_RealVect.h>
+#include <Milhoja_FArray4D.h>
 #include <Milhoja_DataPacket.h>
 #include <climits>
 

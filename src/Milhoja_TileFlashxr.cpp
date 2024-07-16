@@ -6,7 +6,9 @@
 #include "Milhoja_TileFlashxr.h"
 
 #include "Milhoja_Logger.h"
-#include "Milhoja_Grid.h"
+
+#include <cassert>
+
 
 namespace milhoja {
 
@@ -19,53 +21,15 @@ namespace milhoja {
  * \todo Include a single metadata routine that gets gId, level, lo/hi, and
  * loGC/hiGC in one call?  This could replace the lo(int*), etc. calls.
  *
- * \param level      The 0-based refinement level of the tile
- * \param gridIdx    The integer index for the block that contains the tile
- * \param tileIdx    The local integer index for the tile in its block
- * \param interior   The lo/hi global indices of the tile's interior cells
- * \param dataArray  The lo/hi global indices of the tile's cell-centered data array
- * \param unkBlkPtr     The FAB containing the cell-centered data at the given
- *                   level
- * \param fluxBlkPtrs   A vector of pointers to the FABs that store the
- *                   face-centered flux data at the given level.  If there are
- *                   no flux variables for the problem, this vector should be
- *                   empty.  Otherwise, it should have MILHOJA_NDIM elements.
+ * \note Refer Milhoja_FlashxrTileRaw.h
+ *
+ * \param tP      The struct that has raw pointers for constructing Flash-X tileDesc
+ *                e.g.) Unk, FLUX[XYZ]
+ * \param tI      The struct that has integer variables for constructing Flash-X tileDesc
+ *                e.g.) level, tileIdx, ...
+ * \param tR      The struct that has real variables for constructing Flash-X tileDesc
+ *                e.g.) delta[XYZ]
  */
-TileFlashxr::TileFlashxr(const unsigned int level,
-                     const int gridIdx,
-                     const int tileIdx,
-                     const amrex::Box&& interior,
-                     const amrex::Box&& dataArray,
-                     Real* unkBlkPtr,
-                     std::vector<Real*>&& fluxBlkPtrs)
-    : Tile{},
-      level_{level},
-      gridIdxOrBlkId_{gridIdx},
-      tileIdx_{tileIdx},
-      lo_{interior.smallEnd()}, hi_{interior.bigEnd()},
-      loGC_{dataArray.smallEnd()}, hiGC_{dataArray.bigEnd()},
-      nCcComp_{-1},
-      nFluxComp_{0},
-      deltas_{},
-      unkBlkPtr_{unkBlkPtr},
-      fluxBlkPtrs_{std::move(fluxBlkPtrs)}
-{
-    for (auto i=0; i<fluxBlkPtrs_.size(); ++i) {
-        if (!(fluxBlkPtrs_[i])) {
-            throw std::invalid_argument("[TileFlashxr::TileFlashxr] Null flux data pointer");
-        }
-    }
-
-#ifdef DEBUG_RUNTIME
-    std::string msg =   "[TileFlashxr] Created Tile (level="
-                      + std::to_string(level_)
-                      + " / grid ID=" + std::to_string(gridIdxOrBlkId_)
-                      + " / tile ID=" + std::to_string(tileIdx_) + ") with "
-                      + std::to_string(fluxBlkPtrs_.size()) + " flux vars";
-    Logger::instance().log(msg);
-#endif
-}
-
 TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
                          const FlashxTileRawInts tI,
                          const FlashxTileRawReals tR)
