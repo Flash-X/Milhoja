@@ -13,7 +13,7 @@ from . import (
 )
 
 
-class Cpp2CLayerGenerator(AbcCodeGenerator):
+class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
     """
     C++ to C layer generator for Data Packets. Should only be used
     internally by the DataPacketGenerator.
