@@ -32,9 +32,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self, tf_spec: TaskFunction, indent: int, logger: BasicLogger,
         sizes: dict
     ):
-        if not isinstance(tf_spec, TaskFunction):
-            raise TypeError("TF Spec was not derived from task function.")
-
         self._TOOL_NAME = "Milhoja DataPacket"
         self._sizes = deepcopy(sizes)
         self._indent = indent

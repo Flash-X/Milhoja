@@ -12,11 +12,13 @@ from milhoja import (
     BasicLogger,
     TaskFunction
 )
-from milhoja.Cpp2CLayerGenerator import Cpp2CLayerGenerator
-from milhoja.C2FortranLayerGenerator import C2FortranLayerGenerator
+from milhoja.TaskFunctionCpp2CGenerator_OpenACC_F \
+    import TaskFunctionCpp2CGenerator_OpenACC_F
+from milhoja.TaskFunctionC2FGenerator_OpenACC_F \
+    import TaskFunctionC2FGenerator_OpenACC_F
 from milhoja.FortranTemplateUtility import FortranTemplateUtility
 from milhoja.TemplateUtility import TemplateUtility
-from milhoja.DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
+from milhoja.DataPacketModGenerator import DataPacketModGenerator
 
 _FILE_PATH = Path(__file__).resolve().parent
 _DATA_PATH = _FILE_PATH.joinpath("data")
@@ -238,10 +240,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                         destination, overwrite=False
                     )
 
-                generated_name_cpp = Path(
-                    destination,
-                    generator.source_filename
-                )
+                generated_name_cpp = \
+                    Path(destination, generator.source_filename)
                 correct_name_cpp = json_path.stem.replace("REF_", "")
                 correct_name_cpp = Path(
                     _DATA_PATH,
@@ -257,10 +257,8 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                             json_path, generated_cpp, correct
                         )
 
-                generated_name_h = Path(
-                    destination,
-                    generator.header_filename
-                )
+                generated_name_h = \
+                    Path(destination, generator.header_filename)
                 correct_name_h = json_path.stem.replace("REF_", "")
                 correct_name_h = Path(
                     _DATA_PATH,
@@ -275,77 +273,10 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                             json_path, generated_h, correct
                         )
 
-                # ..todo::
-                #       * currently the cpp2c layer is only generated when
-                #         using a fortran task function there should be
-                #         another "cpp2c layer" that's just for cpp task
-                #         functions.
-                generated_cpp2c = None
-                generated_c2f = None
-                generated_dp_mod = None
-                if generator.language == "fortran":
-                    # check cpp2c layer.
-                    generated_cpp2c = Path(
-                        destination,
-                        generator.cpp2c_layer.source_filename
-                    )
-                    correct_cpp2c = json_path.stem.replace("REF_", "")
-                    correct_cpp2c = Path(
-                        _DATA_PATH,
-                        test[self.FOLDER],
-                        "REF_" + str(correct_cpp2c) + "_Cpp2C.cpp"
-                    )
-                    with open(generated_cpp2c, 'r') as generated:
-                        with open(correct_cpp2c, 'r') as correct:
-                            self.check_generated_files(
-                                json_path, generated, correct
-                            )
-
-                    # check c2f layer.
-                    generated_c2f = Path(
-                        destination,
-                        generator.c2f_layer.source_filename
-                    )
-                    correct_c2f = json_path.stem.replace("REF_", "")
-                    correct_c2f = Path(
-                        _DATA_PATH,
-                        test[self.FOLDER],
-                        "REF_" + str(correct_c2f) + "_C2F.F90"
-                    )
-                    with open(generated_c2f, 'r') as generated:
-                        with open(correct_c2f, 'r') as correct:
-                            self.check_generated_files(
-                                json_path, generated, correct
-                            )
-
-                    # check module file
-                    generated_dp_mod = Path(
-                        destination,
-                        generator.dp_module.source_filename
-                    )
-                    correct_dp_mod = json_path.stem.replace("REF_", "")
-                    correct_dp_mod = Path(
-                        _DATA_PATH,
-                        test[self.FOLDER],
-                        "REF_DataPacket_" + str(correct_dp_mod) +
-                        "_c2f_mod.F90"
-                    )
-                    with open(generated_dp_mod, 'r') as generated:
-                        with open(correct_dp_mod, 'r') as correct:
-                            self.check_generated_files(
-                                json_path, generated, correct
-                            )
-
                 # clean up generated files if test passes.
                 try:
                     os.remove(generated_name_cpp)
                     os.remove(generated_name_h)
-                    if generated_cpp2c:
-                        os.remove(generated_cpp2c)
-                    if generated_c2f:
-                        os.remove(generated_c2f)
-                    if generated_dp_mod:
-                        os.remove(generated_dp_mod)
                     # be careful when cleaning up here
                     for file in Path(destination).glob("cg-tpl.*.cpp"):
                         os.remove(file)
@@ -479,7 +410,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             # use default logging value for now
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
-            cpp2c = Cpp2CLayerGenerator(tf_spec, 4, logger)
+            cpp2c = TaskFunctionCpp2CGenerator_OpenACC_F(tf_spec, 4, logger)
 
             with self.assertRaises(
                 LogicError,
@@ -494,7 +425,20 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             ):
                 cpp2c.generate_source_code(destination, overwrite=False)
 
+            generated_cpp2c = Path(destination, cpp2c.source_filename)
+            correct_cpp2c = json_path.stem.replace("REF_", "")
+            correct_cpp2c = Path(
+                _DATA_PATH, test[self.FOLDER],
+                "REF_" + str(correct_cpp2c) + "_Cpp2C.cpp"
+            )
+            with open(generated_cpp2c, 'r') as generated:
+                with open(correct_cpp2c, 'r') as correct:
+                    self.check_generated_files(
+                        json_path, generated, correct
+                    )
+
             # cleanup
+            os.remove(generated_cpp2c)
             try:
                 for file in Path(destination).glob("cg-tpl.*.cpp"):
                     os.remove(file)
@@ -516,28 +460,38 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
             if tf_spec.language.lower() == "c++":
                 with self.assertRaises(LogicError, msg="Wrong language"):
-                    mod_generator = DataPacketC2FModuleGenerator(
+                    mod_generator = DataPacketModGenerator(
                         tf_spec, 4, logger
                     )
                 continue
 
-            mod_generator = DataPacketC2FModuleGenerator(
-                tf_spec, 4, logger
-            )
-
+            mod_generator = DataPacketModGenerator(tf_spec, 4, logger)
             with self.assertRaises(LogicError, msg="Header gen should fail."):
                 mod_generator.generate_header_code(destination, True)
 
             mod_generator.generate_source_code(destination, True)
-
             with self.assertRaises(
                 FileExistsError,
                 msg="File was overwritten!"
             ):
                 mod_generator.generate_source_code(destination, False)
+
+            generated_dp_mod = \
+                Path(destination, mod_generator.source_filename)
+            correct_dp_mod = json_path.stem.replace("REF_", "")
+            correct_dp_mod = Path(
+                _DATA_PATH, test[self.FOLDER],
+                "REF_DataPacket_" + str(correct_dp_mod) + "_c2f_mod.F90"
+            )
+            with open(generated_dp_mod, 'r') as generated:
+                with open(correct_dp_mod, 'r') as correct:
+                    self.check_generated_files(
+                        json_path, generated, correct
+                    )
+
             os.remove(Path(destination, mod_generator.source_filename))
 
-    def testC2fGenerator(self):
+    def testC2FGenerator(self):
         for test in self._sedov:
             json_path = test[self.JSON]
             sizes = test[self.SIZES]
@@ -552,10 +506,7 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
             logger = BasicLogger(LOG_LEVEL_NONE)
             destination = Path.cwd()
 
-            c2f = C2FortranLayerGenerator(
-                tf_spec, 4, logger
-            )
-
+            c2f = TaskFunctionC2FGenerator_OpenACC_F(tf_spec, 4, logger)
             with self.assertRaises(
                 LogicError,
                 msg="C2F generate_header was not called?"
@@ -563,12 +514,23 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 c2f.generate_header_code(destination, overwrite=True)
 
             c2f.generate_source_code(destination, overwrite=True)
-
             with self.assertRaises(
                 FileExistsError,
                 msg="C2F file was overwritten!"
             ):
                 c2f.generate_source_code(destination, overwrite=False)
+
+            generated_c2f = Path(destination, c2f.source_filename)
+            correct_c2f = json_path.stem.replace("REF_", "")
+            correct_c2f = Path(
+                _DATA_PATH, test[self.FOLDER],
+                "REF_" + str(correct_c2f) + "_C2F.F90"
+            )
+            with open(generated_c2f, 'r') as generated:
+                with open(correct_c2f, 'r') as correct:
+                    self.check_generated_files(
+                        json_path, generated, correct
+                    )
 
             try:
                 for file in Path(destination).glob("*.F90"):
