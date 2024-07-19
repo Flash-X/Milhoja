@@ -80,7 +80,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
-            indent, "Milhoja Task Function C2F Generator GPU F", logger
+            indent, "Milhoja Task Function C2F Generator OpenACC F", logger
         )
 
         self.INDENT = " " * indent
