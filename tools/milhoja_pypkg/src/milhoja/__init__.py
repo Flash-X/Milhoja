@@ -62,7 +62,7 @@ from .SubroutineGroup import SubroutineGroup
 from .TaskFunction import TaskFunction
 from .TaskFunctionAssembler import TaskFunctionAssembler
 from .AbcCodeGenerator import AbcCodeGenerator
-from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
+from .TileWrapperGenerator import TileWrapperGenerator
 from .TileWrapperModGenerator import TileWrapperModGenerator
 from .TaskFunctionGenerator_cpu_cpp import TaskFunctionGenerator_cpu_cpp
 from .DataPacketGenerator import DataPacketGenerator
