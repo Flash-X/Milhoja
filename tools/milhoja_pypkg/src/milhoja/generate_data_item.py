@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from .constants import LOG_LEVEL_BASIC_DEBUG
-from .TileWrapperGenerator_cpp import TileWrapperGenerator_cpp
+from .TileWrapperGenerator import TileWrapperGenerator
 from .DataPacketGenerator import DataPacketGenerator
 
 
@@ -31,7 +31,7 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
     if (language.lower() == "c++" or language.lower() == "fortran") and \
             (data_item.lower() == "tilewrapper"):
 
-        generator = TileWrapperGenerator_cpp(tf_spec, indent, logger)
+        generator = TileWrapperGenerator(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
         generator.generate_source_code(destination, overwrite)
 
