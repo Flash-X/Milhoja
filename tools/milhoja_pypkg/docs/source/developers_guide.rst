@@ -383,12 +383,12 @@ Code Generation classes contained inside of the code generation interface follow
 a loose naming pattern that determines what language and device the code is generated
 for. The general format is as follows:
 
-`[object]_[device]_[language]`
+`[object][_device][_language]`
 
 Where the `[object]` is the type of object being generated, either `DataPacket`
-or `TileWrapper`. The `[device]` is the device that the generated code will run
+or `TileWrapper`. The `[_device]` is the device that the generated code will run
 on, either `cpu` for running on the cpu, or the tpye of offloading to use if the
-gpu is being used. Finally, the `[language]` is the language that the code is
+gpu is being used. Finally, the `[_language]` is the language that the code is
 generated for. For example, `TaskFunctionC2FGenerator_OpenACC_F` is a class
 for generating the C2F layer for TaskFunctions, with code that runs on the GPU
 with OpenACC offloading, generated for fortran code.
