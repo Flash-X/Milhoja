@@ -63,7 +63,6 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             * Jared mentioned that this and the cpp2c layers should probably
             be separated out from the data packet generator class and moved
             over into generate_task_function.
-    
     """
 
     def __init__(self, tf_spec, indent, logger):
