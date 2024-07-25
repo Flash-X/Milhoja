@@ -14,7 +14,7 @@ LOG_LEVEL_MAX = 3
 
 LOG_LEVELS = list(range(LOG_LEVEL_NONE, LOG_LEVEL_MAX+1))
 
-# If we ever want to support more languages in the future
+# If we ever want to support more languages in the future?
 SUPPORTED_LANGUAGES = ["c++", "fortran"]
 # If we ever want to support TPUs or NPUs :) (kidding, just a formality)
 SUPPORTED_PROCESSORS = ["cpu", "gpu"]

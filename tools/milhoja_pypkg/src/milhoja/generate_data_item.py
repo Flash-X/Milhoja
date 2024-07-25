@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from .constants import LOG_LEVEL_BASIC_DEBUG
+from .constants import SUPPORTED_LANGUAGES
 from .TileWrapperGenerator import TileWrapperGenerator
 from .DataPacketGenerator import DataPacketGenerator
 
@@ -28,8 +29,12 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
     data_item = tf_spec.data_item
     language = tf_spec.language
 
-    if (language.lower() == "c++" or language.lower() == "fortran") and \
-            (data_item.lower() == "tilewrapper"):
+    # check language
+    if (language.lower() not in SUPPORTED_LANGUAGES):
+        msg = f"{language} is not supported."
+        raise ValueError(msg)
+
+    if data_item.lower() == "tilewrapper":
 
         generator = TileWrapperGenerator(tf_spec, indent, logger)
         generator.generate_header_code(destination, overwrite)
@@ -38,8 +43,7 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
 
-    elif (language.lower() == "c++" or language.lower() == "fortran") and \
-            (data_item.lower() == "datapacket"):
+    elif data_item.lower() == "datapacket":
         library = Path(library_path).resolve()
         sizes_json = library.joinpath("include", "sizes.json")
         if not library.is_dir():
@@ -55,9 +59,8 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
         with open(sizes_json, "r") as fptr:
             sizes = json.load(fptr)
         expected = {
-            "real", "int", "unsigned int", "std::size_t",
-            "IntVect", "RealVect",
-            "FArray1D", "FArray2D", "FArray3D", "FArray4D",
+            "real", "int", "unsigned int", "std::size_t", "IntVect",
+            "RealVect", "FArray1D", "FArray2D", "FArray3D", "FArray4D",
             "byte_align"
         }
         assert set(sizes) == expected
@@ -74,6 +77,7 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
 
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
+
     else:
         msg = f"Cannot generate data item code for {data_item}/{language}"
         raise ValueError(msg)
