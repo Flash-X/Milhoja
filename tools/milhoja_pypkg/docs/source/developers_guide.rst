@@ -393,14 +393,18 @@ generated for. For example, `TaskFunctionC2FGenerator_OpenACC_F` is a class
 for generating the C2F layer for TaskFunctions, with code that runs on the GPU
 with OpenACC offloading, generated for fortran code.
 
-Since this is just a 'loose' rule, there are a few exceptions to this. TileWrappers
-are only used on CPUs, so there is no need to specify the device. TileWrappers are
-also compatible with both Fortran & C++ Task Functions without extra modifications.
-DataPackets are designed in a similar way, however, the generated code is not necessarily
-compatible with both C++ and Fortran Task Functions. The last exceptions are the
+Since this is just a 'loose' rule, there are a few exceptions to this. The
+TileWrapperGenerator class and the DataPacketGenerator class hide any language specific
+generation rules inside of themselves, so there are no separate generators for language
+or device specific data items. Generally, TileWrappers are only used on CPUs, so
+there is no need to specify the device. TileWrappers are also compatible with both
+Fortran & C++ Task Functions without extra modifications. DataPackets are designed
+in a similar way, however, the generated code is not necessarily compatible with
+both C++ and Fortran Task Functions (this will likely change in the future), and
+DataPackets are primarily used for offloading purposes. The last exceptions are the
 `DataPacketModGenerator` and the `TileWrapperModGenerator`, which exist to generate
 fortran module interface files for use with the TaskFunction, therefore there is
-no need to specify the language or offloading / device inside of the file name.
+no need to specify the language or device/offloading inside of the file name.
 
 .. autoclass:: milhoja.TileWrapperGenerator
     :members:
