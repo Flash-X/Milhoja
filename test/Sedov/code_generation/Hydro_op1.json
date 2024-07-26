@@ -31,16 +31,16 @@
             "deltas":    {"source":             "tile_deltas"},
             "Uin":       {"source":             "grid_data",
                           "structure_index":    ["CENTER", 1],
-                          "R":                  [1, 2, 3, 4, 5, 6, 9]},
+                          "r":                  [1, 2, 3, 4, 5, 6, 9]},
             "flX":       {"source":             "grid_data",
                           "structure_index":    ["FLUXX", 1],
-                          "W":                  [1, 2, 3, 4, 5]},
+                          "w":                  [1, 2, 3, 4, 5]},
             "flY":       {"source":             "grid_data",
                           "structure_index":    ["FLUXY", 1],
-                          "W":                  [1, 2, 3, 4, 5]},
+                          "w":                  [1, 2, 3, 4, 5]},
             "flZ":       {"source":             "grid_data",
                           "structure_index":    ["FLUXZ", 1],
-                          "W":                  [1, 2, 3, 4, 5]},
+                          "w":                  [1, 2, 3, 4, 5]},
             "auxC":      {"source":             "scratch",
                           "name":               "_auxC"}
         }
@@ -53,17 +53,17 @@
             "hi":   {"source":           "tile_hi"},
             "U":    {"source":           "grid_data",
                      "structure_index":  ["CENTER", 1],
-                     "RW":               [1, 2, 3, 4, 6],
-                     "W":                [8]},
+                     "rw":               [1, 2, 3, 4, 6],
+                     "w":                [8]},
             "flX":  {"source":           "grid_data",
                      "structure_index":  ["FLUXX", 1],
-                     "R":                [1, 2, 3, 4, 5]},
+                     "r":                [1, 2, 3, 4, 5]},
             "flY":  {"source":           "grid_data",
                      "structure_index":  ["FLUXY", 1],
-                     "R":                [1, 2, 3, 4, 5]},
+                     "r":                [1, 2, 3, 4, 5]},
             "flZ":  {"source":           "grid_data",
                      "structure_index":  ["FLUXZ", 1],
-                     "R":                [1, 2, 3, 4, 5]}
+                     "r":                [1, 2, 3, 4, 5]}
         }
     },
     "Eos::idealGammaDensIe": {
@@ -74,8 +74,8 @@
             "hi":   {"source":           "tile_hi"},
             "U":    {"source":           "grid_data",
                      "structure_index":  ["CENTER", 1],
-                     "R":                [1, 8],
-                     "W":                [5, 7]}
+                     "r":                [1, 8],
+                     "w":                [5, 7]}
         }
     },
     "hy::computeSoundSpeedHll_oacc_summit": {
@@ -86,7 +86,7 @@
             "hi":   {"source":           "tile_hi"},
             "U":    {"source":           "grid_data",
                      "structure_index":  ["CENTER", 1],
-                     "R":                [1, 5, 9]},
+                     "r":                [1, 5, 9]},
             "auxC": {"source":           "scratch",
                      "name":             "_auxC"}
         }
@@ -102,7 +102,7 @@
             "deltas": {"source":           "tile_deltas"},
             "U":      {"source":           "grid_data",
                        "structure_index":  ["CENTER", 1],
-                       "R":                [1, 2, 3, 4, 5, 6]},
+                       "r":                [1, 2, 3, 4, 5, 6]},
             "flX":    {"source":           "scratch",
                        "name":             "_flX"},
             "auxC":   {"source":           "scratch",
@@ -120,7 +120,7 @@
             "deltas": {"source":           "tile_deltas"},
             "U":      {"source":           "grid_data",
                        "structure_index":  ["CENTER", 1],
-                       "R":                [1, 2, 3, 4, 5, 6]},
+                       "r":                [1, 2, 3, 4, 5, 6]},
             "flY":    {"source":           "scratch",
                        "name":             "_flY"},
             "auxC":   {"source":           "scratch",
@@ -138,7 +138,7 @@
             "deltas": {"source":           "tile_deltas"},
             "U":      {"source":           "grid_data",
                        "structure_index":  ["CENTER", 1],
-                       "R":                [1, 2, 3, 4, 5, 6]},
+                       "r":                [1, 2, 3, 4, 5, 6]},
             "flZ":    {"source":           "scratch",
                        "name":             "_flZ"},
             "auxC":   {"source":           "scratch",
@@ -153,8 +153,8 @@
             "hi":     {"source":           "tile_hi"},
             "U":      {"source":           "grid_data",
                        "structure_index":  ["CENTER", 1],
-                       "RW":               [1, 2, 3, 4, 6],
-                       "W":                [8]},
+                       "rw":               [1, 2, 3, 4, 6],
+                       "w":                [8]},
             "flX":    {"source":           "scratch",
                        "name":             "_flX"},
             "flY":    {"source":           "scratch",
@@ -171,8 +171,8 @@
             "hi":    {"source":           "tile_hi"},
             "U":     {"source":           "grid_data",
                       "structure_index":  ["CENTER", 1],
-                      "R":                [1, 8],
-                      "W":                [5, 7]}
+                      "r":                [1, 8],
+                      "w":                [5, 7]}
         }
     }
 }
