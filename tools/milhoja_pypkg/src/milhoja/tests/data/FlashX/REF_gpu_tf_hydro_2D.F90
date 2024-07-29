@@ -55,10 +55,10 @@ contains
         integer,                       intent(IN)    :: tile_hi_d(:, :)
         real,                          intent(IN)    :: tile_deltas_d(:, :)
         real,                          intent(INOUT) :: U_d(:, :, :, :, :)
-        real,                          intent(IN)   :: hydro_op1_flX_d(:, :, :, :, :)
-        real,                          intent(IN)   :: hydro_op1_flY_d(:, :, :, :, :)
-        real,                          intent(IN)   :: hydro_op1_flZ_d(:, :, :, :, :)
-        real,                          intent(IN)   :: hydro_op1_auxc_d(:, :, :, :)
+        real,                          intent(INOUT)   :: hydro_op1_flX_d(:, :, :, :, :)
+        real,                          intent(INOUT)   :: hydro_op1_flY_d(:, :, :, :, :)
+        real,                          intent(INOUT)   :: hydro_op1_flZ_d(:, :, :, :, :)
+        real,                          intent(INOUT)   :: hydro_op1_auxc_d(:, :, :, :)
 
         integer :: n
 
