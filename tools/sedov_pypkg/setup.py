@@ -33,8 +33,8 @@ setup(
     long_description=readme(),
     setup_requires=['nose>=1.0'],
     install_requires=reqs_list,
-    # tests_require=['nose>=1.0'],
-    # test_suite='sedov.test_suite',
+    tests_require=['nose>=1.0'],
+    test_suite='sedov.test_suite',
     keywords='sedov',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
