@@ -16,7 +16,7 @@ def _create_generator(json_filename):
     logger = milhoja.BasicLogger(milhoja.LOG_LEVEL_NONE)
     tf_spec = milhoja.TaskFunction.from_milhoja_json(json_filename)
 
-    return milhoja.TileWrapperGenerator_cpp(tf_spec, INDENT, logger)
+    return milhoja.TileWrapperGenerator(tf_spec, INDENT, logger)
 
 
 class TestTileWrapperGenerator_cpp(milhoja.tests.TestCodeGenerators):
