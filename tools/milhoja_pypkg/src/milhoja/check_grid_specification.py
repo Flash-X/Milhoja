@@ -45,13 +45,13 @@ def check_grid_specification(spec, logger):
 
     nxb = spec["nxb"]
     if not isinstance(nxb, numbers.Integral):
-        raise TypeError(f"NXB is not integer ({nxb})")
+        raise TypeError(f"nxb is not integer ({nxb})")
     elif nxb <= 0:
         raise ValueError(f"Non-positive NXB ({nxb})")
 
     nyb = spec["nyb"]
     if not isinstance(nyb, numbers.Integral):
-        raise TypeError(f"NYB is not integer ({nyb})")
+        raise TypeError(f"nyb is not integer ({nyb})")
     elif nyb <= 0:
         raise ValueError(f"Non-positive NYB ({nyb})")
     elif (dimension == 1) and (nyb != 1):
@@ -59,7 +59,7 @@ def check_grid_specification(spec, logger):
 
     nzb = spec["nzb"]
     if not isinstance(nzb, numbers.Integral):
-        raise TypeError(f"NZB is not integer ({nzb})")
+        raise TypeError(f"nzb is not integer ({nzb})")
     elif nzb <= 0:
         raise ValueError(f"Non-positive NZB ({nzb})")
     elif (dimension < 3) and (nzb != 1):

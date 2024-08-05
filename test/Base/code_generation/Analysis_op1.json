@@ -20,7 +20,7 @@
                           "hi":               "tile_hi"},
             "U":         {"source":           "grid_data",
                           "structure_index":  ["CENTER", 1],
-                          "R":                [1, 2]},
+                          "r":                [1, 2]},
             "idx":       {"source":           "tile_gridIndex"}
         }
     }
