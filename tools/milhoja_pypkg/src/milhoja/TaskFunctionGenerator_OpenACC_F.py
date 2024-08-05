@@ -201,6 +201,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         intent = "OUT"
                     else:
                         raise LogicError("Unknown grid data variable class")
+
                     fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
 
                 elif src == SCRATCH_ARGUMENT:
@@ -209,7 +210,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension + 1)]
                     array = "(" + ", ".join(tmp) + ")"
-                    fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d{array}\n")
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(INOUT) :: {arg}_d{array}\n")
 
                 else:
                     raise LogicError(f"{arg} of unknown argument class")

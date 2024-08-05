@@ -7,9 +7,6 @@ from pathlib import Path
 
 from .parse_helpers import parse_extents
 from .generate_packet_file import generate_packet_file
-from .Cpp2CLayerGenerator import Cpp2CLayerGenerator
-from .C2FortranLayerGenerator import C2FortranLayerGenerator
-from .DataPacketC2FModuleGenerator import DataPacketC2FModuleGenerator
 from .FortranTemplateUtility import FortranTemplateUtility
 from .CppTemplateUtility import CppTemplateUtility
 from .AbcCodeGenerator import AbcCodeGenerator
@@ -35,9 +32,6 @@ class DataPacketGenerator(AbcCodeGenerator):
         self, tf_spec: TaskFunction, indent: int, logger: BasicLogger,
         sizes: dict
     ):
-        if not isinstance(tf_spec, TaskFunction):
-            raise TypeError("TF Spec was not derived from task function.")
-
         self._TOOL_NAME = "Milhoja DataPacket"
         self._sizes = deepcopy(sizes)
         self._indent = indent
@@ -229,28 +223,6 @@ class DataPacketGenerator(AbcCodeGenerator):
             overwrite, self._logger
         )
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
-
-        if self._tf_spec.language.lower() == "fortran":
-            # dirty hack for fixing the test suite. In reality, this code
-            # should be moved outside of the data packet generator and into
-            # the task function generator.
-            self.cpp2c_layer = Cpp2CLayerGenerator(
-                self._tf_spec, self._indent, self._logger
-            )
-            self.cpp2c_layer.generate_source_code(destination, overwrite)
-
-            # generate fortran to c layer if necessary
-            self.c2f_layer = C2FortranLayerGenerator(
-                self._tf_spec, self._indent, self._logger
-            )
-            # c2f layer does not use cgkit so no need
-            # to call generate_packet_file
-            self.c2f_layer.generate_source_code(destination, overwrite)
-
-            self.dp_module = DataPacketC2FModuleGenerator(
-                self._tf_spec, self._indent, self._logger
-            )
-            self.dp_module.generate_source_code(destination, overwrite)
 
     @property
     def language(self):
