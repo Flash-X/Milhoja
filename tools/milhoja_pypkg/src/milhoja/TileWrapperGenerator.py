@@ -194,8 +194,8 @@ class TileWrapperGenerator(AbcCodeGenerator):
             fptr.write("\n")
 
             # ----- STATIC DEFINITIONS
-            scratch_vars = self.__scratch_variables
-            for arg in sorted(list(scratch_vars)):
+            scratch_vars = sorted(list(self.__scratch_variables))
+            for arg in scratch_vars:
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
             fptr.write("\n")
             fptr.write(f"void {classname}::acquireScratch(void) {{\n")
@@ -203,7 +203,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
                 fptr.write(f"{INDENT}const unsigned int  nThreads = ")
                 fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
                 fptr.write("\n")
-            for arg in sorted(list(scratch_vars)):
+            for arg in scratch_vars:
                 arg_spec = self.__scratch_specification(arg)
                 arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if ({arg}_) {{\n")
@@ -229,7 +229,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
             fptr.write("\n")
 
             fptr.write(f"void {classname}::releaseScratch(void) {{\n")
-            for arg in sorted(list(scratch_vars)):
+            for arg in scratch_vars:
                 arg_spec = self.__scratch_specification(arg)
                 arg_type = arg_spec["type"]
                 fptr.write(f"{INDENT}if (!{arg}_) {{\n")

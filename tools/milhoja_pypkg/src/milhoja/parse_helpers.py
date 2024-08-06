@@ -297,6 +297,11 @@ def parse_extents(extents: str, src=None) -> list:
             f"A value in the extents ({extents_list}) was not an integer."
         )
 
+    #          /\
+    # ..todo:: |  I don't think we need check for negatives if we remove the
+    #          |  call to lstrip('-') here...
+    #         \/
+
     # don't allow negative values for array sizes.
     if any([(int(item) < 0) for item in extents_list]):
         raise RuntimeError(
