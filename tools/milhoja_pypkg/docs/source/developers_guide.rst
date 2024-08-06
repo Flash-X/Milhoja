@@ -125,12 +125,46 @@ Ultimately, the application using this package decides what code needs to be gen
 Task Functions
 ^^^^^^^^^^^^^^
 
-Task Functions are responsible for using :ref:`developers_guide:Data Items` to run the subroutines
-specified inside of the :ref:`users_manual:Task Function Specification`.
+Task Functions are responsible for using :ref:`developers_guide:Data Items` to
+call the subroutines specified inside of the :ref:`users_manual:Task Function Specification`,
+in the order that they are contained in the call graph.
 
-.. todo::
-  * Write task function overview.
-  * Write steps for generating task functions.
+Because it is necessary for the Task Function to call all subroutines contained
+inside of a call graph, it needs some sort of an argument mapping for each specified
+subroutine. This is necessary so that it can setup data pointers contained inside
+of the associated Data Item to pass into each subroutine call at the appropriate spot.
+Without the data mapping contained within the Task Function Specification, the
+Task Function Generator would have no idea how to pass arguments into each subroutine,
+outside of using string matching. However, relying on strings to pass in arguments
+is prone to errors and difficult to debug, so we avoid that approach in all code
+generators.
+
+Generation
+''''''''''
+
+1. The milhoja library function generate_task_function is called, and a Task Function
+   Specification, directory destination, overwrite flag, indent size, and logger
+   are passed into it. The generate_task_function routine will choose the appropriate
+   internal Task Function Generator class based on the details outline in the
+   Task Function Specification.
+
+    a. Depending on the Task Function Specification details, the "C++ to C" and
+    "C to Fortran" layers may also be generated after the Task Function is generated.
+
+2. Once a Task Function Generator class is chosen, a new instance of it will be
+   created and the generate_header_code & generate_source_code member functions
+   will be called in order to generate code.
+
+3. Each Task Function Generator class will move through each argument defined inside
+   of the Task Function Specification, inserting it into the argument list and
+   setting it up inside of the Task Function. 
+
+4. Once the generator has set up each of the arguments, it will then move through
+   the subroutine graph in order to generate the call order for the graph.
+
+5. If the specified language inside of the Task Function Specification is fortran,
+   the Task Function Generator will also generate a module that binds the C++ to C
+   layer function as a fortran method.
 
 Data Items
 ^^^^^^^^^^
@@ -181,6 +215,17 @@ TileWrapper Requirements
 .. todo::
   * Write tile wrapper overview.
   * Write steps for generating tile wrappers.
+
+Generation
+''''''''''
+
+1. The function generate_data_item is called, and determines if a new Tile Wrapper
+   needs to be generated based on the details contained in the Task Function Specification.
+   If it does, a new instance of TileWrapperGenerator is created, and the member
+   functions `generate_header_code` and `generate_source_code` are called.
+
+2. Since Tile Wrappers do not transfer data across devices, the code generator
+   does not need to create as much setup code as the DataPacketGenerator. 
 
 Data Packets
 """"""""""""
@@ -331,6 +376,10 @@ The steps for generating a DataPacket subclass are as follows:
     the milhoja pypackage), resulting in the completed implementation of the new
     DataPacket class. The output file names are determined in the :ref:`users_manual:data_item`
     section.
+
+.. todo::
+    * The Data Item generators do not actually generated the inter-language code,
+      they are generated after the task functions are generated.
 
 6.  If the 'fortran' language is specified, the DataPacket generator will call two
     more functions to create interoperability layers for the new DataPacket. One
