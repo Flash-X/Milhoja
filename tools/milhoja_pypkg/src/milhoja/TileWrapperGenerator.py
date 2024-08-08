@@ -10,7 +10,7 @@ from .AbcLogger import AbcLogger
 from .AbcCodeGenerator import AbcCodeGenerator
 
 
-class TileWrapperGenerator_cpp(AbcCodeGenerator):
+class TileWrapperGenerator(AbcCodeGenerator):
     """
     A class for generating final, compilable C++ header and source code that
     defines a Milhoja_TileWrapper derived class for constructing the data item
@@ -39,7 +39,7 @@ class TileWrapperGenerator_cpp(AbcCodeGenerator):
 
         super().__init__(
             tf_spec, header_filename, source_filename, indent,
-            TileWrapperGenerator_cpp.__LOG_TAG, logger
+            TileWrapperGenerator.__LOG_TAG, logger
         )
 
         # ----- DETERMINE INTERNAL SCRATCH NEEDED & STORE

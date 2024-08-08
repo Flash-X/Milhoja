@@ -4,6 +4,9 @@ from . import TaskFunctionGenerator_OpenACC_F
 from . import TaskFunctionC2FGenerator_cpu_F
 from . import TaskFunctionCpp2CGenerator_cpu_F
 from . import TileWrapperModGenerator
+from . import TaskFunctionC2FGenerator_OpenACC_F
+from . import TaskFunctionCpp2CGenerator_OpenACC_F
+from . import DataPacketModGenerator
 
 
 def generate_task_function(tf_spec, destination, overwrite, indent, logger):
@@ -46,19 +49,27 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
         c2f_generator.generate_source_code(destination, overwrite)
         assert destination.joinpath(generator.source_filename).is_file()
 
-        tile_wrapper_mod_generator = \
-            TileWrapperModGenerator(tf_spec, indent, logger)
-        tile_wrapper_mod_generator.generate_source_code(
-            destination, overwrite
-        )
-
-        assert destination.joinpath(
-            tile_wrapper_mod_generator.source_filename
-        ).is_file()
+        mod_generator = TileWrapperModGenerator(tf_spec, indent, logger)
+        mod_generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(mod_generator.source_filename).is_file()
 
     elif (language.lower() == "fortran") and (offloading == "openacc"):
         generator = TaskFunctionGenerator_OpenACC_F(tf_spec, indent, logger)
         generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = \
+            TaskFunctionC2FGenerator_OpenACC_F(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = \
+            TaskFunctionCpp2CGenerator_OpenACC_F(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = DataPacketModGenerator(tf_spec, indent, logger)
+        generator.generate_source_code(destination, indent)
         assert destination.joinpath(generator.source_filename).is_file()
 
     elif (language.lower() in ["c++", "fortran"]) and \

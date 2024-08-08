@@ -23,7 +23,7 @@ def check_grid_data_specification(arg, spec, variable_index_base, logger):
     # LOG_NAME = ERROR_CHECK_LOG_TAG
 
     VALID_SPACES = ["center", "fluxx", "fluxy", "fluxz"]
-    VALID_VAR_INFO = ["R", "RW", "W"]
+    VALID_VAR_INFO = ["r", "rw", "w"]
 
     # ----- ERROR CHECK ARGUMENTS
     if not isinstance(logger, AbcLogger):

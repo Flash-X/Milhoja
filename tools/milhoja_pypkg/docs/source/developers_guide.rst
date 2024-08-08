@@ -378,7 +378,35 @@ name of the item, followed by the suffix '_d'.
 
 Code Generation Interface
 -------------------------
-.. autoclass:: milhoja.TileWrapperGenerator_cpp
+
+Code Generation classes contained inside of the code generation interface follow
+a loose naming pattern that determines what language and device the code is generated
+for. The general format is as follows:
+
+`[object][_device][_language]`
+
+Where the `[object]` is the type of object being generated, either `DataPacket`
+or `TileWrapper`. The `[_device]` is the device that the generated code will run
+on, either `cpu` for running on the cpu, or the tpye of offloading to use if the
+gpu is being used. Finally, the `[_language]` is the language that the code is
+generated for. For example, `TaskFunctionC2FGenerator_OpenACC_F` is a class
+for generating the C2F layer for TaskFunctions, with code that runs on the GPU
+with OpenACC offloading, generated for fortran code.
+
+Since this is just a 'loose' rule, there are a few exceptions to this. The
+TileWrapperGenerator class and the DataPacketGenerator class hide any language specific
+generation rules inside of themselves, so there are no separate generators for language
+or device specific data items. Generally, TileWrappers are only used on CPUs, so
+there is no need to specify the device. TileWrappers are also compatible with both
+Fortran & C++ Task Functions without extra modifications. DataPackets are designed
+in a similar way, however, the generated code is not necessarily compatible with
+both C++ and Fortran Task Functions (this will likely change in the future), and
+DataPackets are primarily used for offloading purposes. The last exceptions are the
+`DataPacketModGenerator` and the `TileWrapperModGenerator`, which exist to generate
+fortran module interface files for use with the TaskFunction, therefore there is
+no need to specify the language or device/offloading inside of the file name.
+
+.. autoclass:: milhoja.TileWrapperGenerator
     :members:
 .. autoclass:: milhoja.TileWrapperModGenerator
     :members:
@@ -392,5 +420,9 @@ Code Generation Interface
     :members:
 .. autoclass:: milhoja.TaskFunctionC2FGenerator_cpu_F
     :members:
+.. autoclass:: milhoja.TaskFunctionC2FGenerator_OpenACC_F
+    :members:
 .. autoclass:: milhoja.TaskFunctionCpp2CGenerator_cpu_F
+    :members:
+.. autoclass:: milhoja.TaskFunctionCpp2CGenerator_OpenACC_F
     :members:
