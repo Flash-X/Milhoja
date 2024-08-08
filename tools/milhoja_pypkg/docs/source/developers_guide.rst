@@ -112,14 +112,14 @@ The following example shows how to run only a single test case using the
 Code Generation
 ---------------
 
-This document is a living document detailing the code generation systems that come bundled
-with the Milhoja pypackage.
+This document is a living document detailing the code generation systems that
+come bundled with the Milhoja pypackage.
 
 There are two major types of codes that the Milhoja pypackage can generate for the
 user when provided with a :ref:`users_manual:Task Function Specification`. These are
 :ref:`developers_guide:Task Functions` and :ref:`developers_guide:Data Items`.
-These two types of codes are considered a pair, so one JSON input should be used
-to generate both at the same time. One is not guaranteed to work without the other.
+These two classes are considered a pair, so one JSON input should be used to
+generate both at the same time, and one is not guaranteed to work without the other.
 Ultimately, the application using this package decides what code needs to be generated.
 
 Task Functions
@@ -136,20 +136,23 @@ of the associated Data Item to pass into each subroutine call at the appropriate
 Without the data mapping contained within the Task Function Specification, the
 Task Function Generator would have no idea how to pass arguments into each subroutine,
 outside of using string matching. However, relying on strings to pass in arguments
-is prone to errors and difficult to debug, so we avoid that approach in all code
+is prone to errors, difficult to debug, and not guaranteed to work if a variable
+uses different names in each subroutine, so we avoid that approach in all code
 generators.
 
 Generation
 ''''''''''
 
-1. The milhoja library function generate_task_function is called, and a Task Function
+1. The milhoja library function `generate_task_function` is called, and a Task Function
    Specification, directory destination, overwrite flag, indent size, and logger
-   are passed into it. The generate_task_function routine will choose the appropriate
-   internal Task Function Generator class based on the details outline in the
+   are passed into it. The `generate_task_function` routine will choose the appropriate
+   internal Task Function Generator class based on the details outlined in the
    Task Function Specification.
 
     a. Depending on the Task Function Specification details, the "C++ to C" and
-    "C to Fortran" layers may also be generated after the Task Function is generated.
+       "C to Fortran" layers may also be generated after the Task Function is
+       generated.  These generators are considered to be separate from the Task
+       Function generator. 
 
 2. Once a Task Function Generator class is chosen, a new instance of it will be
    created and the generate_header_code & generate_source_code member functions
@@ -157,10 +160,11 @@ Generation
 
 3. Each Task Function Generator class will move through each argument defined inside
    of the Task Function Specification, inserting it into the argument list and
-   setting it up inside of the Task Function. 
+   setting it up inside of the Task Function.
 
 4. Once the generator has set up each of the arguments, it will then move through
-   the subroutine graph in order to generate the call order for the graph.
+   the subroutine graph in order to generate each call contained inside the call
+   graph.
 
 5. If the specified language inside of the Task Function Specification is fortran,
    the Task Function Generator will also generate a module that binds the C++ to C
@@ -179,7 +183,8 @@ Tile Wrappers
 
 Tile Wrappers are data items that contain a tile reference as well as thread-private
 variables. Generally, Tile Wrappers are used for Task Functions that do not
-require device offloading.
+require device offloading. Since Tile Wrappers are not offloaded, they require
+less setup than Data Packets.
 
 TileWrapper Requirements
 ''''''''''''''''''''''''
@@ -212,20 +217,26 @@ TileWrapper Requirements
    ease learning and using the design as well as improve maintainability of codes
    that use Milhoja.
 
-.. todo::
-  * Write tile wrapper overview.
-  * Write steps for generating tile wrappers.
-
 Generation
 ''''''''''
 
-1. The function generate_data_item is called, and determines if a new Tile Wrapper
+1. The function `generate_data_item` is called, and determines if a new Tile Wrapper
    needs to be generated based on the details contained in the Task Function Specification.
    If it does, a new instance of TileWrapperGenerator is created, and the member
    functions `generate_header_code` and `generate_source_code` are called.
 
 2. Since Tile Wrappers do not transfer data across devices, the code generator
-   does not need to create as much setup code as the DataPacketGenerator. 
+   does not need to create as much setup code as the DataPacketGenerator.
+
+3. The TileWrapperGenerator will move through each argument specified inside of
+   the Task Function Specification in order to create the constructor and the
+   functions for acquiring and releasing scratch data.
+
+4. The TileWrapperGenerator will write every function that it needs to implement
+   as defined by the TileWrapper class in TileWrapper.h. 
+
+4. The TileWrapperGenerator will output the new TileWrapper class to the specified
+   folder that was passed into `generate_data_item`.
 
 Data Packets
 """"""""""""
@@ -250,7 +261,7 @@ memory efficiency and speed.
 
 2.  Second, since the DataPackets are being created and managed at a very low level,
     it's important that the DataPacket uses its space efficiently. Because the
-    DataPackets deal memory at the byte level, it's crucial to ensure that each
+    DataPackets deal with memory at the byte level, it's crucial to ensure that each
     section in the DataPacket is on a byte alignment boundary that matches the boundary
     of the hardware that the DataPacket and associated Task Function are being
     used on, to avoid memory alignment errors. For this reason, the `data_item` section
