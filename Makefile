@@ -154,7 +154,8 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
                                      $(MILHOJA_H) \
                                      $(if $(SUPPORT_EXEC),--support_exec) \
                                      $(if $(SUPPORT_PUSH),--support_push) \
-                                     $(if $(SUPPORT_PACKETS),--support_packets)
+                                     $(if $(SUPPORT_PACKETS),--support_packets) \
+									 $(if $(DEBUG),--debug)
 
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed

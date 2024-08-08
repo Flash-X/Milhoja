@@ -84,6 +84,7 @@ if __name__ == '__main__':
     parser.add_argument('--support_exec',     action="store_true", help="Request that the library support execute-style orchestration calls.")
     parser.add_argument('--support_push',     action="store_true", help="Request that the library support push-style orchestration calls.")
     parser.add_argument('--support_packets',  action="store_true", help="Request that the library support datapackets.")
+    parser.add_argument('--debug', action="store_true", help="Enable debug logs.")
 
     def print_and_exit(msg, error_code):
         print(file=sys.stderr)
@@ -292,6 +293,8 @@ if __name__ == '__main__':
         if runtime_support_exec and runtime_can_use_tileiters and grid_backend_macro == 'MILHOJA_AMREX_GRID_BACKEND':
             fptr.write( '#define FULL_MILHOJAGRID\n')
             fptr.write( '\n')
+        if args.debug:
+            fptr.write( '#define DEBUG_RUNTIME\n')
         fptr.write( '#endif\n\n')
 
     exit(0)
