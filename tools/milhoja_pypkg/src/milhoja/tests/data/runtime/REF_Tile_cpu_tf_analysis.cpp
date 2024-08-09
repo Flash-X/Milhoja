@@ -17,15 +17,19 @@ Tile_cpu_tf_analysis::Tile_cpu_tf_analysis(void)
     : milhoja::TileWrapper{}
 {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_analysis] Creating wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_analysis] Creating wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
 Tile_cpu_tf_analysis::~Tile_cpu_tf_analysis(void) {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[~Tile_cpu_tf_analysis] Destroying wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[~Tile_cpu_tf_analysis] Destroying wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 

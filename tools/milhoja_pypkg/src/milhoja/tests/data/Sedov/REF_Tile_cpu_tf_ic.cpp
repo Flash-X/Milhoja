@@ -17,15 +17,19 @@ Tile_cpu_tf_ic::Tile_cpu_tf_ic(void)
     : milhoja::TileWrapper{}
 {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_ic] Creating wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_ic] Creating wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
 Tile_cpu_tf_ic::~Tile_cpu_tf_ic(void) {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[~Tile_cpu_tf_ic] Destroying wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[~Tile_cpu_tf_ic] Destroying wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 

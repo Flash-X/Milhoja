@@ -22,10 +22,12 @@ void Tile_cpu_tf_fused::acquireScratch(void) {
     milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_scratch_base_op1_scratch4D, &scratch_base_op1_scratch4D_);
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_fused::acquireScratch] Acquired"
-                    + std::to_string(nThreads)
-                    + " scratch_base_op1_scratch4D_ scratch blocks"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_fused::acquireScratch] Acquired"
+                        + std::to_string(nThreads)
+                        + " scratch_base_op1_scratch4D_ scratch blocks";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -38,8 +40,10 @@ void Tile_cpu_tf_fused::releaseScratch(void) {
     scratch_base_op1_scratch4D_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_fused::releaseScratch] Released scratch_base_op1_scratch4D_ scratch"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_fused::releaseScratch] Released scratch_base_op1_scratch4D_ scratch";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -47,15 +51,19 @@ Tile_cpu_tf_fused::Tile_cpu_tf_fused(void)
     : milhoja::TileWrapper{}
 {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_fused] Creating wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_fused] Creating wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
 Tile_cpu_tf_fused::~Tile_cpu_tf_fused(void) {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[~Tile_cpu_tf_fused] Destroying wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[~Tile_cpu_tf_fused] Destroying wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 

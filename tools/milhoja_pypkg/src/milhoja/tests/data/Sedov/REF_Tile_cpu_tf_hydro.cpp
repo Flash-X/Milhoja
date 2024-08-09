@@ -22,10 +22,12 @@ void Tile_cpu_tf_hydro::acquireScratch(void) {
     milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_scratch_hydro_op1_auxC, &scratch_hydro_op1_auxC_);
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_hydro::acquireScratch] Acquired"
-                    + std::to_string(nThreads)
-                    + " scratch_hydro_op1_auxC_ scratch blocks"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_hydro::acquireScratch] Acquired"
+                        + std::to_string(nThreads)
+                        + " scratch_hydro_op1_auxC_ scratch blocks";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -38,8 +40,10 @@ void Tile_cpu_tf_hydro::releaseScratch(void) {
     scratch_hydro_op1_auxC_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_hydro::releaseScratch] Released scratch_hydro_op1_auxC_ scratch"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_hydro::releaseScratch] Released scratch_hydro_op1_auxC_ scratch";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -50,15 +54,19 @@ Tile_cpu_tf_hydro::Tile_cpu_tf_hydro(
       external_hydro_op1_dt_{external_hydro_op1_dt}
 {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_hydro] Creating wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_hydro] Creating wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
 Tile_cpu_tf_hydro::~Tile_cpu_tf_hydro(void) {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[~Tile_cpu_tf_hydro] Destroying wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[~Tile_cpu_tf_hydro] Destroying wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 

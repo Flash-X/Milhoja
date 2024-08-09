@@ -22,10 +22,12 @@ void Tile_cpu_tf_IQ::acquireScratch(void) {
     milhoja::RuntimeBackend::instance().requestCpuMemory(nBytes_MH_INTERNAL_cellVolumes, &MH_INTERNAL_cellVolumes_);
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_IQ::acquireScratch] Acquired"
-                    + std::to_string(nThreads)
-                    + " MH_INTERNAL_cellVolumes_ scratch blocks"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_IQ::acquireScratch] Acquired"
+                        + std::to_string(nThreads)
+                        + " MH_INTERNAL_cellVolumes_ scratch blocks";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -38,8 +40,10 @@ void Tile_cpu_tf_IQ::releaseScratch(void) {
     MH_INTERNAL_cellVolumes_ = nullptr;
 
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_IQ::releaseScratch] Released MH_INTERNAL_cellVolumes_ scratch"
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_IQ::releaseScratch] Released MH_INTERNAL_cellVolumes_ scratch";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
@@ -47,15 +51,19 @@ Tile_cpu_tf_IQ::Tile_cpu_tf_IQ(void)
     : milhoja::TileWrapper{}
 {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[Tile_cpu_tf_IQ] Creating wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[Tile_cpu_tf_IQ] Creating wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
 Tile_cpu_tf_IQ::~Tile_cpu_tf_IQ(void) {
 #ifdef DEBUG_RUNTIME
-    std::string   msg = "[~Tile_cpu_tf_IQ] Destroying wrapper object";
-    milhoja::Logger::instance().log(msg);
+    {
+        std::string   msg = "[~Tile_cpu_tf_IQ] Destroying wrapper object";
+        milhoja::Logger::instance().log(msg);
+    }
 #endif
 }
 
