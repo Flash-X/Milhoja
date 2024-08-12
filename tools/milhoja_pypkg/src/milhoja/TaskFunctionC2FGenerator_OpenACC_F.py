@@ -57,12 +57,13 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
 
         ..todo::
             * Add new tile_metadata functionality
-            (cell_volumes, cell coords, etc.)
+              (cell_volumes, cell coords, etc.)
             * Add functionality for external arguments with extents.
             * Full lbound functionality?
             * Jared mentioned that this and the cpp2c layers should probably
-            be separated out from the data packet generator class and moved
-            over into generate_task_function.
+              be separated out from the data packet generator class and moved
+              over into generate_task_function.
+
     """
 
     def __init__(self, tf_spec, indent, logger):

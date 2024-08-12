@@ -140,8 +140,8 @@ is prone to errors, difficult to debug, and not guaranteed to work if a variable
 uses different names in each subroutine, so we avoid that approach in all code
 generators.
 
-Generation
-''''''''''
+Task Function Generation
+""""""""""""""""""""""""
 
 1. The milhoja library function `generate_task_function` is called, and a Task Function
    Specification, directory destination, overwrite flag, indent size, and logger
@@ -217,8 +217,8 @@ TileWrapper Requirements
    ease learning and using the design as well as improve maintainability of codes
    that use Milhoja.
 
-Generation
-''''''''''
+Tile Wrapper Generation
+'''''''''''''''''''''''
 
 1. The function `generate_data_item` is called, and determines if a new Tile Wrapper
    needs to be generated based on the details contained in the Task Function Specification.
@@ -233,9 +233,9 @@ Generation
    functions for acquiring and releasing scratch data.
 
 4. The TileWrapperGenerator will write every function that it needs to implement
-   as defined by the TileWrapper class in TileWrapper.h. 
+   as defined by the TileWrapper class in TileWrapper.h.
 
-4. The TileWrapperGenerator will output the new TileWrapper class to the specified
+5. The TileWrapperGenerator will output the new TileWrapper class to the specified
    folder that was passed into `generate_data_item`.
 
 Data Packets
@@ -318,8 +318,8 @@ DataPacket Requirements
     will contain a third "host" pointer that contains the value of the variable when
     it was passed into the constructor.
 
-Generation
-''''''''''
+Data Packet Generation
+''''''''''''''''''''''
 
 In order to generate a DataPacket subclass, the code uses an external tool called
 CG-Kit to simplify assembling the generated code into a file. This external tool
@@ -471,6 +471,8 @@ no need to specify the language or device/offloading inside of the file name.
 .. autoclass:: milhoja.TileWrapperModGenerator
     :members:
 .. autoclass:: milhoja.DataPacketGenerator
+    :members:
+.. autoclass:: milhoja.DataPacketModGenerator
     :members:
 .. autoclass:: milhoja.TaskFunctionGenerator_cpu_cpp
     :members:
