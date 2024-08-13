@@ -121,7 +121,7 @@ user when provided with a :ref:`users_manual:Task Function Specification`. These
 These two classes are considered a pair, so one JSON input should be used to
 generate both at the same time, and one is not guaranteed to work without the other.
 However, because these code generators are intended to be used by other applications,
-it is up to the application to decide which what files need to be used. 
+it is up to the application to decide which files need to be used.
 
 Task Functions
 ^^^^^^^^^^^^^^
@@ -200,7 +200,7 @@ and :ref:`developers_guide:Data Packets`. Since both subclasses are derived from
 the same Data Item class, it's important that Task Functions are generated in such
 a way that they can use either Data Item subclass without regeneration.
 
-..todo::
+.. todo::
     * Data item requirements?
 
 Tile Wrappers
