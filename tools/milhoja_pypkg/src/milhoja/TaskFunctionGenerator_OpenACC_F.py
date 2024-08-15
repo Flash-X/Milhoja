@@ -192,9 +192,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
                 elif src in bounds:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :, :)\n")
-                
+
                 elif src == TILE_LEVEL_ARGUMENT:
-                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d\n")
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
 
                 elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
