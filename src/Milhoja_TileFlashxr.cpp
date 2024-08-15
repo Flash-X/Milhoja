@@ -34,7 +34,7 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
                          const FlashxTileRawInts tI,
                          const FlashxTileRawReals tR)
     : Tile{},
-      level_{static_cast<unsigned int>(tI.level)},
+      level_{static_cast<unsigned int>(tI.level - 1)}, // 1-based Flash-X convention -> 0-based
       gridIdxOrBlkId_{tI.gridIdxOrBlkId},
       tileIdx_{tI.tileIdx},
       lo_{LIST_NDIM(tI.loX,tI.loY,tI.loZ)},
