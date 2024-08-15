@@ -184,7 +184,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         :param spec: The arg spec of the variable
         """
         dtype = SOURCE_DATATYPES[spec["source"]]
-        dtype = VECTOR_ARRAY_EQUIVALENT[dtype]
+        dtype = VECTOR_ARRAY_EQUIVALENT.get(dtype, dtype)
         dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
         shape = []
         info = C2FInfo(
@@ -213,8 +213,10 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             arrayBound = TILE_ARRAY_BOUNDS_ARGUMENT
             if arg == interior or arg == arrayBound:
                 info.shape = ['2', 'MILHOJA_MDIM', 'F_nTiles_h']
-            else:
+            elif dtype in VECTOR_ARRAY_EQUIVALENT:
                 info.shape = ['MILHOJA_MDIM', 'F_nTiles_h']
+            else:
+                info.shape = ["1", "F_nTiles_h"]
             info.conversion_eq = info.conversion_eq.format(
                 info.cname, info.fname, ', '.join(info.shape)
             )

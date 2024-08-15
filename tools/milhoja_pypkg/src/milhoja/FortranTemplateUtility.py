@@ -12,7 +12,8 @@ from . import (
     EXTERNAL_ARGUMENT, GRID_DATA_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, TILE_LBOUND_ARGUMENT, LBOUND_ARGUMENT,
-    GRID_DATA_LBOUNDS, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING
+    GRID_DATA_LBOUNDS, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
+    TILE_LEVEL_ARGUMENT, SOURCE_DATATYPES, C2F_TYPE_MAPPING
 )
 
 
@@ -104,8 +105,13 @@ class FortranTemplateUtility(TemplateUtility):
             if source == interior or source == TILE_ARRAY_BOUNDS_ARGUMENT:
                 bound_size_modifier = "2 * "
 
+            # check if the tile source is an array.
+            mdim_modifier = "MILHOJA_MDIM"
+            if SOURCE_DATATYPES[source] not in ["IntVect", "RealVect"]:
+                mdim_modifier = "1"
+
             size_eq = \
-                f"{bound_size_modifier}MILHOJA_MDIM * sizeof({item_type})"
+                f"{bound_size_modifier}{mdim_modifier} * sizeof({item_type})"
 
             lbound = []
 
@@ -173,17 +179,24 @@ class FortranTemplateUtility(TemplateUtility):
                         "tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, " \
                         "tileDesc_h->lo().J()+1,tileDesc_h->hi().J()+1, " \
                         "tileDesc_h->lo().K()+1,tileDesc_h->hi().K()+1 }"
+
                 elif source == TILE_ARRAY_BOUNDS_ARGUMENT:
                     construct_host = "[MILHOJA_MDIM * 2] = {" \
                         "tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, "\
                         "tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, "\
                         "tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 }"
+
+                elif source == TILE_LEVEL_ARGUMENT:
+                    one_time_mdata[item] = data
+                    construct_host = f"[1] = {{(int){short_source}}}"
+
                 else:
                     one_time_mdata[item] = data
                     construct_host = "[MILHOJA_MDIM] = { " \
                         f"{short_source}.I(){fix_index}, " \
                         f"{short_source}.J(){fix_index}, " \
                         f"{short_source}.K(){fix_index} }}"
+
             # we can write very specific code if we know that the variable
             # is an lbound argument.
             else:

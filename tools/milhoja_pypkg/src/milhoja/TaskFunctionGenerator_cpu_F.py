@@ -9,7 +9,7 @@ from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT,
     SCRATCH_ARGUMENT, LBOUND_ARGUMENT, C2F_TYPE_MAPPING,
-    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+    TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT, TILE_LEVEL_ARGUMENT
 )
 
 
@@ -219,6 +219,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     fptr.write(
                         f"{INDENT*2}integer, intent(IN) :: {arg}(:, :)\n"
                     )
+
+                elif src == TILE_LEVEL_ARGUMENT:
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}\n")
 
                 elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:

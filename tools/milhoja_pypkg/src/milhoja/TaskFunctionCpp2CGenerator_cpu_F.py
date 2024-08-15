@@ -166,6 +166,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 alt_src = "tile_loGC"
             elif src == TILE_UBOUND_ARGUMENT:
                 alt_src = "tile_hiGC"
+
             tile_desc_func = alt_src.replace("tile_", '')
             tile_desc_name = self.tile_desc_name
             if alt_src not in saved:
