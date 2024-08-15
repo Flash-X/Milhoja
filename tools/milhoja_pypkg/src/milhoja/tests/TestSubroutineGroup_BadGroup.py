@@ -241,7 +241,10 @@ class TestSubroutineGroup_BadGroup(unittest.TestCase):
         del bad_spec[SCRATCH_ARGUMENT]["_scratch3D"]
         del bad_spec[SCRATCH_ARGUMENT]["_scratch4D"]
         self.assertEqual(0, len(bad_spec[SCRATCH_ARGUMENT]))
-        with self.assertRaises(LogicError):
+        # An empty scratch section should not raise LogicError, but ValueError is
+        # still expected in this test since scratch variable
+        # _scratch3D is needed for mapping to scratch - KW
+        with self.assertRaises(ValueError):
             SubroutineGroup(bad_spec, self.__logger)
 
     def testScratchKeys(self):
