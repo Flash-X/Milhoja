@@ -300,6 +300,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             extents = "(:, n)"
                         elif spec["source"] == TILE_DELTAS_ARGUMENT:
                             extents = "(:, n)"
+                        elif spec["source"] == TILE_LEVEL_ARGUMENT:
+                            extents = "(1, n)"
                         elif spec["source"] in bounds:
                             extents = "(:, :, n)"
                         elif spec["source"] == GRID_DATA_ARGUMENT:

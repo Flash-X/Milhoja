@@ -175,6 +175,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             grid_ptr_nullify = []
             eos_ptr = {}
             end_tf = []
+            initializers = []
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 src = spec["source"]
@@ -278,6 +279,10 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                             argument in eos_ptr
                         ):
                             arg += "_ptr"
+
+                        # get the first argument in the tile level array?
+                        if argument == TILE_LEVEL_ARGUMENT:
+                            arg += "(1)"
 
                         arg_list.append(arg)
                     fptr.write(", &\n".join(arg_list) + " &\n")
