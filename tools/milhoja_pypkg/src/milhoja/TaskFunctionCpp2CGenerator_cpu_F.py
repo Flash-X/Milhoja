@@ -14,6 +14,7 @@ from . import (
     THREAD_INDEX_VAR_NAME, GRID_DATA_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_PTRS, SOURCE_DATATYPES,
     VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
+    C2F_TYPE_MAPPING
 )
 
 
@@ -188,6 +189,13 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                     f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
                     f"{self.INDENT}{arg}.J(),\n"
                     f"{self.INDENT}{arg}.K()\n}}"
+                )
+
+            else:
+                if 'unsigned' in dtype:
+                    dtype = dtype.replace("unsigned ", "")
+                connectors[self.CONSOLIDATE_TILE_DATA].append(
+                    f"{dtype} {arg}_array[] = {{{arg}}}"
                 )
 
     def _fill_lbound_connectors(self, arg, spec, connectors, saved):

@@ -167,7 +167,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             # Generation-time argument definitions
             points = {
                 TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
-                TILE_UBOUND_ARGUMENT
+                TILE_UBOUND_ARGUMENT, TILE_LEVEL_ARGUMENT
             }
             bounds = {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
 
