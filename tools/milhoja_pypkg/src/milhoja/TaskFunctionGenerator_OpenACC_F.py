@@ -296,12 +296,14 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
                         extents = ""
+                        offs = ""
                         if spec["source"] in points:
                             extents = "(:, n)"
                         elif spec["source"] == TILE_DELTAS_ARGUMENT:
                             extents = "(:, n)"
                         elif spec["source"] == TILE_LEVEL_ARGUMENT:
                             extents = "(1, n)"
+                            offs = " + 1"
                         elif spec["source"] in bounds:
                             extents = "(:, :, n)"
                         elif spec["source"] == GRID_DATA_ARGUMENT:
@@ -310,7 +312,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             dimension = len(parse_extents(spec["extents"]))
                             tmp = [":" for _ in range(dimension)]
                             extents = "(" + ", ".join(tmp) + ", n)"
-                        arg_list.append(f"{INDENT*5}{argument}_d{extents}")
+                        arg_list.append(f"{INDENT*5}{argument}_d{extents}{offs}")
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*5})\n")
                     fptr.write(f"{INDENT*2}end do\n")

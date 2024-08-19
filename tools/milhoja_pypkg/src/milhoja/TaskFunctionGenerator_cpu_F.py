@@ -281,7 +281,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
                         # get the first argument in the tile level array?
                         if argument == TILE_LEVEL_ARGUMENT:
-                            arg += "(1)"
+                            arg += "(1) + 1"
 
                         arg_list.append(arg)
                     fptr.write(", &\n".join(arg_list) + " &\n")
