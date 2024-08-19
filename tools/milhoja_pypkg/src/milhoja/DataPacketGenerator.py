@@ -347,9 +347,9 @@ class DataPacketGenerator(AbcCodeGenerator):
             )
 
         def fortran_sort(x):
-            return self._sizes.get(
-                VECTOR_ARRAY_EQUIVALENT[SOURCE_DATATYPES[x[1]['source']]], 0
-            )
+            dtype = SOURCE_DATATYPES[x[1]['source']]
+            dtype = VECTOR_ARRAY_EQUIVALENT.get(dtype, dtype)
+            return self._sizes.get(dtype, 0)
 
         if lang == 'c++':
             sort_func = cpp_sort
@@ -372,6 +372,10 @@ class DataPacketGenerator(AbcCodeGenerator):
             mdata[key]['type'] = SOURCE_DATATYPES[mdata[key]["source"]]
             if lang == "fortran":
                 dtype = mdata[key]['type']
+                # Fortran has no equivalent of unsigned int.
+                if dtype == 'unsigned int':
+                    dtype = 'int'
+
                 mdata[key]['type'] = \
                     VECTOR_ARRAY_EQUIVALENT.get(dtype, dtype)
 

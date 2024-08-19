@@ -12,7 +12,7 @@ from . import (
     EXTERNAL_ARGUMENT, LBOUND_ARGUMENT, GRID_DATA_ARGUMENT,
     SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
     TILE_ARGUMENTS_ALL, VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES,
-    GRID_DATA_EXTENTS, GRID_DATA_LBOUNDS, C2F_TYPE_MAPPING
+    GRID_DATA_EXTENTS, GRID_DATA_LBOUNDS, C2F_TYPE_MAPPING, TILE_LEVEL_ARGUMENT
 )
 
 
@@ -103,6 +103,9 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
             name_key = src
             shape.insert(0, "2")
+
+        if src == TILE_LEVEL_ARGUMENT:
+            shape = ["1"]
 
         return ConversionData(
             cname=f"C_{name_key}",
