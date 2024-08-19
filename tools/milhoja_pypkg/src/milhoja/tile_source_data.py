@@ -9,8 +9,8 @@ class TileSourceData:
     size: str
     dtype: str
 
-##    def get_formattable_memcpy_string(self):
-##        formatted = f"{self.dtype} " + "{name}" + f"[{self.size}] = "
+#    def get_formattable_memcpy_string(self):
+#        formatted = f"{self.dtype} " + "{name}" + f"[{self.size}] = "
 
 
 TILE_LO_DATA = TileSourceData("lo", "MILHOJA_MDIM", "real")
