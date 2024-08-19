@@ -231,7 +231,7 @@ def parse_lbound_f(lbound: str):
         for keyword in keywords:
             if keyword in match:
                 matches[idx] = match.replace(
-                    keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
+                    keyword, f'{keyword}.I(),{keyword}.JJ (1),{keyword}.KK(0+1)'
                 )
 
     iterables = [match.split(',') for match in matches]
