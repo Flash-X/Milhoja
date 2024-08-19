@@ -113,8 +113,8 @@ def check_group_specification(group_spec, logger):
                 raise TypeError(msg)
 
     if SCRATCH_ARGUMENT in group_spec:
-        if len(group_spec[SCRATCH_ARGUMENT]) == 0:
-            raise LogicError(f"Empty {SCRATCH_ARGUMENT} subsection")
+        # It is fine to have an empty group_spec[SCRATCH_ARGUMENT],
+        # it means there are no arguments of source type 'scratch'.
 
         for variable, var_spec in group_spec[SCRATCH_ARGUMENT].items():
             if not variable.startswith("_"):
