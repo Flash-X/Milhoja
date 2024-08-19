@@ -109,6 +109,20 @@ class IntVect
 #endif
     }
 
+    //! Return second element of vector, or base if MILHOJA_NDIM<2
+#ifdef ACC_ROUTINE_FOR_METH
+    #pragma acc routine seq
+#endif
+    int JJ(const int base) const {
+#if   (MILHOJA_NDIM == 1)
+        return base;
+#elif (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
+        return j_;
+#else
+#error "MILHOJA_NDIM not defined or invalid"
+#endif
+    }
+
     //! Return third element of vector, or 0 if MILHOJA_NDIM<3
 #ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
@@ -116,6 +130,20 @@ class IntVect
     int K() const {
 #if   (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
         return 0;
+#elif (MILHOJA_NDIM == 3)
+        return k_;
+#else
+#error "MILHOJA_NDIM not defined or invalid"
+#endif
+    }
+
+    //! Return third element of vector, or base if MILHOJA_NDIM<3
+#ifdef ACC_ROUTINE_FOR_METH
+    #pragma acc routine seq
+#endif
+    int KK(const int base) const {
+#if   (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
+        return base;
 #elif (MILHOJA_NDIM == 3)
         return k_;
 #else
