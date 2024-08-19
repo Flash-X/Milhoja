@@ -175,7 +175,6 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
             grid_ptr_nullify = []
             eos_ptr = {}
             end_tf = []
-            initializers = []
             for arg in self._tf_spec.dummy_arguments:
                 spec = self._tf_spec.argument_specification(arg)
                 src = spec["source"]
