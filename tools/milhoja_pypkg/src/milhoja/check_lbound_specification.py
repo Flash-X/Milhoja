@@ -38,9 +38,9 @@ def check_lbound_specification(arg, arg_specs_all, logger):
         raise ValueError(f"lbound {arg}'s array name empty")
     elif target_array == arg:
         raise LogicError(f"lbound {arg}'s array cannot be itself")
-    elif target_array not in arg_specs_all:
-        msg = "{} lbound's array {} not in subroutine argument list"
-        raise ValueError(msg.format(arg, target_array))
+    elif target_array.lower() not in arg_specs_all:
+        msg = "{} lbound's array {} not in subroutine argument list {}."
+        raise ValueError(msg.format(arg, target_array, arg_specs_all))
 
     # Except for external, all of these must be arrays.  If another type is
     # added that need not be an array, then evaluate need to update error
@@ -53,7 +53,7 @@ def check_lbound_specification(arg, arg_specs_all, logger):
         TILE_FACE_AREAS_ARGUMENT,
         TILE_CELL_VOLUMES_ARGUMENT
     ]
-    target_source = arg_specs_all[target_array]["source"]
+    target_source = arg_specs_all[target_array.lower()]["source"]
     if target_source not in ALLOWABLES:
         msg = "lbound {} can't be obtained for array of type {}"
         raise ValueError(msg.format(arg, target_source))
