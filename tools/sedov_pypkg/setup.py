@@ -27,7 +27,7 @@ setup(
     maintainer_email='joneal@anl.gov', 
     packages=['sedov'],
     package_data=pkg_dict, 
-    url='http://git.cels.anl.gov/OrchestrationRuntime',
+    url='https://github.com/Flash-X/Milhoja',
     license='Apache-2.0',
     license_files=('LICENSE',),
     description='Code for working with Sedov results',
