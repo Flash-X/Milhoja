@@ -99,10 +99,10 @@ GRID_DATA_EXTENTS = {
 # to insert lbounds for grid data variables inside of the tf spec that need
 # an lbound array.
 GRID_DATA_LBOUNDS = {
-    "CENTER": "(tile_lbound, 1)",  # CC data does use guard cells.
-    "FLUXX": "(tile_lo, 1)",  # assume that flux arrays use 0 guard cells.
-    "FLUXY": "(tile_lo, 1)",
-    "FLUXZ": "(tile_lo, 1)"
+    "CENTER": "(tile_lbound, {0})",  # CC data does use guard cells.
+    "FLUXX": "(tile_lo, {0})",  # assume that flux arrays use 0 guard cells.
+    "FLUXY": "(tile_lo, {0})",
+    "FLUXZ": "(tile_lo, {0})"
 }
 
 # The type mapping for sources that have predetermined types.
