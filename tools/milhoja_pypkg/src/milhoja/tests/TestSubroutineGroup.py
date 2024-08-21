@@ -324,7 +324,7 @@ class TestSubroutineGroup(unittest.TestCase):
         expected = {
             "source": "grid_data",
             "structure_index": ["CENTER", 1],
-            "RW": [2]
+            "rw": [2]
         }
         arg_spec = self.__group.argument_specification(good_sub, good_arg)
         self.assertEqual(expected, arg_spec)

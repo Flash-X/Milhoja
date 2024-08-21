@@ -9,7 +9,7 @@ import itertools as it
 
 from milhoja import (
     LOG_LEVEL_NONE,
-    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT,
+    GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, ACCESS_KEYS,
     LogicError,
     BasicLogger,
     check_grid_data_specification
@@ -34,7 +34,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
         self.__good = {
             "source": GRID_DATA_ARGUMENT,
             "structure_index": ["center", 1],
-            "R": [1]
+            "r": [1]
         }
         check_grid_data_specification(self.__name, self.__good,
                                       self.__index, self.__logger)
@@ -77,7 +77,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
 
         for space, index, var_base in good_all:
             good_vars = list(range(var_base, 12))
-            for access in ["R", "RW", "W"]:
+            for access in ACCESS_KEYS:
                 good_spec = {
                     "source": GRID_DATA_ARGUMENT,
                     "structure_index": [space, index],
@@ -86,7 +86,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                 check_grid_data_specification(name, good_spec,
                                               var_base, self.__logger)
 
-            for a1, a2 in it.combinations(["R", "RW", "W"], 2):
+            for a1, a2 in it.combinations(ACCESS_KEYS, 2):
                 # Must be disjoint, but make out of order and non-contiguous.
                 # Include the index base.
                 vars1 = [var_base, 3, 5]
@@ -112,7 +112,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
             vars1 = [99, 3, 5]
             vars2 = [9, 2]
             vars3 = [var_base, 101]
-            for a1, a2, a3 in it.permutations(["R", "RW", "W"]):
+            for a1, a2, a3 in it.permutations(ACCESS_KEYS):
                 good_spec = {
                     "source": GRID_DATA_ARGUMENT,
                     "structure_index": [space, index],
@@ -129,12 +129,12 @@ class TestCheckGridDataSpecification(unittest.TestCase):
             check_grid_data_specification(self.__name, bad_spec,
                                           self.__index, self.__logger)
 
-        # No R/RW/W keys
+        # No r/rw/w keys
         bad_spec = copy.deepcopy(self.__good)
-        self.assertTrue("R" in bad_spec)
-        self.assertTrue("RW" not in bad_spec)
-        self.assertTrue("W" not in bad_spec)
-        del bad_spec["R"]
+        self.assertTrue("r" in bad_spec)
+        self.assertTrue("rw" not in bad_spec)
+        self.assertTrue("w" not in bad_spec)
+        del bad_spec["r"]
         with self.assertRaises(ValueError):
             check_grid_data_specification(self.__name, bad_spec,
                                           self.__index, self.__logger)
@@ -193,7 +193,7 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                               self.__index, self.__logger)
 
     def testBadAccessPatterns(self):
-        for access in ["R", "RW", "W"]:
+        for access in ACCESS_KEYS:
             bad_spec = copy.deepcopy(self.__good)
             for bad in NOT_LIST_LIST:
                 bad_spec[access] = bad
@@ -214,11 +214,11 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                                   self.__index, self.__logger)
 
         # Check for bad access patterns based on variable index set's base
-        for access in ["R", "RW", "W"]:
+        for access in ACCESS_KEYS:
             bad_spec = copy.deepcopy(self.__good)
-            del bad_spec["R"]
-            self.assertTrue("RW" not in bad_spec)
-            self.assertTrue("W" not in bad_spec)
+            del bad_spec["r"]
+            self.assertTrue("rw" not in bad_spec)
+            self.assertTrue("w" not in bad_spec)
             index = 1
             for bad in [-2, -1, 0]:
                 bad_spec[access] = [bad]
@@ -244,11 +244,11 @@ class TestCheckGridDataSpecification(unittest.TestCase):
                                                   index, self.__logger)
 
         # Catch repeated index
-        for access in ["R", "RW", "W"]:
+        for access in ACCESS_KEYS:
             bad_spec = copy.deepcopy(self.__good)
-            del bad_spec["R"]
-            self.assertTrue("RW" not in bad_spec)
-            self.assertTrue("W" not in bad_spec)
+            del bad_spec["r"]
+            self.assertTrue("rw" not in bad_spec)
+            self.assertTrue("w" not in bad_spec)
             bad_spec[access] = [3, 1, 1, 2]
             with self.assertRaises(LogicError):
                 check_grid_data_specification(self.__name, bad_spec,
@@ -256,11 +256,11 @@ class TestCheckGridDataSpecification(unittest.TestCase):
 
         # Variables can have only one access pattern
         common = 3
-        for a1, a2 in it.combinations(["R", "RW", "W"], 2):
+        for a1, a2 in it.combinations(ACCESS_KEYS, 2):
             bad_spec = copy.deepcopy(self.__good)
-            del bad_spec["R"]
-            self.assertTrue("RW" not in bad_spec)
-            self.assertTrue("W" not in bad_spec)
+            del bad_spec["r"]
+            self.assertTrue("rw" not in bad_spec)
+            self.assertTrue("w" not in bad_spec)
             bad_spec[a1] = [1, common, 5]
             bad_spec[a2] = [9, 2, common]
             with self.assertRaises(ValueError):

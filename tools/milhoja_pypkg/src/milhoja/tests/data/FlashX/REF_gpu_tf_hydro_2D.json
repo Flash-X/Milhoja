@@ -11,7 +11,6 @@
         "name": "gpu_tf_hydro",
         "language": "Fortran", 
         "processor": "GPU",
-        "computation_offloading": "OpenACC",
         "cpp_header": "gpu_tf_hydro_Cpp2C.h",
         "cpp_source": "gpu_tf_hydro_Cpp2C.cxx",
         "c2f_source": "gpu_tf_hydro_C2F.F90",

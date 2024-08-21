@@ -142,13 +142,10 @@ test_gnu:
  - pip install seaborn
  - pip install yt
  - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
- - python setup.py test
- - python setup.py sdist && cd dist
- - pip install $(ls sedov-*.tar.gz)
+ - pip install .
  - python -c 'import sedov ; sedov.print_versions()'
  - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
- - python setup.py sdist && cd dist
- - pip install $(ls milhoja-*.tar.gz)
+ - pip install .
  ##-- Check python virtual environment
  - pip list
  - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2

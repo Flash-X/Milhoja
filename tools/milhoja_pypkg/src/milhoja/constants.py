@@ -14,7 +14,7 @@ LOG_LEVEL_MAX = 3
 
 LOG_LEVELS = list(range(LOG_LEVEL_NONE, LOG_LEVEL_MAX+1))
 
-# If we ever want to support more languages in the future
+# If we ever want to support more languages in the future?
 SUPPORTED_LANGUAGES = ["c++", "fortran"]
 # If we ever want to support TPUs or NPUs :) (kidding, just a formality)
 SUPPORTED_PROCESSORS = ["cpu", "gpu"]
@@ -65,6 +65,12 @@ TILE_ARGUMENTS_ALL = {
     TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT
 }
+
+# ----- DATA ACCESS KEYWORDS
+READ = "r"
+WRITE = "w"
+READ_WRITE = "rw"
+ACCESS_KEYS = [READ, WRITE, READ_WRITE]
 
 GRID_DATA_EXTENTS = {
     "CENTER": [

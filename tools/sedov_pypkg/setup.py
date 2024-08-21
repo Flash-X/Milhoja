@@ -14,7 +14,7 @@ def version():
     with open(fname, 'r') as fptr:
         return fptr.read().strip()
 
-reqs_list = ['numpy', 'pandas', 'matplotlib', 'yt']
+reqs_list = ['nose', 'numpy', 'pandas', 'matplotlib', 'yt']
 
 pkg_dict = {'sedov': ['PkgData/*', 'TestData/*']}
 

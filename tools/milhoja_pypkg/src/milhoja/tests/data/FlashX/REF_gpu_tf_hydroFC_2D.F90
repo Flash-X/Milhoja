@@ -54,11 +54,11 @@ contains
         integer,                       intent(IN)    :: tile_lo_d(:, :)
         integer,                       intent(IN)    :: tile_hi_d(:, :)
         real,                          intent(IN)    :: tile_deltas_d(:, :)
-        real,                          intent(INOUT) :: CC_1_d(:, :, :, :, :)
+        real,                          intent(INOUT)   :: CC_1_d(:, :, :, :, :)
         real,                          intent(OUT)   :: FLX_1_d(:, :, :, :, :)
         real,                          intent(OUT)   :: FLY_1_d(:, :, :, :, :)
         real,                          intent(OUT)   :: FLZ_1_d(:, :, :, :, :)
-        real,                          intent(IN)   :: hydro_op1_auxc_d(:, :, :, :)
+        real,                          intent(INOUT)   :: hydro_op1_auxc_d(:, :, :, :)
 
         integer :: n
 

@@ -7,13 +7,12 @@ from . import LogicError
 from . import LOG_LEVEL_BASIC
 
 
-class DataPacketC2FModuleGenerator(AbcCodeGenerator):
+class DataPacketModGenerator(AbcCodeGenerator):
     """
     Responsible for generating the module interface file for use by the
     fortran task function and interoperability layers. Nothing is generated
     for C++ based task functions.
     """
-
     # C2F Module generator uses its own specific type mapping for the
     # fortran interface.
     _TYPE_MAPPING = {

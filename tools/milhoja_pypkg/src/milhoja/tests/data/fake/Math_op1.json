@@ -22,7 +22,7 @@
             "hi":        {"source":             "tile_hi"},
             "U":         {"source":             "grid_data",
                           "structure_index":    ["CENTER", 1],
-                          "RW":                 [1]},
+                          "rw":                 [1]},
             "scratch":   {"source":             "scratch",
                           "name":               "_scratch3D"},
             "deltas":    {"source":             "tile_deltas"}
@@ -36,7 +36,7 @@
             "hi":        {"source":             "tile_hi"},
             "U":         {"source":             "grid_data",
                           "structure_index":    ["CENTER", 1],
-                          "RW":                 [2]},
+                          "rw":                 [2]},
             "scratch":   {"source":             "scratch",
                           "name":               "_scratch3D"},
             "deltas":    {"source":             "tile_deltas"}
@@ -52,7 +52,7 @@
             "hi":        {"source":             "tile_hi"},
             "U":         {"source":             "grid_data",
                           "structure_index":    ["CENTER", 1],
-                          "RW":                 [1, 2]},
+                          "rw":                 [1, 2]},
             "scratch":   {"source":             "scratch",
                           "name":               "_scratch4D"},
             "deltas":    {"source":             "tile_deltas"}

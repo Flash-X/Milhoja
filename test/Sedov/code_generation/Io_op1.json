@@ -14,7 +14,7 @@
                             "hi":                 "tile_hi"},
             "solnData":    {"source":             "grid_data",
                             "structure_index":    ["CENTER", 1],
-                            "R":                  [1, 2, 3, 4, 6, 8]}
+                            "r":                  [1, 2, 3, 4, 6, 8]}
         }
     }
 }

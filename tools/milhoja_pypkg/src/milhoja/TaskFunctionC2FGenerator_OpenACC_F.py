@@ -45,7 +45,7 @@ class C2FInfo:
         return f"F_{self.name}"
 
 
-class C2FortranLayerGenerator(AbcCodeGenerator):
+class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
     """
     C to Fortran layer generator. Should only be used internally with
     the DataPacketGenerator.
@@ -80,7 +80,7 @@ class C2FortranLayerGenerator(AbcCodeGenerator):
         super().__init__(
             tf_spec, "",
             tf_spec.output_filenames[TaskFunction.C2F_KEY]["source"],
-            indent, "Milhoja C2F Generator", logger
+            indent, "Milhoja Task Function C2F Generator OpenACC F", logger
         )
 
         self.INDENT = " " * indent

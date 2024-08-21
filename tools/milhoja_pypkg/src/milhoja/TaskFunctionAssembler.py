@@ -17,7 +17,8 @@ from .constants import (
     TILE_FACE_AREAS_ARGUMENT,
     TILE_CELL_VOLUMES_ARGUMENT,
     TILE_ARGUMENTS_ALL,
-    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME
+    THREAD_INDEX_ARGUMENT, THREAD_INDEX_VAR_NAME,
+    READ, WRITE, READ_WRITE, ACCESS_KEYS
 )
 from .LogicError import LogicError
 from .AbcLogger import AbcLogger
@@ -39,7 +40,7 @@ class TaskFunctionAssembler(object):
         * internal_call_graph is used here and in TaskFunction.  It should
           likely become a class that checks the quality of the graph.
         * Milhoja should have an internal parser that can figure out the
-          R/W/RW status of each variable of the grid data arrays in each
+          r/w/rw status of each variable of the grid data arrays in each
           subroutine in the internal call graph.
         * Very low-priority optimization is determine if a scratch variable
           for one subroutine can double as scratch variable for another
@@ -525,7 +526,7 @@ class TaskFunctionAssembler(object):
 
         :return: Doubly-nested dict.  First key is dummy argument; second,
             variable name.  Each value is the ordered list of access patterns.
-            A result of ["R", "RW", "W", "R"] indicates that as the subroutines
+            A result of ["r", "rw", "w"] indicates that as the subroutines
             are executed in correct order, the variable was first read from,
             then written two a few times, and finally read from.
         """
@@ -536,7 +537,7 @@ class TaskFunctionAssembler(object):
                 if tf_dummy not in accesses:
                     accesses[tf_dummy] = {}
 
-                for access in ["R", "RW", "W"]:
+                for access in ACCESS_KEYS:
                     if access in arg_spec:
                         for idx in arg_spec[access]:
                             if idx not in accesses[tf_dummy]:
@@ -575,13 +576,13 @@ class TaskFunctionAssembler(object):
             vars_in = set()
             vars_out = set()
             for variable, accesses in variables_all.items():
-                assert all([e in ["R", "RW", "W"] for e in accesses])
-                if accesses[0] in ["R", "RW"]:
+                assert all([e in ACCESS_KEYS for e in accesses])
+                if accesses[0] in [READ, READ_WRITE]:
                     vars_in.add(variable)
                 else:
                     vars_out.add(variable)
 
-                if any([e in ["RW", "W"] for e in accesses]):
+                if any([e in [READ_WRITE, WRITE] for e in accesses]):
                     vars_out.add(variable)
 
             assert dummy not in masks
@@ -629,13 +630,13 @@ class TaskFunctionAssembler(object):
                     dummy_to_actuals[tf_dummy] = []
                 dummy_to_actuals[tf_dummy].append(arg_index)
 
-        # ----- REPLACE R/RW/W INFO WITH VARIABLE MASKS
+        # ----- REPLACE r/rw/w INFO WITH VARIABLE MASKS
         # tf_dummy_spec values are set to deep copies, so we can change below
         # without altering original specifications
         variable_accesses = self.determine_access_patterns()
         variable_masks = self.determine_variable_masks(variable_accesses)
         for dummy in tf_dummy_spec:
-            for each in ["R", "RW", "W"]:
+            for each in ACCESS_KEYS:
                 if each in tf_dummy_spec[dummy]:
                     del tf_dummy_spec[dummy][each]
 
