@@ -7,7 +7,10 @@ from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
 from .generate_packet_file import generate_packet_file
-from .parse_helpers import parse_lbound_f
+from .parse_helpers import (
+    get_initial_index,
+    parse_lbound_f
+)
 from . import (
     EXTERNAL_ARGUMENT, LBOUND_ARGUMENT, TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
@@ -223,8 +226,11 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         words = None
         if var_spec["source"] == GRID_DATA_ARGUMENT:
             st_idx = var_spec["structure_index"][0].upper()
-            gcells = self._tf_spec.n_guardcells
-            lb, words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(gcells))
+            # get starting array value
+            vars_in = var_spec.get("variables_in", None)
+            vars_out = var_spec.get("variables_out", None)
+            init = get_initial_index(vars_in, vars_out)
+            lb, words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(init))
         else:
             lb, words = parse_lbound_f(var_spec["lbound"])
 
