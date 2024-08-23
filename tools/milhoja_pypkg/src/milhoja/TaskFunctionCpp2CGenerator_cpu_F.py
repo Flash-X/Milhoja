@@ -162,8 +162,8 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                     indexexp_fmt.format(hi_fmt.format(char))
                 )
                 for indexexp_fmt, char in [('{0}', 'I()'),
-                                           ('IFELSE_K2D({0},1)', 'J()'),
-                                           ('IFELSE_K3D({0},1)', 'K()')]
+                                           ('{0}', 'J()'),
+                                           ('{0}', 'K()')]
             ) + "\n}"
 
             self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
@@ -192,18 +192,11 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             dtype = SOURCE_DATATYPES[src]
             if dtype in VECTOR_ARRAY_EQUIVALENT:
                 raw = VECTOR_ARRAY_EQUIVALENT[dtype]
-                if raw == "int":
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
-                        f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                        f"{self.INDENT}IFELSE_K2D({arg}.J(),1),\n"
-                        f"{self.INDENT}IFELSE_K3D({arg}.K(),1)\n}}"
-                    )
-                else:           # for arguments like tile_deltas
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
+                connectors[self.CONSOLIDATE_TILE_DATA].append(
                         f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
                         f"{self.INDENT}{arg}.J(),\n"
                         f"{self.INDENT}{arg}.K()\n}}"
-                    )
+                )
 
             else:
                 if 'unsigned' in dtype:
