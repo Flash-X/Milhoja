@@ -96,7 +96,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         """
         self.assertTrue(
             generated == correct,
-            f"{input} returned {generated}, istead of {correct}."
+            f"{input} returned {generated}, instead of {correct}."
         )
 
     def testLboundParser(self):

@@ -230,11 +230,17 @@ def parse_lbound_f(lbound: str):
     for idx, match in enumerate(matches):
         for keyword in keywords:
             if keyword in match:
-                matches[idx] = match.replace(
-                    keyword, f'{keyword}.I(),IFELSE_K2D({keyword}.J(),1),IFELSE_K3D({keyword}.K(),1)'
-                )
+                if (("IFELSE_K2D(" in match) or
+                    ("IFELSE_K3D(" in match)):
+                    matches[idx] = match.replace(
+                        keyword, f'{keyword}.I();{keyword}.J();{keyword}.K()'
+                    )
+                else:
+                    matches[idx] = match.replace(
+                        keyword, f'{keyword}.I();IFELSE_K2D({keyword}.J(),1);IFELSE_K3D({keyword}.K(),1)'
+                    )
 
-    iterables = [match.split(',') for match in matches]
+    iterables = [match.split(';') for match in matches]
     if not iterables:
         raise RuntimeError(f"Nothing in lbound {lbound}.")
 
