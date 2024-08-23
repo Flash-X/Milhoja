@@ -230,8 +230,7 @@ def parse_lbound_f(lbound: str):
     for idx, match in enumerate(matches):
         for keyword in keywords:
             if keyword in match:
-                if (("IFELSE_K2D(" in match) or
-                    ("IFELSE_K3D(" in match)):
+                if (("IFELSE_K2D(" in match) or ("IFELSE_K3D(" in match)):
                     matches[idx] = match.replace(
                         keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
                     )
