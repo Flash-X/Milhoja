@@ -157,7 +157,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             hi_fmt = f"{self.tile_desc_name}->{hi_data}." + '{0}'
             combined = f"int {src}[] = {{\n{self.INDENT}"
             combined += f',\n{self.INDENT}'.join(
-                '{0}, {1}'.format(
+                '{0},{1}'.format(
                     indexexp_fmt.format(lo_fmt.format(char)),
                     indexexp_fmt.format(hi_fmt.format(char))
                 )
