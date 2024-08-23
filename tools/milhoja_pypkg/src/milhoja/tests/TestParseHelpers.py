@@ -206,7 +206,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
             * Test found keywords
         """
         lb_input = "(tile_lo) - (1,2,3) + (2,3,4)"
-        correct = ["tile_lo.I()-1+2", "tile_lo.J()-2+3", "tile_lo.K()-3+4"]
+        correct = ["tile_lo.I()-1+2", "IFELSE_K2D(tile_lo.J(),1)-2+3", "IFELSE_K3D(tile_lo.K(),1)-3+4"]
         result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
@@ -218,7 +218,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
             result, _ = parse_lbound_f(lb_input)
 
         lb_input = "(tile_hi, -1)"
-        correct = ["tile_hi.I()", "tile_hi.J()", "tile_hi.K()", "-1"]
+        correct = ["tile_hi.I()", "IFELSE_K2D(tile_hi.J(),1)", "IFELSE_K3D(tile_hi.K(),1)", "-1"]
         result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
@@ -228,7 +228,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
         self.check_bound(lb_input, result, correct)
 
         lb_input = "(1, tile_lo, 6)"
-        correct = ["1", "tile_lo.I()", "tile_lo.J()", "tile_lo.K()", '6']
+        correct = ["1", "tile_lo.I()", "IFELSE_K2D(tile_lo.J(),1)", "IFELSE_K3D(tile_lo.K(),1)", '6']
         result, _ = parse_lbound_f(lb_input)
         self.check_bound(lb_input, result, correct)
 
