@@ -253,12 +253,18 @@ if __name__ == '__main__':
         if   ndim == 1:
             fptr.write('#define   LIST_NDIM(x,y,z)    x\n')
             fptr.write('#define CONCAT_NDIM(x,y,z)    x\n')
+            fptr.write('#define  IFELSE_K2D(y,elseval)  elseval\n')
+            fptr.write('#define  IFELSE_K3D(z,elseval)  elseval\n')
         elif ndim == 2:
             fptr.write('#define   LIST_NDIM(x,y,z)    x,y\n')
             fptr.write('#define CONCAT_NDIM(x,y,z)    x y\n')
+            fptr.write('#define  IFELSE_K2D(y,elseval)  y\n')
+            fptr.write('#define  IFELSE_K3D(z,elseval)  elseval\n')
         elif ndim == 3:
             fptr.write('#define   LIST_NDIM(x,y,z)    x,y,z\n')
             fptr.write('#define CONCAT_NDIM(x,y,z)    x y z\n')
+            fptr.write('#define  IFELSE_K2D(y,elseval)  y\n')
+            fptr.write('#define  IFELSE_K3D(z,elseval)  z\n')
         else:
             raise LogicError('Do not know how to write LIST/CONCAT_NDIM')
         fptr.write( '\n')
