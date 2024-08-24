@@ -170,15 +170,13 @@ GridAmrex::GridAmrex(void)
       throw std::logic_error("amrex::Real does not match milhoja::Real");
     }
 
-#if MILHOJA_NDIM == 3
     // Check IntVect::{I,J,K} behavior matches amrex::Dim3
     IntVect iv{LIST_NDIM(17,19,21)};
     amrex::Dim3 d3 = amrex::IntVect(iv).dim3();
     if( iv.I()!=d3.x || iv.J()!=d3.y || iv.K()!=d3.z ) {
       throw std::logic_error("amrex::Dim3 and milhoja::IntVect do not "
-                             "have matching values.");
+                             "have matching default values.");
     }
-#endif
 
     //----- LOG GRID CONFIGURATION INFORMATION
     int size = -1;

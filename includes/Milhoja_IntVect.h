@@ -31,7 +31,7 @@ class RealVect;
   * is turned off). Alternatively, if MILHOJA_MDIM-like behavior is needed, three
   * functions `IntVect::I()`, `IntVect::J()`, and `IntVect::K()` are provided.
   * They return the first, second, or third element of the vector, respectively,
-  * or a default value of 1 if trying to get an element above MILHOJA_NDIM. These
+  * or a default value of 0 if trying to get an element above MILHOJA_NDIM. These
   * functions should especially be used when writing triple-nested loops that
   * are dimension-agnostic.
   *
@@ -95,13 +95,13 @@ class IntVect
         return i_;
     }
 
-    //! Return second element of vector, or 1 if MILHOJA_NDIM<2
+    //! Return second element of vector, or 0 if MILHOJA_NDIM<2
 #ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     int J() const {
 #if   (MILHOJA_NDIM == 1)
-        return 1;
+        return 0;
 #elif (MILHOJA_NDIM == 2) || (MILHOJA_NDIM == 3)
         return j_;
 #else
@@ -123,13 +123,13 @@ class IntVect
 #endif
     }
 
-    //! Return third element of vector, or 1 if MILHOJA_NDIM<3
+    //! Return third element of vector, or 0 if MILHOJA_NDIM<3
 #ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     int K() const {
 #if   (MILHOJA_NDIM == 1) || (MILHOJA_NDIM == 2)
-        return 1;
+        return 0;
 #elif (MILHOJA_NDIM == 3)
         return k_;
 #else
