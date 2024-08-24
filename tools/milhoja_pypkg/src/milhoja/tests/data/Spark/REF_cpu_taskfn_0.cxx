@@ -144,9 +144,9 @@ extern "C" {
 
         // consolidate tile arrays.
         int tile_arrayBounds[] = {
-            tileDesc->loGC().I(),tileDesc->hiGC().I(),
-            tileDesc->loGC().J(),tileDesc->hiGC().J(),
-            tileDesc->loGC().K(),tileDesc->hiGC().K()
+            tileDesc->loGC().I(), tileDesc->hiGC().I(),
+            IFELSE_K2D(tileDesc->loGC().J(),1), IFELSE_K2D(tileDesc->hiGC().J(),1),
+            IFELSE_K3D(tileDesc->loGC().K(),1), IFELSE_K3D(tileDesc->hiGC().K(),1)
         };
         real tile_deltas_array[] = {
             tile_deltas.I(),
@@ -154,19 +154,19 @@ extern "C" {
             tile_deltas.K()
         };
         int tile_interior[] = {
-            tileDesc->lo().I(),tileDesc->hi().I(),
-            tileDesc->lo().J(),tileDesc->hi().J(),
-            tileDesc->lo().K(),tileDesc->hi().K()
+            tileDesc->lo().I(), tileDesc->hi().I(),
+            IFELSE_K2D(tileDesc->lo().J(),1), IFELSE_K2D(tileDesc->hi().J(),1),
+            IFELSE_K3D(tileDesc->lo().K(),1), IFELSE_K3D(tileDesc->hi().K(),1)
         };
         int tile_lbound_array[] = {
             tile_lbound.I(),
-            tile_lbound.J(),
-            tile_lbound.K()
+            IFELSE_K2D(tile_lbound.J(),1),
+            IFELSE_K3D(tile_lbound.K(),1)
         };
         int tile_lo_array[] = {
             tile_lo.I(),
-            tile_lo.J(),
-            tile_lo.K()
+            IFELSE_K2D(tile_lo.J(),1),
+            IFELSE_K3D(tile_lo.K(),1)
         };
 
         cpu_taskfn_0_C2F(

@@ -110,9 +110,9 @@ extern "C" {
                 IFELSE_K3D(tile_hi.K(),1)
         };
         int   tile_interior[] = {
-                tileDesc->lo().I(),tileDesc->hi().I(),
-                IFELSE_K2D(tileDesc->lo().J(),1),IFELSE_K2D(tileDesc->hi().J(),1),
-                IFELSE_K3D(tileDesc->lo().K(),1),IFELSE_K3D(tileDesc->hi().K(),1)
+                tileDesc->lo().I(), tileDesc->hi().I(),
+                IFELSE_K2D(tileDesc->lo().J(),1), IFELSE_K2D(tileDesc->hi().J(),1),
+                IFELSE_K3D(tileDesc->lo().K(),1), IFELSE_K3D(tileDesc->hi().K(),1)
         };
         int tile_lo_array[] = {
                 tile_lo.I(),
