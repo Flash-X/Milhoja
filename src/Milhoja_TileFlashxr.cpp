@@ -34,13 +34,13 @@ TileFlashxr::TileFlashxr(const FlashxrTileRawPtrs tP,
                          const FlashxTileRawInts tI,
                          const FlashxTileRawReals tR)
     : Tile{},
-      level_{static_cast<unsigned int>(tI.level - 1)}, // 1-based Flash-X convention -> 0-based
+      level_{static_cast<unsigned int>(tI.level - 1)},     // 1-based Flash-X convention -> 0-based
       gridIdxOrBlkId_{tI.gridIdxOrBlkId},
       tileIdx_{tI.tileIdx},
-      lo_{LIST_NDIM(tI.loX,tI.loY,tI.loZ)},
-      hi_{LIST_NDIM(tI.hiX,tI.hiY,tI.hiZ)},
-      loGC_{LIST_NDIM(tI.loGCX,tI.loGCY,tI.loGCZ)},
-      hiGC_{LIST_NDIM(tI.hiGCX,tI.hiGCY,tI.hiGCZ)},
+      lo_{LIST_NDIM(tI.loX-1,tI.loY-1,tI.loZ-1)},          // 1-based Flash-X convention -> 0-based
+      hi_{LIST_NDIM(tI.hiX-1,tI.hiY-1,tI.hiZ-1)},          // 1-based Flash-X convention -> 0-based
+      loGC_{LIST_NDIM(tI.loGCX-1,tI.loGCY-1,tI.loGCZ-1)},  // 1-based Flash-X convention -> 0-based
+      hiGC_{LIST_NDIM(tI.hiGCX-1,tI.hiGCY-1,tI.hiGCZ-1)},  // 1-based Flash-X convention -> 0-based
       nCcComp_{tI.nCcComp},
       nFluxComp_{tI.nFluxComp},
       deltas_{LIST_NDIM(tR.deltaX,tR.deltaY,tR.deltaZ)},
