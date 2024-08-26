@@ -153,17 +153,12 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             connectors[self.REAL_ARGS].append(f"static_cast<void*>({src})")
             lo_data = lo.replace("tile_", "") + "()"
             hi_data = hi.replace("tile_", "") + "()"
-            lo_fmt = f"{self.tile_desc_name}->{lo_data}." + '{0}'
-            hi_fmt = f"{self.tile_desc_name}->{hi_data}." + '{0}'
             combined = f"int {src}[] = {{\n{self.INDENT}"
             combined += f',\n{self.INDENT}'.join(
-                '{0}, {1}'.format(
-                    indexexp_fmt.format(lo_fmt.format(char)),
-                    indexexp_fmt.format(hi_fmt.format(char))
+                '{0}->{1}.{3}(),{0}->{2}.{3}()'.format(
+                    self.tile_desc_name, lo_data, hi_data, char
                 )
-                for indexexp_fmt, char in [('{0}', 'I()'),
-                                           ('IFELSE_K2D({0},1)', 'J()'),
-                                           ('IFELSE_K3D({0},1)', 'K()')]
+                for char in ['I', 'J', 'K']
             ) + "\n}"
 
             self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
@@ -192,18 +187,11 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
             dtype = SOURCE_DATATYPES[src]
             if dtype in VECTOR_ARRAY_EQUIVALENT:
                 raw = VECTOR_ARRAY_EQUIVALENT[dtype]
-                if raw == "int":
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
-                        f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                        f"{self.INDENT}IFELSE_K2D({arg}.J(),1),\n"
-                        f"{self.INDENT}IFELSE_K3D({arg}.K(),1)\n}}"
-                    )
-                else:           # for arguments like tile_deltas
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
-                        f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                        f"{self.INDENT}{arg}.J(),\n"
-                        f"{self.INDENT}{arg}.K()\n}}"
-                    )
+                connectors[self.CONSOLIDATE_TILE_DATA].append(
+                    f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
+                    f"{self.INDENT}{arg}.J(),\n"
+                    f"{self.INDENT}{arg}.K()\n}}"
+                )
 
             else:
                 if 'unsigned' in dtype:
