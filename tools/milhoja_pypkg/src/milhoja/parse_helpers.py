@@ -218,7 +218,7 @@ def parse_lbound_f(lbound: str):
             )
 
     # find everything between a single set of parens to find math symbols.
-    regexr = r'\(([^\(\)]+|(?:[^\(\)]|\(\))+)\)'
+    regexr = r'\(([^\)]+)\)'
     matches = re.findall(regexr, lbound)
     math_sym_string = lbound
     for match in matches:
@@ -230,30 +230,19 @@ def parse_lbound_f(lbound: str):
     for idx, match in enumerate(matches):
         for keyword in keywords:
             if keyword in match:
-                if (("IFELSE_K2D(" in match) or ("IFELSE_K3D(" in match)):
-                    matches[idx] = match.replace(
-                        keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
-                    )
-                else:
-                    matches[idx] = match.replace(
-                        keyword, f'{keyword}.I(),IFELSE_K2D({keyword}.J();1),IFELSE_K3D({keyword}.K();1)'
-                    )
+                matches[idx] = match.replace(
+                    keyword, f'{keyword}.I(),{keyword}.J(),{keyword}.K()'
+                )
 
     iterables = [match.split(',') for match in matches]
     if not iterables:
         raise RuntimeError(f"Nothing in lbound {lbound}.")
 
-    # Replace ';' characters, which were temporarily used in place of ',' in the string
-    # in order to prevent splitting there, by the intended ';'.
-    for idx, iterable in enumerate(iterables):
-        for id, match in enumerate(iterables[idx]):
-            iterables[idx][id] = match.replace("();1)", "(),1)")
-
     # check if all lists inside the bounds equations are the same length.
     # Don't attempt to stitch different length arrays together.
     size = len(iterables[0])
     if not all([len(item) == size for item in iterables]):
-        raise RuntimeError(f"Different lbound part sizes for {lbound}: {iterables}")
+        raise RuntimeError(f"Different lbound part sizes. {lbound}")
 
     # combine all lbound parts into 1.
     # list of mathematic expressions will always be 1 less than the number

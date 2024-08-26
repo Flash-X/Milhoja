@@ -168,6 +168,7 @@ class FortranTemplateUtility(TemplateUtility):
 
             construct_host = ""
             if pure_source != LBOUND_ARGUMENT:
+                # adjusting index base
                 fix_index = '+1' if pure_source in bounds_data else ''
                 info.dtype = F2C_TYPE_MAPPING.get(info.dtype, info.dtype)
 
@@ -176,15 +177,17 @@ class FortranTemplateUtility(TemplateUtility):
                 # not have knowledge of the other
                 if source == TILE_INTERIOR_ARGUMENT:
                     construct_host = "[MILHOJA_MDIM * 2] = {" \
-                        "tileDesc_h->lo().I()+1,tileDesc_h->hi().I()+1, " \
-                        "tileDesc_h->lo().J()+1,tileDesc_h->hi().J()+1, " \
-                        "tileDesc_h->lo().K()+1,tileDesc_h->hi().K()+1 }"
+                        f"tileDesc_h->lo().I(){fix_index}, tileDesc_h->hi().I(){fix_index}, " \
+                        f"tileDesc_h->lo().J(){fix_index}, tileDesc_h->hi().J(){fix_index}, " \
+                        f"tileDesc_h->lo().K(){fix_index}, tileDesc_h->hi().K(){fix_index} " \
+                        "}"
 
                 elif source == TILE_ARRAY_BOUNDS_ARGUMENT:
                     construct_host = "[MILHOJA_MDIM * 2] = {" \
-                        "tileDesc_h->loGC().I()+1,tileDesc_h->hiGC().I()+1, "\
-                        "tileDesc_h->loGC().J()+1,tileDesc_h->hiGC().J()+1, "\
-                        "tileDesc_h->loGC().K()+1,tileDesc_h->hiGC().K()+1 }"
+                        f"tileDesc_h->loGC().I(){fix_index}, tileDesc_h->hiGC().I(){fix_index}, "\
+                        f"tileDesc_h->loGC().J(){fix_index}, tileDesc_h->hiGC().J(){fix_index}, "\
+                        f"tileDesc_h->loGC().K(){fix_index}, tileDesc_h->hiGC().K(){fix_index} " \
+                        "}"
 
                 elif source == TILE_LEVEL_ARGUMENT:
                     one_time_mdata[item] = data
@@ -202,8 +205,8 @@ class FortranTemplateUtility(TemplateUtility):
             else:
                 # info.dtype = VECTOR_ARRAY_EQUIVALENT[info.dtype]
                 # intvect i,j,k start at 0 so we need to add 1 to the
-                # index. However, anything that's just integers needs to be
-                # untouched.
+                # index as it is a Fortran.
+                # However, anything that's just integers needs to be untouched.
                 for idx, value in enumerate(lbound):
                     found = re.search('[a-zA-z]', value)
                     if found:
