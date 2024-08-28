@@ -14,6 +14,9 @@ from pathlib import Path
 
 
 class TestCodeGenerators(unittest.TestCase):
+
+    longMessage = True
+
     def __load_code(self, filename):
         #
         # Loads the given file, splits each line by words, and strips off all
@@ -59,7 +62,7 @@ class TestCodeGenerators(unittest.TestCase):
                 # ----- CHECK HEADER AGAINST BASELINE
                 if generator.header_filename is not None:
                     header_filename = dst.joinpath(generator.header_filename)
-                    self.assertTrue(not header_filename.exists())
+                    self.assertTrue(not header_filename.exists(), f"There exists a pre-generated source code: {header_filename}")
 
                     ref_hdr_fname = test["header"]
                     if hdr_depends_on_dim:
@@ -73,14 +76,14 @@ class TestCodeGenerators(unittest.TestCase):
 
                     self.assertEqual(len(ref), len(generated))
                     for gen_line, ref_line in zip(generated, ref):
-                        self.assertEqual(gen_line, ref_line)
+                        self.assertEqual(gen_line, ref_line, f"generated != {ref_hdr_fname}")
 
                     # Clean-up
                     os.remove(str(header_filename))
 
                 # ----- CHECK SOURCE AGAINST BASELINE
                 source_filename = dst.joinpath(generator.source_filename)
-                self.assertTrue(not source_filename.exists())
+                self.assertTrue(not source_filename.exists(), f"There exists a pre-generated source code: {source_filename}")
 
                 ref_src_fname = test["source"]
                 if src_depends_on_dim:
@@ -94,7 +97,7 @@ class TestCodeGenerators(unittest.TestCase):
 
                 self.assertEqual(len(ref), len(generated))
                 for gen_line, ref_line in zip(generated, ref):
-                    self.assertEqual(gen_line, ref_line)
+                    self.assertEqual(gen_line, ref_line, f"generated != {ref_src_fname}")
 
                 # ----- CLEAN-UP YA LAZY SLOB!
                 os.remove(str(source_filename))
