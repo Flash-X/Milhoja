@@ -16,7 +16,8 @@ from . import (
     TILE_UBOUND_ARGUMENT, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
     THREAD_INDEX_VAR_NAME, GRID_DATA_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_PTRS, SOURCE_DATATYPES,
-    VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS
+    VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
+    TILE_INDEX_DATA,
 )
 
 
@@ -149,21 +150,18 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
             lo = 'tile_lo' if src == TILE_INTERIOR_ARGUMENT else "tile_loGC"
             hi = 'tile_hi' if src == TILE_INTERIOR_ARGUMENT else "tile_hiGC"
+            # Fortran assumes 1-based index
+            offs = "+1"
             connectors[self.C2F_ARG_LIST].append(f"const void* {src}")
             connectors[self.REAL_ARGS].append(f"static_cast<void*>({src})")
             lo_data = lo.replace("tile_", "") + "()"
             hi_data = hi.replace("tile_", "") + "()"
-            lo_fmt = f"{self.tile_desc_name}->{lo_data}." + '{0}'
-            hi_fmt = f"{self.tile_desc_name}->{hi_data}." + '{0}'
             combined = f"int {src}[] = {{\n{self.INDENT}"
             combined += f',\n{self.INDENT}'.join(
-                '{0}, {1}'.format(
-                    indexexp_fmt.format(lo_fmt.format(char)),
-                    indexexp_fmt.format(hi_fmt.format(char))
+                '{0}->{1}.{3}(){4}, {0}->{2}.{3}(){4}'.format(
+                    self.tile_desc_name, lo_data, hi_data, char, offs
                 )
-                for indexexp_fmt, char in [('{0}', 'I()'),
-                                           ('IFELSE_K2D({0},1)', 'J()'),
-                                           ('IFELSE_K3D({0},1)', 'K()')]
+                for char in ['I', 'J', 'K']
             ) + "\n}"
 
             self.connectors[self.CONSOLIDATE_TILE_DATA].append(combined)
@@ -191,19 +189,16 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
             dtype = SOURCE_DATATYPES[src]
             if dtype in VECTOR_ARRAY_EQUIVALENT:
+                offs = ""
+                if src in TILE_INDEX_DATA:
+                    # Fortran assumes 1-based index
+                    offs = "+1"
                 raw = VECTOR_ARRAY_EQUIVALENT[dtype]
-                if raw == "int":
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
-                        f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                        f"{self.INDENT}IFELSE_K2D({arg}.J(),1),\n"
-                        f"{self.INDENT}IFELSE_K3D({arg}.K(),1)\n}}"
-                    )
-                else:           # for arguments like tile_deltas
-                    connectors[self.CONSOLIDATE_TILE_DATA].append(
-                        f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                        f"{self.INDENT}{arg}.J(),\n"
-                        f"{self.INDENT}{arg}.K()\n}}"
-                    )
+                connectors[self.CONSOLIDATE_TILE_DATA].append(
+                    f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(){offs},\n"
+                    f"{self.INDENT}{arg}.J(){offs},\n"
+                    f"{self.INDENT}{arg}.K(){offs}\n}}"
+                )
 
             else:
                 if 'unsigned' in dtype:
@@ -252,6 +247,13 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                     f"{tile_desc_name}->{tile_desc_func}()"
                 )
                 saved.add(word)
+
+        # adjusting the base index
+        # because it is a Fortran
+        for i, bound in enumerate(lb):
+            for keyword in TILE_INDEX_DATA:
+                if keyword in bound:
+                    lb[i] = bound + "+1"
 
         lb = f"{{\n{self.INDENT}" + f',\n{self.INDENT}'.join(lb) + "\n}"
         lb = lb.replace(" ", "")

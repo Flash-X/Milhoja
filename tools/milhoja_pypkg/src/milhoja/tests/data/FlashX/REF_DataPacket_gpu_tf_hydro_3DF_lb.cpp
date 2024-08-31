@@ -293,11 +293,11 @@ void DataPacket_gpu_tf_hydro::pack(void) {
         char_ptr = static_cast<char*>(static_cast<void*>(_tile_arrayBounds_p)) + n * SIZE_TILE_ARRAYBOUNDS;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_tile_arrayBounds_h), SIZE_TILE_ARRAYBOUNDS);
 
-        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(IFELSE_K2D(lbound.J(),1)) + 1,(IFELSE_K3D(lbound.K(),1)) + 1,1};
+        int _lbdd_CC_1_h[4] = {(lbound.I()) + 1,(lbound.J()) + 1,(lbound.K()) + 1,1};
         char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_CC_1_p)) + n * SIZE_LBDD_CC_1;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_CC_1_h), SIZE_LBDD_CC_1);
         
-        int _lbdd_scratch_hydro_op1_auxC_h[3] = {(lo.I()-1) + 1,(IFELSE_K2D(lo.J(),1)- 1) + 1,(IFELSE_K3D(lo.K(),1)- 1) + 1};
+        int _lbdd_scratch_hydro_op1_auxC_h[3] = {(lo.I()-1) + 1,(lo.J()- 1) + 1,(lo.K()- 1) + 1};
         char_ptr = static_cast<char*>(static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_p)) + n * SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC;
         std::memcpy(static_cast<void*>(char_ptr), static_cast<void*>(_lbdd_scratch_hydro_op1_auxC_h), SIZE_LBDD_SCRATCH_HYDRO_OP1_AUXC);
         

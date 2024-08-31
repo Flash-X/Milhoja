@@ -66,6 +66,16 @@ TILE_ARGUMENTS_ALL = {
     TILE_CELL_VOLUMES_ARGUMENT
 }
 
+# The following index data must be handled carefully
+# with a proper starting index, e.g., 1-based for Fortran language,
+# during the code generations.
+TILE_INDEX_DATA = [
+    TILE_LO_ARGUMENT,
+    TILE_HI_ARGUMENT,
+    TILE_LBOUND_ARGUMENT,
+    TILE_UBOUND_ARGUMENT,
+]
+
 # ----- DATA ACCESS KEYWORDS
 READ = "r"
 WRITE = "w"
