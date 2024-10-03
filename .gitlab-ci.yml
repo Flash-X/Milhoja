@@ -33,7 +33,6 @@ variables:
  GIT_STRATEGY:           clone
  MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
  MILHOJA_TEST_CLONE:     $MILHOJA_PROJECT_PATH/MilhojaTest
- CGKIT_CODE_REPO:        $MILHOJA_PROJECT_PATH/cg-kit
  FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
  SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
  SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
@@ -48,16 +47,7 @@ test_milhoja_pypkg:
  - echo $SHELL
  - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
- - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - echo $MILHOJA_CODE_REPO
- - echo $CGKIT_CODE_REPO
- - echo $CGKIT_PATH
- ##-- Clean-up from prior runs
- #    Copy cgkit to this space so that it can be installed without needing special
- #    permissions.  CGKIT_PATH must be set for tox to work below.
- - rm -rf $CGKIT_PATH
- - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
- - ls $CGKIT_PATH
  ##-- Create Conda env
  - module load anaconda3/2021.05
  - eval "$(conda 'shell.bash' 'hook')"
@@ -102,7 +92,6 @@ test_gnu:
 # - cd ..
 # - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
  - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
- - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
  # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
  - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
@@ -114,7 +103,6 @@ test_gnu:
  - echo $MILHOJA_CODE_REPO
  - echo $MILHOJA_WORK_CLONE
  - echo $MILHOJA_INSTALL_PATH
- - echo $CGKIT_CODE_REPO
  - echo $SEDOV_REGRESSION_TEST
  - echo $FCOMPARE_EXE
  ##-- Install pristine clone of external test repo
@@ -122,11 +110,7 @@ test_gnu:
  - ls
  - rm -rfv Milhoja_[123]D_${HWFAMILY}_*
  - rm -rfv $MILHOJA_WORK_CLONE
- - rm -rfv $CGKIT_PATH
  - ls
- ##-- Copy cgkit to this space so that it can be installed without needing special
- #    permissions.
- - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git -b pushtile_supported
  - cd $MILHOJA_WORK_CLONE
  - git log -1 --oneline
@@ -151,7 +135,6 @@ test_gnu:
  - python -m pip install --upgrade pip
  - pip install --upgrade setuptools
  - pip install nose
- - pip install --editable=file://${CGKIT_PATH}
  - pip install numpy
  - pip install scipy
  - pip install pandas
@@ -213,16 +196,7 @@ test_sphinx:
  - echo $SHELL
  - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
  - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
- - export CGKIT_PATH=$CI_BASE_PATH/cg-kit
  - echo $MILHOJA_CODE_REPO
- - echo $CGKIT_CODE_REPO
- - echo $CGKIT_PATH
- ##-- Clean-up from prior runs
- #    Copy cgkit to this space so that it can be installed without needing special
- #    permissions.  CGKIT_PATH must be set for tox to work below.
- - rm -rf $CGKIT_PATH
- - cp -R $CGKIT_CODE_REPO $CGKIT_PATH
- - ls $CGKIT_PATH
  ##-- Create Conda env
  - module load anaconda3/2021.05
  - eval "$(conda 'shell.bash' 'hook')"
