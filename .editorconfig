@@ -12,7 +12,7 @@ insert_final_newline = true
 charset = utf-8
 
 # 4 space indentation
-[*.{py,F90,cpp,h,json}]
+[*.{py,F90,cpp,h,cu,json}]
 indent_style = space
 indent_size = 4
 
