@@ -8,7 +8,8 @@ from . import (
     LOG_LEVEL_BASIC, LOG_LEVEL_BASIC_DEBUG, EXTERNAL_ARGUMENT, TILE_LO_ARGUMENT,
     TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT,
-    C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
+    C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
+    TILE_LEVEL_ARGUMENT
 )
 
 
@@ -192,6 +193,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 elif src in bounds:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :, :)\n")
 
+                elif src == TILE_LEVEL_ARGUMENT:
+                    fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
+
                 elif src == GRID_DATA_ARGUMENT:
                     if arg in self._tf_spec.tile_in_arguments:
                         intent = "IN"
@@ -292,10 +296,14 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
                         extents = ""
+                        offs = ""
                         if spec["source"] in points:
                             extents = "(:, n)"
                         elif spec["source"] == TILE_DELTAS_ARGUMENT:
                             extents = "(:, n)"
+                        elif spec["source"] == TILE_LEVEL_ARGUMENT:
+                            extents = "(1, n)"
+                            offs = " + 1"
                         elif spec["source"] in bounds:
                             extents = "(:, :, n)"
                         elif spec["source"] == GRID_DATA_ARGUMENT:
@@ -304,7 +312,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             dimension = len(parse_extents(spec["extents"]))
                             tmp = [":" for _ in range(dimension)]
                             extents = "(" + ", ".join(tmp) + ", n)"
-                        arg_list.append(f"{INDENT*5}{argument}_d{extents}")
+                        arg_list.append(f"{INDENT*5}{argument}_d{extents}{offs}")
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*5})\n")
                     fptr.write(f"{INDENT*2}end do\n")

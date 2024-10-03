@@ -7,13 +7,17 @@ from . import AbcCodeGenerator
 from . import LogicError
 from . import TaskFunction
 from .generate_packet_file import generate_packet_file
-from .parse_helpers import parse_lbound_f
+from .parse_helpers import (
+    get_initial_index,
+    parse_lbound_f
+)
 from . import (
     EXTERNAL_ARGUMENT, LBOUND_ARGUMENT, TILE_LBOUND_ARGUMENT,
     TILE_UBOUND_ARGUMENT, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
     THREAD_INDEX_VAR_NAME, GRID_DATA_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_PTRS, SOURCE_DATATYPES,
     VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
+    TILE_INDEX_DATA,
 )
 
 
@@ -146,14 +150,16 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         if src == TILE_INTERIOR_ARGUMENT or src == TILE_ARRAY_BOUNDS_ARGUMENT:
             lo = 'tile_lo' if src == TILE_INTERIOR_ARGUMENT else "tile_loGC"
             hi = 'tile_hi' if src == TILE_INTERIOR_ARGUMENT else "tile_hiGC"
+            # Fortran assumes 1-based index
+            offs = "+1"
             connectors[self.C2F_ARG_LIST].append(f"const void* {src}")
             connectors[self.REAL_ARGS].append(f"static_cast<void*>({src})")
             lo_data = lo.replace("tile_", "") + "()"
             hi_data = hi.replace("tile_", "") + "()"
             combined = f"int {src}[] = {{\n{self.INDENT}"
             combined += f',\n{self.INDENT}'.join(
-                '{0}->{1}.{3}(),{0}->{2}.{3}()'.format(
-                    self.tile_desc_name, lo_data, hi_data, char
+                '{0}->{1}.{3}(){4}, {0}->{2}.{3}(){4}'.format(
+                    self.tile_desc_name, lo_data, hi_data, char, offs
                 )
                 for char in ['I', 'J', 'K']
             ) + "\n}"
@@ -166,6 +172,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 alt_src = "tile_loGC"
             elif src == TILE_UBOUND_ARGUMENT:
                 alt_src = "tile_hiGC"
+
             tile_desc_func = alt_src.replace("tile_", '')
             tile_desc_name = self.tile_desc_name
             if alt_src not in saved:
@@ -182,11 +189,22 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
 
             dtype = SOURCE_DATATYPES[src]
             if dtype in VECTOR_ARRAY_EQUIVALENT:
+                offs = ""
+                if src in TILE_INDEX_DATA:
+                    # Fortran assumes 1-based index
+                    offs = "+1"
                 raw = VECTOR_ARRAY_EQUIVALENT[dtype]
                 connectors[self.CONSOLIDATE_TILE_DATA].append(
-                    f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(),\n"
-                    f"{self.INDENT}{arg}.J(),\n"
-                    f"{self.INDENT}{arg}.K()\n}}"
+                    f"{raw} {arg}_array[] = {{\n{self.INDENT}{arg}.I(){offs},\n"
+                    f"{self.INDENT}{arg}.J(){offs},\n"
+                    f"{self.INDENT}{arg}.K(){offs}\n}}"
+                )
+
+            else:
+                if 'unsigned' in dtype:
+                    dtype = dtype.replace("unsigned ", "")
+                connectors[self.CONSOLIDATE_TILE_DATA].append(
+                    f"{dtype} {arg}_array[] = {{{arg}}}"
                 )
 
     def _fill_lbound_connectors(self, arg, spec, connectors, saved):
@@ -208,8 +226,11 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         words = None
         if var_spec["source"] == GRID_DATA_ARGUMENT:
             st_idx = var_spec["structure_index"][0].upper()
-            gcells = self._tf_spec.n_guardcells
-            lb, words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(gcells))
+            # get starting array value
+            vars_in = var_spec.get("variables_in", None)
+            vars_out = var_spec.get("variables_out", None)
+            init = get_initial_index(vars_in, vars_out)
+            lb, words = parse_lbound_f(GRID_DATA_LBOUNDS[st_idx].format(init))
         else:
             lb, words = parse_lbound_f(var_spec["lbound"])
 
@@ -226,6 +247,13 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                     f"{tile_desc_name}->{tile_desc_func}()"
                 )
                 saved.add(word)
+
+        # adjusting the base index
+        # because it is a Fortran
+        for i, bound in enumerate(lb):
+            for keyword in TILE_INDEX_DATA:
+                if keyword in bound:
+                    lb[i] = bound + "+1"
 
         lb = f"{{\n{self.INDENT}" + f',\n{self.INDENT}'.join(lb) + "\n}"
         lb = lb.replace(" ", "")
