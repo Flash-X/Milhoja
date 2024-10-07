@@ -15,6 +15,7 @@
 #include "Milhoja_ThreadTeamRunningOpen.h"
 #include "Milhoja_ThreadTeamRunningClosed.h"
 #include "Milhoja_ThreadTeamRunningNoMoreWork.h"
+#include "Milhoja_TileWrapper.h"
 
 namespace milhoja {
 
@@ -907,6 +908,11 @@ std::string ThreadTeam::attachDataReceiver(RuntimeElement* receiver) {
     return "";
 }
 
+void ThreadTeam::setReceiverProto(TileWrapper const * w) {
+    // TODO: should I mutex lock/unlock?
+    receiverProto_ = w;
+}
+
 /**
  * Detach the data subscriber so that the calling object is no longer a data
  * publisher.
@@ -1473,7 +1479,22 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
             if (team->dataReceiver_) {
                 // Move the data item along so that dataItem is null
-                team->dataReceiver_->enqueue(std::move(dataItem));
+                // TODO: very dirty ownership transfers
+                if (auto tileWrapper = std::dynamic_pointer_cast<TileWrapper>(dataItem)) {
+                    // NOTE: this is the case where dataItem is a TilwWrapper,
+                    //       and the team->dataReceiver_ is another TileWrapper.
+                    //       Need to transfer dataItem initialized with data receiver's
+                    //       tileProtoType, as it may differ.
+                    std::unique_ptr<TileWrapper> clonedTile =
+                        team->receiverProto_->clone(std::move(tileWrapper->tile_));
+                    // Release ownership, assuming clonedTile has new ownership
+                    dataItem.reset();
+                    team->dataReceiver_->enqueue(std::move(clonedTile));
+                }
+                else {
+                    // the data receiver is a mover/unpacker
+                    team->dataReceiver_->enqueue(std::move(dataItem));
+                }
             } else {
                 // The data item is done.  Null dataItem so that the current
                 // data item's resources can be released if this was the last
