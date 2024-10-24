@@ -1,0 +1,224 @@
+# Jobs in a single pipeline can be distributed across multiple runners.  For CELS,
+# the runners are two different types of HW.  Therefore, we could be building 
+# binaries for one type of processor with one job and running tests on a different
+# processor.  This is not acceptable, so we put all work in a single job.
+#
+# GitLab is working on "Sticky Runners", which would force all jobs in a single
+# pipeline to run on the same runner.  This would be a step in the right 
+# direction.  I do not see that it is yet officially included in GitLab CI.
+#
+# NOTE: The main code here uses pushd/popd.  Careful about this when altering
+#       the code.
+
+# Use CELS's GCE-public runners, which use GCE general computing hardware.
+# Most runners are now using Ubuntu 20.04 so we restrict ourselves to these
+# runners so that we don't have to maintain two sets of SW stacks by OS.
+default:
+ tags:
+ - public
+ - shared_ssh
+ - '20'
+
+stages:
+  - test
+
+# Always use pristine installations of git repos to avoid subtle
+# difficulties that could arise from unintentionally or incorrectly
+# using files from a previous run.
+#
+# Note that the correct SW stack *must* be loaded when using fcompare.
+# Therefore, if FCOMPARE_EXE is changed here, check if the regression test
+# section needs updating as well.
+variables:
+ GIT_STRATEGY:           clone
+ MILHOJA_PROJECT_PATH:   /nfs/gce/projects/Milhoja
+ MILHOJA_TEST_CLONE:     $MILHOJA_PROJECT_PATH/MilhojaTest
+ FCOMPARE_EXE:           $MILHOJA_PROJECT_PATH/amrex/Tools/Plotfile/fcompare.gnu.ex
+ SEDOV_BASELINE_2D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_2D
+ SEDOV_BASELINE_3D:      $MILHOJA_PROJECT_PATH/MilhojaTest/baselines/162a03d3/SedovMpi_3D
+ CONDA_ENV_NAME:         "Milhoja_py39"
+ CONDA_PYTHON_VERSION:   "3.9"
+
+test_milhoja_pypkg:
+ stage: test
+ script:
+ ##-- Setup all environment variables
+ - echo $PWD
+ - echo $SHELL
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - echo $MILHOJA_CODE_REPO
+ ##-- Create Conda env
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
+ - which python
+ - python --version
+ - which pip
+ ##-- Install tox
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
+ - pip install tox
+ - pip list
+ ##-- Run all tests
+ - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - tox -r -e coverage,report,check
+ - popd
+ - conda deactivate
+ ##-- Save artifacts
+ - tar cvfz milhoja_pypkg_coverage.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/htmlcov
+ artifacts:
+    paths:
+     - milhoja_pypkg_coverage.tgz
+    expire_in: never
+
+test_gnu:
+ stage: test
+ script:
+ ##-- Setup all environment variables
+ - echo $PWD
+ - echo $SHELL
+# UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
+# - export CI_BASE_PATH=/tmp/milhoja
+# - rm -rf $CI_BASE_PATH
+# - mkdir $CI_BASE_PATH
+# UNCOMMENT NEXT LINE FOR NORMAL RUNS
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_WORK_CLONE=$CI_BASE_PATH/MilhojaTest
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+# UNCOMMENT TO BE ABLE TO ACCESS FAILED RUN'S INSTALLATION
+# - cd ..
+# - cp -R ./OrchestrationRuntime $MILHOJA_CODE_REPO
+ - export MILHOJA_INSTALL_PATH=$CI_BASE_PATH
+ - export SEDOV_REGRESSION_TEST=$MILHOJA_CODE_REPO/tools/compare_sedov_results.py
+ # The following are used to determine the HW family of the CI runner (i.e., HWFAMILY)
+ - . $MILHOJA_TEST_CLONE/gce/available_gce_machines.sh
+ - set_gce_machine_env_vars $HOSTNAME
+ ##-- Print metadata to trace env vars
+ - echo $HOSTNAME
+ - echo $HWFAMILY
+ - echo $MILHOJA_TEST_CLONE
+ - echo $MILHOJA_CODE_REPO
+ - echo $MILHOJA_WORK_CLONE
+ - echo $MILHOJA_INSTALL_PATH
+ - echo $SEDOV_REGRESSION_TEST
+ - echo $FCOMPARE_EXE
+ ##-- Install pristine clone of external test repo
+ - pushd $CI_BASE_PATH
+ - ls
+ - rm -rfv Milhoja_[123]D_${HWFAMILY}_*
+ - rm -rfv $MILHOJA_WORK_CLONE
+ - ls
+ - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@git.cels.anl.gov/joneal/MilhojaTest.git -b pushtile_supported
+ - cd $MILHOJA_WORK_CLONE
+ - git log -1 --oneline
+ ##-- Install python packages for use throughout
+ # NOTE: I previously ran in this build script the command `pydoc sedov` and found that this
+ # installs to `/home/svccels.ci/.local`, which means that we are potentially using a python
+ # installation altered by other projects using the CI.  For instance another project might
+ # update a package like pandas to a version with a more modern interface that breaks our
+ # python code.  So far, we at least install with --upgrade to overwrite a pre-existing
+ # installation of the Sedov python package and therefore ensure that we have a clean install
+ # of that package.
+ # TODO: Use a python setup locally just for this project?
+ ##-- Create Conda env
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
+ - which python
+ - python --version
+ - which pip
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
+ - pip install nose
+ - pip install numpy
+ - pip install scipy
+ - pip install pandas
+ - pip install matplotlib
+ - pip install seaborn
+ - pip install yt
+ - cd $MILHOJA_CODE_REPO/tools/sedov_pypkg
+ - pip install .
+ - python -c 'import sedov ; sedov.print_versions()'
+ - cd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - pip install .
+ ##-- Check python virtual environment
+ - pip list
+ - $MILHOJA_CODE_REPO/tools/test_milhoja_installation.py -v 2
+ ##-- Build and run tests
+ # Run official scripts just to confirm general functionality
+ - $MILHOJA_CODE_REPO/tools/check_subroutine_group_specification.py $MILHOJA_CODE_REPO/test/Base/code_generation/Math_op1.json Milhoja-JSON
+ # Build all variants of a single test first and then run all at once
+ - cd $MILHOJA_WORK_CLONE/gce
+ # Libraries
+ - ./buildMilhoja.sh
+ # Unittests
+ - ./buildTestGrid.sh
+ - ./testGrid.sh
+ - ./buildTestThreadTeam.sh
+ - ./testThreadTeam.sh
+ - ./buildTestRuntimeNull.sh
+ - ./testRuntimeNull.sh
+ - ./buildTestRuntimeCpu.sh
+ - ./testRuntimeCpu.sh
+ # Acquire Sedov results for regression testing
+ # Run only in production since the debugs can run so long on sandy bridge that the
+ # test suite times out.
+ - ./buildSedovMpi.sh
+ - ./runSedovMpi.sh
+ - ./buildSedovCpu.sh
+ - ./runSedovCpu.sh
+ # Execute regression tests
+ # Setup same SW stack used to build fcompare binary
+ - . $MILHOJA_TEST_CLONE/gce/setup_current_gnu_mpich_stack.sh
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovMpi_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovMpi_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_2D $(ls -d SedovCpu_2D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - $SEDOV_REGRESSION_TEST $SEDOV_BASELINE_3D $(ls -d SedovCpu_3D_gce_${HWFAMILY}_gnu_mpich_production.*T*)
+ - conda deactivate
+
+test_doxygen:
+ stage: test
+ script:
+ - pushd docs/doxygen
+ - doxygen
+ - popd
+
+test_sphinx:
+ stage: test
+ script:
+ ##-- Setup all environment variables
+ - echo $PWD
+ - echo $SHELL
+ - export CI_BASE_PATH=$(dirname $HOME/$CI_PROJECT_DIR)
+ - export MILHOJA_CODE_REPO=$CI_BASE_PATH/OrchestrationRuntime
+ - echo $MILHOJA_CODE_REPO
+ ##-- Create Conda env
+ - module load anaconda3/2021.05
+ - eval "$(conda 'shell.bash' 'hook')"
+ - conda env remove -n $CONDA_ENV_NAME || true
+ - conda create -n $CONDA_ENV_NAME python=$CONDA_PYTHON_VERSION -y
+ - conda activate $CONDA_ENV_NAME
+ - which python
+ - python --version
+ - which pip
+ ##-- Install tox
+ - python -m pip install --upgrade pip
+ - pip install --upgrade setuptools
+ - pip install tox
+ - pip list
+ ##-- Run all tests
+ - pushd $MILHOJA_CODE_REPO/tools/milhoja_pypkg
+ - tox -r -e html,pdf
+ - popd
+ - conda deactivate
+ ##-- Save artifacts
+ - tar cvfz milhoja_pypkg_sphinx.tgz $MILHOJA_CODE_REPO/tools/milhoja_pypkg/docs/build
+ artifacts:
+    paths:
+     - milhoja_pypkg_sphinx.tgz
+    expire_in: never
