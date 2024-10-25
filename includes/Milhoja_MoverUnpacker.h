@@ -46,6 +46,7 @@
 
 #include <pthread.h>
 
+#include "Milhoja_DataItem.h"
 #include "Milhoja_TileWrapper.h"
 #include "Milhoja_RuntimeElement.h"
 
@@ -63,7 +64,6 @@ public:
     MoverUnpacker& operator=(const MoverUnpacker&) = delete;
     MoverUnpacker& operator=(MoverUnpacker&&)      = delete;
 
-    void setReceiverProto(TileWrapper const *);
     void startCycle(void);
     void increaseThreadCount(const unsigned int nThreads) override;
     void enqueue(std::shared_ptr<DataItem>&& dataItem) override;
@@ -72,6 +72,7 @@ public:
     void wait(void);
 
     RuntimeElement*  dataReceiver(void) const  { return dataReceiver_; }
+    const DataItem*  receiverPrototype(void) const { return receiverPrototype_; }
 
 private:
     enum class State {Idle, Open, Closed};
