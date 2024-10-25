@@ -4,6 +4,7 @@
 
 #include "Milhoja_ThreadTeam.h"
 
+#include <memory>
 #include <sys/time.h>
 #include <iostream>
 #include <stdexcept>
@@ -908,9 +909,42 @@ std::string ThreadTeam::attachDataReceiver(RuntimeElement* receiver) {
     return "";
 }
 
-void ThreadTeam::setReceiverProto(TileWrapper const * w) {
-    // TODO: should I mutex lock/unlock?
-    receiverProto_ = w;
+
+/**
+ *
+ */
+std::string ThreadTeam::setReceiverPrototype(const DataItem* prototype) {
+    pthread_mutex_lock(&teamMutex_);
+
+    std::string    errMsg("");
+    if (!state_) {
+        errMsg = printState_NotThreadsafe("setReceiverPrototype", 0,
+                 "state_ is NULL");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    }
+    std::string msg = state_->isStateValid_NotThreadSafe();
+    if (msg != "") {
+        errMsg = printState_NotThreadsafe("setReceiverPrototype", 0, msg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::runtime_error(errMsg);
+    } else if (state_->mode() != ThreadTeamMode::IDLE) {
+        errMsg = printState_NotThreadsafe("setReceiverPrototype", 0,
+                 "A team can only be attached in the Idle mode");
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    errMsg = RuntimeElement::setReceiverPrototype(prototype);
+    if (errMsg != "") {
+        errMsg = printState_NotThreadsafe("setReceiverPrototype", 0, errMsg);
+        pthread_mutex_unlock(&teamMutex_);
+        throw std::logic_error(errMsg);
+    }
+
+    pthread_mutex_unlock(&teamMutex_);
+
+    return "";
 }
 
 /**
@@ -1479,17 +1513,24 @@ void* ThreadTeam::threadRoutine(void* varg) {
 
             if (team->dataReceiver_) {
                 // Move the data item along so that dataItem is null
-                // TODO: very dirty ownership transfers
                 if (auto tileWrapper = std::dynamic_pointer_cast<TileWrapper>(dataItem)) {
-                    // NOTE: this is the case where dataItem is a TilwWrapper,
-                    //       and the team->dataReceiver_ is another TileWrapper.
-                    //       Need to transfer dataItem initialized with data receiver's
-                    //       tileProtoType, as it may differ.
-                    std::unique_ptr<TileWrapper> clonedTile =
-                        team->receiverProto_->clone(std::move(tileWrapper->tile_));
-                    // Release ownership, assuming clonedTile has new ownership
-                    dataItem.reset();
-                    team->dataReceiver_->enqueue(std::move(clonedTile));
+                    if (auto tileWrapperPrototype =
+                            dynamic_cast<const TileWrapper*>(team->receiverPrototype_)) {
+                        // NOTE: this is the case where dataItem is a TilwWrapper,
+                        //       and the team->dataReceiver_ is another TileWrapper.
+                        //       Need to transfer dataItem initialized with data receiver's
+                        //       tileProtoType, as it may differ.
+                        // TODO: very dirty ownership transfers
+                        std::unique_ptr<TileWrapper> clonedTileWrapper =
+                            tileWrapperPrototype->clone(std::move(tileWrapper->tile_));
+                        // Release ownership, assuming clonedTileWrapper has new ownership
+                        dataItem.reset();
+                        team->dataReceiver_->enqueue(std::move(clonedTileWrapper));
+                    }
+                    else {
+                        // receiver prototype is not a tilewrapper. do the normal thing
+                        team->dataReceiver_->enqueue(std::move(dataItem));
+                    }
                 }
                 else {
                     // the data receiver is a mover/unpacker

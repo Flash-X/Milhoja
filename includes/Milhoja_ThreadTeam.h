@@ -114,7 +114,7 @@ public:
     //      into thread team configurations.
     std::string  attachDataReceiver(RuntimeElement* receiver) override;
     std::string  detachDataReceiver(void) override;
-    void setReceiverProto(TileWrapper const * w);
+    std::string  setReceiverPrototype(const DataItem* prototype) override;
 
 protected:
     constexpr static unsigned int   THREAD_START_STOP_TIMEOUT_SEC = 1;
@@ -215,7 +215,6 @@ private:
 
     // Keep track of when wait() is blocking and when it is released
     bool              isWaitBlocking_;     //!< Only a single thread can be blocked 
-    const TileWrapper * receiverProto_;
 };
 
 }

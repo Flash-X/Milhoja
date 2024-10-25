@@ -1145,7 +1145,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
-    gpuToHost1_.setReceiverProto(&tilePrototype);
+    gpuToHost1_.setReceiverPrototype(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads
@@ -1252,7 +1252,7 @@ void Runtime::setupPipelineForExtGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
-    gpuToHost1_.setReceiverProto(&tilePrototype);
+    gpuToHost1_.setReceiverPrototype(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads
@@ -2099,10 +2099,10 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     teamA_cpu->attachThreadReceiver(teamB_cpu);
     teamA_cpu->attachDataReceiver(teamB_cpu);
-    teamA_cpu->setReceiverProto(&postTilePrototype);
+    teamA_cpu->setReceiverPrototype(&postTilePrototype);
     teamA_gpu->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(teamB_cpu);
-    gpuToHost1_.setReceiverProto(&postTilePrototype);
+    gpuToHost1_.setReceiverPrototype(&postTilePrototype);
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
@@ -2274,10 +2274,10 @@ void Runtime::setupPipelineForExtCpuGpuSplitTasks(const std::string& bundleName,
 
     teamA_cpu->attachThreadReceiver(teamB_cpu);
     teamA_cpu->attachDataReceiver(teamB_cpu);
-    teamA_cpu->setReceiverProto(&postTilePrototype);
+    teamA_cpu->setReceiverPrototype(&postTilePrototype);
     teamA_gpu->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(teamB_cpu);
-    gpuToHost1_.setReceiverProto(&postTilePrototype);
+    gpuToHost1_.setReceiverPrototype(&postTilePrototype);
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
