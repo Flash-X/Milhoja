@@ -1,0 +1,32 @@
+name: sphinx
+
+on: [push]
+
+jobs:
+  sphinx:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9"]
+    defaults:
+      run:
+        working-directory: tools/milhoja_pypkg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y latexmk texlive-latex-recommended texlive-latex-extra
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Sphinx
+        run: tox -r -e py,html,pdf
+
