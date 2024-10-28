@@ -1,0 +1,27 @@
+name: milhoja_pypkg
+
+on: [push]
+
+jobs:
+  milhoja_pypkg:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9"]
+    defaults:
+      run:
+        working-directory: tools/milhoja_pypkg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Build tests
+        run: tox -e py,coverage,report,check
+
