@@ -367,7 +367,6 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
         lines.append(dummy_arg_str)
 
-
         interface = self._tf_spec.subroutine_interface_file(subroutine).strip()
         interface = interface.rstrip(".F90")
         lines.append(f"{indent*2}use {interface}, ONLY: {subroutine}")
@@ -491,4 +490,3 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append("")
 
         return subroutine_wrapper, lines
-
