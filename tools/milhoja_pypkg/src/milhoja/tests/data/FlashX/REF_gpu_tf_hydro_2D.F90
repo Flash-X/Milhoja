@@ -40,10 +40,10 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_Y_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_updateSolutionHll_gpu_oacc
 
-        !$acc routine (Hydro_computeSoundSpeedHll_gpu_oacc) vector
-        !$acc routine (Hydro_computeFluxesHll_X_gpu_oacc) vector
-        !$acc routine (Hydro_computeFluxesHll_Y_gpu_oacc) vector
-        !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
+        !$acc routine (wrapper_Hydro_computeSoundSpeedHll_gpu_oacc) vector
+        !$acc routine (wrapper_Hydro_computeFluxesHll_X_gpu_oacc) vector
+        !$acc routine (wrapper_Hydro_computeFluxesHll_Y_gpu_oacc) vector
+        !$acc routine (wrapper_Hydro_updateSolutionHll_gpu_oacc) vector
 
         implicit none
 
@@ -79,56 +79,60 @@ contains
         !$acc parallel loop gang default(none) &
         !$acc& async(dataQ_h)
         do n = 1, nTiles_d
-            CALL Hydro_computeSoundSpeedHll_gpu_oacc( &
-                    tile_lo_d(:, n), &
-                    tile_hi_d(:, n), &
-                    U_d(:, :, :, :, n), &
-                    hydro_op1_auxc_d(:, :, :, n) &
-                 )
+            CALL wrapper_Hydro_computeSoundSpeedHll_gpu_oacc( &
+                    n, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    U_d, &
+                    hydro_op1_auxc_d &
+                    )
         end do
         !$acc end parallel loop
 
         !$acc parallel loop gang default(none) &
         !$acc& async(dataQ_h)
         do n = 1, nTiles_d
-            CALL Hydro_computeFluxesHll_X_gpu_oacc( &
-                    dt_d,                           &
-                    tile_lo_d(:, n), &
-                    tile_hi_d(:, n), &
-                    tile_deltas_d(:, n), &
-                    U_d(:, :, :, :, n), &
-                    hydro_op1_auxc_d(:, :, :, n), &
-                    hydro_op1_flX_d(:, :, :, :, n) &
-                 )
-        end do
-        !$acc end parallel loop
-
-        !$acc parallel loop gang default(none) &
-        !$acc& async(dataQ_h)
-        do n = 1, nTiles_d
-            CALL Hydro_computeFluxesHll_Y_gpu_oacc( &
+            CALL wrapper_Hydro_computeFluxesHll_X_gpu_oacc( &
+                    n, &
                     dt_d, &
-                    tile_lo_d(:, n), &
-                    tile_hi_d(:, n), &
-                    tile_deltas_d(:, n), &
-                    U_d(:, :, :, :, n), &
-                    hydro_op1_auxc_d(:, :, :, n), &
-                    hydro_op1_flY_d(:, :, :, :, n) &
-                 )
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    tile_deltas_d, &
+                    U_d, &
+                    hydro_op1_auxc_d, &
+                    hydro_op1_flX_d &
+                    )
         end do
         !$acc end parallel loop
 
         !$acc parallel loop gang default(none) &
         !$acc& async(dataQ_h)
         do n = 1, nTiles_d
-            CALL Hydro_updateSolutionHll_gpu_oacc( &
-                    tile_lo_d(:, n), &
-                    tile_hi_d(:, n), &
-                    hydro_op1_flX_d(:, :, :, :, n), &
-                    hydro_op1_flY_d(:, :, :, :, n), &
-                    hydro_op1_flZ_d(:, :, :, :, n), &
-                    U_d(:, :, :, :, n) &
-                 )
+            CALL wrapper_Hydro_computeFluxesHll_Y_gpu_oacc( &
+                    n, &
+                    dt_d, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    tile_deltas_d, &
+                    U_d, &
+                    hydro_op1_auxc_d, &
+                    hydro_op1_flY_d &
+                    )
+        end do
+        !$acc end parallel loop
+
+        !$acc parallel loop gang default(none) &
+        !$acc& async(dataQ_h)
+        do n = 1, nTiles_d
+            CALL wrapper_Hydro_updateSolutionHll_gpu_oacc( &
+                    n, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    hydro_op1_flX_d, &
+                    hydro_op1_flY_d, &
+                    hydro_op1_flZ_d, &
+                    U_d &
+                    )
         end do
         !$acc end parallel loop
 
@@ -138,6 +142,218 @@ contains
 
         !$acc end data
     end subroutine gpu_tf_hydro_Fortran
+
+    subroutine wrapper_Hydro_computeSoundSpeedHll_gpu_oacc ( &
+                    nblk, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    U_d, &
+                    hydro_op1_auxc_d &
+            )
+
+        use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeSoundSpeedHll_gpu_oacc
+
+        !$acc routine vector
+        !$acc routine (Hydro_computeSoundSpeedHll_gpu_oacc) vector
+
+        implicit none
+
+        ! Arguments
+        integer, intent(IN) :: nblk
+        integer, target, intent(IN) :: tile_lo_d(:, :)
+        integer, target, intent(IN) :: tile_hi_d(:, :)
+        real, target, intent(INOUT) :: U_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_auxc_d(:, :, :, :)
+
+        ! Local variables
+        integer, pointer :: tile_lo_d_p(:)
+        integer, pointer :: tile_hi_d_p(:)
+        real, pointer :: U_d_p(:, :, :, :)
+        real, pointer :: hydro_op1_auxc_d_p(:, :, :)
+
+        ! Attach pointers
+        tile_lo_d_p => tile_lo_d(:, nblk)
+        tile_hi_d_p => tile_hi_d(:, nblk)
+        U_d_p => U_d(:, :, :, :, nblk)
+        hydro_op1_auxc_d_p => hydro_op1_auxc_d(:, :, :, nblk)
+
+        ! Call subroutine
+        CALL Hydro_computeSoundSpeedHll_gpu_oacc( &
+                    tile_lo_d_p, &
+                    tile_hi_d_p, &
+                    U_d_p, &
+                    hydro_op1_auxc_d_p &
+                )
+
+    end subroutine wrapper_Hydro_computeSoundSpeedHll_gpu_oacc
+
+    subroutine wrapper_Hydro_computeFluxesHll_X_gpu_oacc ( &
+                    nblk, &
+                    dt_d, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    tile_deltas_d, &
+                    U_d, &
+                    hydro_op1_auxc_d, &
+                    hydro_op1_flX_d &
+            )
+
+        use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeFluxesHll_X_gpu_oacc
+
+        !$acc routine vector
+        !$acc routine (Hydro_computeFluxesHll_X_gpu_oacc) vector
+
+        implicit none
+
+        ! Arguments
+        integer, intent(IN) :: nblk
+        real, target, intent(IN) :: dt_d
+        integer, target, intent(IN) :: tile_lo_d(:, :)
+        integer, target, intent(IN) :: tile_hi_d(:, :)
+        real, target, intent(IN) :: tile_deltas_d(:, :)
+        real, target, intent(INOUT) :: U_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_auxc_d(:, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_flX_d(:, :, :, :, :)
+
+        ! Local variables
+        integer, pointer :: tile_lo_d_p(:)
+        integer, pointer :: tile_hi_d_p(:)
+        real, pointer :: tile_deltas_d_p(:)
+        real, pointer :: U_d_p(:, :, :, :)
+        real, pointer :: hydro_op1_auxc_d_p(:, :, :)
+        real, pointer :: hydro_op1_flX_d_p(:, :, :, :)
+
+        ! Attach pointers
+        tile_lo_d_p => tile_lo_d(:, nblk)
+        tile_hi_d_p => tile_hi_d(:, nblk)
+        tile_deltas_d_p => tile_deltas_d(:, nblk)
+        U_d_p => U_d(:, :, :, :, nblk)
+        hydro_op1_auxc_d_p => hydro_op1_auxc_d(:, :, :, nblk)
+        hydro_op1_flX_d_p => hydro_op1_flX_d(:, :, :, :, nblk)
+
+        ! Call subroutine
+        CALL Hydro_computeFluxesHll_X_gpu_oacc( &
+                    dt_d, &
+                    tile_lo_d_p, &
+                    tile_hi_d_p, &
+                    tile_deltas_d_p, &
+                    U_d_p, &
+                    hydro_op1_auxc_d_p, &
+                    hydro_op1_flX_d_p &
+                )
+
+    end subroutine wrapper_Hydro_computeFluxesHll_X_gpu_oacc
+
+    subroutine wrapper_Hydro_computeFluxesHll_Y_gpu_oacc ( &
+                    nblk, &
+                    dt_d, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    tile_deltas_d, &
+                    U_d, &
+                    hydro_op1_auxc_d, &
+                    hydro_op1_flY_d &
+            )
+
+        use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeFluxesHll_Y_gpu_oacc
+
+        !$acc routine vector
+        !$acc routine (Hydro_computeFluxesHll_Y_gpu_oacc) vector
+
+        implicit none
+
+        ! Arguments
+        integer, intent(IN) :: nblk
+        real, target, intent(IN) :: dt_d
+        integer, target, intent(IN) :: tile_lo_d(:, :)
+        integer, target, intent(IN) :: tile_hi_d(:, :)
+        real, target, intent(IN) :: tile_deltas_d(:, :)
+        real, target, intent(INOUT) :: U_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_auxc_d(:, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_flY_d(:, :, :, :, :)
+
+        ! Local variables
+        integer, pointer :: tile_lo_d_p(:)
+        integer, pointer :: tile_hi_d_p(:)
+        real, pointer :: tile_deltas_d_p(:)
+        real, pointer :: U_d_p(:, :, :, :)
+        real, pointer :: hydro_op1_auxc_d_p(:, :, :)
+        real, pointer :: hydro_op1_flY_d_p(:, :, :, :)
+
+        ! Attach pointers
+        tile_lo_d_p => tile_lo_d(:, nblk)
+        tile_hi_d_p => tile_hi_d(:, nblk)
+        tile_deltas_d_p => tile_deltas_d(:, nblk)
+        U_d_p => U_d(:, :, :, :, nblk)
+        hydro_op1_auxc_d_p => hydro_op1_auxc_d(:, :, :, nblk)
+        hydro_op1_flY_d_p => hydro_op1_flY_d(:, :, :, :, nblk)
+
+        ! Call subroutine
+        CALL Hydro_computeFluxesHll_Y_gpu_oacc( &
+                    dt_d, &
+                    tile_lo_d_p, &
+                    tile_hi_d_p, &
+                    tile_deltas_d_p, &
+                    U_d_p, &
+                    hydro_op1_auxc_d_p, &
+                    hydro_op1_flY_d_p &
+                )
+
+    end subroutine wrapper_Hydro_computeFluxesHll_Y_gpu_oacc
+
+    subroutine wrapper_Hydro_updateSolutionHll_gpu_oacc ( &
+                    nblk, &
+                    tile_lo_d, &
+                    tile_hi_d, &
+                    hydro_op1_flX_d, &
+                    hydro_op1_flY_d, &
+                    hydro_op1_flZ_d, &
+                    U_d &
+            )
+
+        use dr_cg_hydroAdvance_mod, ONLY: Hydro_updateSolutionHll_gpu_oacc
+
+        !$acc routine vector
+        !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
+
+        implicit none
+
+        ! Arguments
+        integer, intent(IN) :: nblk
+        integer, target, intent(IN) :: tile_lo_d(:, :)
+        integer, target, intent(IN) :: tile_hi_d(:, :)
+        real, target, intent(INOUT) :: hydro_op1_flX_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_flY_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: hydro_op1_flZ_d(:, :, :, :, :)
+        real, target, intent(INOUT) :: U_d(:, :, :, :, :)
+
+        ! Local variables
+        integer, pointer :: tile_lo_d_p(:)
+        integer, pointer :: tile_hi_d_p(:)
+        real, pointer :: hydro_op1_flX_d_p(:, :, :, :)
+        real, pointer :: hydro_op1_flY_d_p(:, :, :, :)
+        real, pointer :: hydro_op1_flZ_d_p(:, :, :, :)
+        real, pointer :: U_d_p(:, :, :, :)
+
+        ! Attach pointers
+        tile_lo_d_p => tile_lo_d(:, nblk)
+        tile_hi_d_p => tile_hi_d(:, nblk)
+        hydro_op1_flX_d_p => hydro_op1_flX_d(:, :, :, :, nblk)
+        hydro_op1_flY_d_p => hydro_op1_flY_d(:, :, :, :, nblk)
+        hydro_op1_flZ_d_p => hydro_op1_flZ_d(:, :, :, :, nblk)
+        U_d_p => U_d(:, :, :, :, nblk)
+
+        ! Call subroutine
+        CALL Hydro_updateSolutionHll_gpu_oacc( &
+                    tile_lo_d_p, &
+                    tile_hi_d_p, &
+                    hydro_op1_flX_d_p, &
+                    hydro_op1_flY_d_p, &
+                    hydro_op1_flZ_d_p, &
+                    U_d_p &
+                )
+
+    end subroutine wrapper_Hydro_updateSolutionHll_gpu_oacc
 
 end module gpu_tf_hydro_mod
 
