@@ -165,10 +165,30 @@ public:
     void executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                          const unsigned int nDistributorThreads,
                                          const RuntimeAction& actionA_cpu,
+                                         const TileWrapper& tilePrototype,
                                          const RuntimeAction& actionA_gpu,
-                                         const RuntimeAction& postActionB_cpu,
                                          const DataPacket& packetPrototype,
+                                         const RuntimeAction& postActionB_cpu,
+                                         const TileWrapper& postTilePrototype,
                                          const unsigned int nTilesPerCpuTurn);
+#  ifndef RUNTIME_MUST_USE_TILEITER
+    void setupPipelineForExtCpuGpuSplitTasks(const std::string& bundleName,
+                                             const RuntimeAction& actionA_cpu,
+                                             const TileWrapper& tilePrototype,
+                                             const RuntimeAction& actionA_gpu,
+                                             const DataPacket& packetPrototype,
+                                             const RuntimeAction& postActionB_cpu,
+                                             const TileWrapper& postTilePrototype,
+                                             const unsigned int nTilesPerCpuTurn);
+    void pushTileToExtCpuGpuSplitPipeline(const std::string& bundleName,
+                                          const TileWrapper& tilePrototype,
+                                          const DataPacket& packetPrototype,
+                                          const TileWrapper& postTilePrototype,
+                                          const FlashxrTileRawPtrs& tP,
+                                          const FlashxTileRawInts& tI,
+                                          const FlashxTileRawReals& tR);
+    void teardownPipelineForExtCpuGpuSplitTasks(const std::string& bundleName);
+#  endif
     void executeCpuGpuWowzaTasks(const std::string& bundleName,
                                  const RuntimeAction& actionA_cpu,
                                  const TileWrapper& tilePrototype,
