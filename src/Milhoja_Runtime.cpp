@@ -2099,6 +2099,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     teamA_cpu->attachThreadReceiver(teamB_cpu);
     teamA_cpu->attachDataReceiver(teamB_cpu);
+    teamA_cpu->setReceiverProto(&postTilePrototype);
     teamA_gpu->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(teamB_cpu);
     gpuToHost1_.setReceiverProto(&postTilePrototype);
