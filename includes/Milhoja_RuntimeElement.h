@@ -46,6 +46,8 @@ public:
     virtual std::string  attachDataReceiver(RuntimeElement* receiver);
     virtual std::string  detachDataReceiver(void);
 
+    virtual std::string  setReceiverPrototype(const DataItem* prototype);
+
 protected:
     RuntimeElement(void);
     virtual ~RuntimeElement(void);
@@ -58,6 +60,7 @@ protected:
                                             to once this team's action has
                                             already been applied to the
                                             items. */
+    const DataItem*  receiverPrototype_;
 
     std::map<const RuntimeElement*,bool>   calledCloseQueue_;  /*!< The keys in this map serve as a list
                                                                     of data publishers attached to the object.
