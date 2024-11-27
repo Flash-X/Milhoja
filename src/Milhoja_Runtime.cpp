@@ -1145,7 +1145,7 @@ void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
-    gpuToHost1_.setReceiverProto(&tilePrototype);
+    gpuToHost1_.setReceiverPrototype(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads
@@ -1252,7 +1252,7 @@ void Runtime::setupPipelineForExtGpuTasks(const std::string& bundleName,
     gpuTeam->attachThreadReceiver(postGpuTeam);
     gpuTeam->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(postGpuTeam);
-    gpuToHost1_.setReceiverProto(&tilePrototype);
+    gpuToHost1_.setReceiverPrototype(&tilePrototype);
 
     unsigned int nTotalThreads =   gpuAction.nInitialThreads
                                  + postGpuAction.nInitialThreads
@@ -2029,9 +2029,11 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
                                               const unsigned int nDistributorThreads,
                                               const RuntimeAction& actionA_cpu,
+                                              const TileWrapper& tilePrototype,
                                               const RuntimeAction& actionA_gpu,
-                                              const RuntimeAction& postActionB_cpu,
                                               const DataPacket& packetPrototype,
+                                              const RuntimeAction& postActionB_cpu,
+                                              const TileWrapper& postTilePrototype,
                                               const unsigned int nTilesPerCpuTurn) {
 #ifdef USE_THREADED_DISTRIBUTOR
     const unsigned int  nDistThreads = nDistributorThreads;
@@ -2097,8 +2099,10 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
 
     teamA_cpu->attachThreadReceiver(teamB_cpu);
     teamA_cpu->attachDataReceiver(teamB_cpu);
+    teamA_cpu->setReceiverPrototype(&postTilePrototype);
     teamA_gpu->attachDataReceiver(&gpuToHost1_);
     gpuToHost1_.attachDataReceiver(teamB_cpu);
+    gpuToHost1_.setReceiverPrototype(&postTilePrototype);
 
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
@@ -2148,7 +2152,7 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
             tileDesc = ti->buildCurrentTile();
 
             if (isCpuTurn) {
-                teamA_cpu->enqueue( std::move(tileDesc) );
+                teamA_cpu->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
 
                 ++nInCpuTurn;
                 if (nInCpuTurn >= nTilesPerCpuTurn) {
@@ -2195,7 +2199,229 @@ void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
     Logger::instance().log("[Runtime] End Extended CPU/GPU shared action");
 }
 #  endif
+#  ifndef RUNTIME_MUST_USE_TILEITER
+void Runtime::setupPipelineForExtCpuGpuSplitTasks(const std::string& bundleName,
+                                                  const RuntimeAction& actionA_cpu,
+                                                  const TileWrapper& tilePrototype,
+                                                  const RuntimeAction& actionA_gpu,
+                                                  const DataPacket& packetPrototype,
+                                                  const RuntimeAction& postActionB_cpu,
+                                                  const TileWrapper& postTilePrototype,
+                                                  const unsigned int nTilesPerCpuTurn) {
+
+    const unsigned int  nDistThreads = 1;
+
+    Logger::instance().log("[Runtime] Start extended CPU/GPU shared action");
+    std::string   msg =   "[Runtime] "
+                        + std::to_string(nDistThreads)
+                        + " distributor threads";
+    Logger::instance().log(msg);
+    msg =   "[Runtime] "
+          + std::to_string(nTilesPerCpuTurn)
+          + " tiles sent to CPU for every packet of "
+          + std::to_string(actionA_gpu.nTilesPerPacket)
+          + " tiles sent to GPU";
+    Logger::instance().log(msg);
+
+    if        (nDistThreads <= 0) {
+        throw std::invalid_argument("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                    "nDistributorThreads must be positive");
+    } else if (actionA_cpu.teamType != ThreadTeamDataType::BLOCK) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                               "Given CPU action A should run on tiles, "
+                               "which is not in configuration");
+    } else if (actionA_cpu.nTilesPerPacket != 0) {
+        throw std::invalid_argument("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                    "CPU A tiles/packet should be zero since it is tile-based");
+    } else if (actionA_gpu.teamType != ThreadTeamDataType::SET_OF_BLOCKS) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                               "Given GPU action should run on packet of blocks, "
+                               "which is not in configuration");
+    } else if (actionA_gpu.nTilesPerPacket <= 0) {
+        throw std::invalid_argument("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                    "Need at least one tile per GPU packet");
+    } else if (postActionB_cpu.teamType != actionA_cpu.teamType) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                               "Given post action data type must match that "
+                               "of CPU action A");
+    } else if (postActionB_cpu.nTilesPerPacket != actionA_cpu.nTilesPerPacket) {
+        throw std::invalid_argument("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                    "Given post action tiles/packet must match that "
+                                    "of CPU action A");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                               "Need at least three ThreadTeams in runtime");
+    }
+    nTilesPerPacket_ = actionA_gpu.nTilesPerPacket;
+    nTilesPerCpuTurn_ = nTilesPerCpuTurn;
+    isCpuTurn_ = true;
+    nInCpuTurn_ = 0;
+
+    //***** ASSEMBLE THREAD TEAM CONFIGURATION
+    // CPU/GPU action parallel pipeline
+    // 1) Action Parallel Distributor will send one fraction of data items
+    //    to CPU for computation and each of these is enqueued directly with the post
+    //    action thread team.
+    // 2) For the remaining data items,
+    //    a) Asynchronous transfer of Packets of Blocks to GPU by distributor,
+    //    b) GPU action applied to blocks in packet by GPU team
+    //    c) Mover/Unpacker transfers packet back to CPU,
+    //       copies results to Grid data structures,
+    //       and enqueues with post action thread team.
+    ThreadTeam*        teamA_cpu = teams_[0];
+    ThreadTeam*        teamA_gpu = teams_[1];
+    ThreadTeam*        teamB_cpu = teams_[2];
+
+    teamA_cpu->attachThreadReceiver(teamB_cpu);
+    teamA_cpu->attachDataReceiver(teamB_cpu);
+    teamA_cpu->setReceiverPrototype(&postTilePrototype);
+    teamA_gpu->attachDataReceiver(&gpuToHost1_);
+    gpuToHost1_.attachDataReceiver(teamB_cpu);
+    gpuToHost1_.setReceiverPrototype(&postTilePrototype);
+
+    // The action parallel distributor's thread resource is used
+    // once the distributor starts to wait
+    unsigned int nTotalThreads =   actionA_cpu.nInitialThreads
+                                 + nDistThreads;
+    if (nTotalThreads > teamA_cpu->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                "CPU team could receive too many thread "
+                                "activation calls");
+    }
+    nTotalThreads =   actionA_cpu.nInitialThreads
+                    + postActionB_cpu.nInitialThreads
+                    + nDistThreads;
+    if (nTotalThreads > teamB_cpu->nMaximumThreads()) {
+        throw std::logic_error("[Runtime::setupPipelineForExtCpuGpuSplitTasks] "
+                                "Post could receive too many thread "
+                                "activation calls");
+    }
+
+    //***** START EXECUTION CYCLE
+    teamA_cpu->startCycle(actionA_cpu, "ActionSharing_CPU_Block_Team");
+    teamA_gpu->startCycle(actionA_gpu, "ActionSharing_GPU_Packet_Team");
+    teamB_cpu->startCycle(postActionB_cpu, "PostAction_CPU_Block_Team");
+    gpuToHost1_.startCycle();
+
+    packet_gpu_ = packetPrototype.clone();
+
+    Logger::instance().log("[Runtime] End setting up extended CPU/GPU shared action");
+}
+
+void Runtime::pushTileToExtCpuGpuSplitPipeline(const std::string& bundleName,
+                                               const TileWrapper& tilePrototype,
+                                               const DataPacket& packetPrototype,
+                                               const TileWrapper& postTilePrototype,
+                                               const FlashxrTileRawPtrs& tP,
+                                               const FlashxTileRawInts& tI,
+                                               const FlashxTileRawReals& tR) {
+#ifdef RUNTIME_PERTILE_LOG
+    Logger::instance().log("[Runtime] Push single tile task to EXT CPU/GPU split pipeline");
 #endif
+    if (nTilesPerPacket_ <= 0) {
+        throw std::invalid_argument("[Runtime:pushTileToExtCpuGpuSplitPipeline] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[Runtime:pushTileToExtCpuGpuSplitPipeline] "
+                               "Need at three ThreadTeams in runtime");
+    }
+
+    ThreadTeam*        teamA_cpu = teams_[0];
+    ThreadTeam*        teamA_gpu = teams_[1];
+    ThreadTeam*        teamB_cpu = teams_[2];
+
+    RuntimeBackend&      backend = RuntimeBackend::instance();
+    std::shared_ptr<Tile>             tileDesc{};
+    {
+
+        tileDesc = static_cast<std::shared_ptr<Tile>>(std::make_unique<TileFlashxr>(tP, tI, tR));
+        if (isCpuTurn_) {
+            teamA_cpu->enqueue( tilePrototype.clone( std::move(tileDesc) ) );
+            if ((tileDesc != nullptr) || (tileDesc.use_count() != 0)) {
+                throw std::logic_error("[Runtime::pushTileToExtCpuGpuSplitPipeline] tileDesc ownership not transferred");
+            }
+
+            ++nInCpuTurn_;
+            if (nInCpuTurn_ >= nTilesPerCpuTurn_) {
+                isCpuTurn_ = false;
+                nInCpuTurn_ = 0;
+            }
+        } else {
+            packet_gpu_->addTile( std::move(tileDesc) );
+            if ((tileDesc != nullptr) || (tileDesc.use_count() != 0)) {
+                throw std::logic_error("[Runtime::pushTileToExtCpuGpuSplitPipeline] tileDesc ownership not transferred");
+            }
+
+            if (packet_gpu_->nTiles() >= nTilesPerPacket_) {
+                packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+                Logger::instance().log("[Runtime] Shipping off packet with "
+                                       + std::to_string(packet_gpu_->nTiles())
+                                       + " tiles...");
+#endif
+                backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
+                teamA_gpu->enqueue( std::move(packet_gpu_) );
+
+                packet_gpu_ = packetPrototype.clone();
+                isCpuTurn_ = true;
+            }
+        }
+    }
+#ifdef RUNTIME_PERTILE_LOG
+    Logger::instance().log("[Runtime] Single tile task was pushed to EXT CPU/GPU split pipeline");
+#endif
+}
+
+void Runtime::teardownPipelineForExtCpuGpuSplitTasks(const std::string& bundleName) {
+
+    Logger::instance().log("[Runtime] Tear Down extended CPU/GPU shared action");
+
+    if (nTilesPerPacket_ <= 0) {
+        throw std::invalid_argument("[Runtime:teardownPipelineForExtCpuGpuSplitTasks] "
+                                    "Need at least one block per packet");
+    } else if (nTeams_ < 3) {
+        throw std::logic_error("[Runtime:teardownPipelineForExtCpuGpuSplitTasks] "
+                               "Need at least three ThreadTeams in runtime");
+    }
+    ThreadTeam*        teamA_cpu = teams_[0];
+    ThreadTeam*        teamA_gpu = teams_[1];
+    ThreadTeam*        teamB_cpu = teams_[2];
+
+    RuntimeBackend&      backend = RuntimeBackend::instance();
+    {
+        if (packet_gpu_->nTiles() > 0) {
+            packet_gpu_->pack();
+#ifdef RUNTIME_PERTILE_LOG
+            Logger::instance().log("[Runtime] Shipping off packet with "
+                                       + std::to_string(packet_gpu_->nTiles())
+                                       + " final tiles...");
+#endif
+            backend.initiateHostToGpuTransfer(*(packet_gpu_.get()));
+            teamA_gpu->enqueue( std::move(packet_gpu_) );
+        } else {
+            packet_gpu_.reset();
+        }
+
+        teamA_cpu->increaseThreadCount(1);
+    } // implied barrier
+
+    teamA_gpu->closeQueue(nullptr);
+    teamA_cpu->closeQueue(nullptr);
+
+    // All data flowing through the Action B/Post-A team
+    teamB_cpu->wait();
+
+    //***** BREAK APART THREAD TEAM CONFIGURATION
+    teamA_cpu->detachThreadReceiver();
+    teamA_cpu->detachDataReceiver();
+    teamA_gpu->detachDataReceiver();
+    gpuToHost1_.detachDataReceiver();
+
+    Logger::instance().log("[Runtime:teardownPipelineForExtCpuGpuSplitTasks] End extended CPU/GPU shared action");
+
+}
+#  endif   // ifndef RUNTIME_MUST_USE_TILEITER
+#endif     // ifdef RUNTIME_SUPPORT_DATAPACKETS
 
 /**
  * 
