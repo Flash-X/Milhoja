@@ -7,7 +7,6 @@ using namespace milhoja;
 RuntimeElement::RuntimeElement(void)
     : threadReceiver_{nullptr},
       dataReceiver_{nullptr},
-      receiverPrototype_{nullptr},
       calledCloseQueue_{}
 { }
 
@@ -17,9 +16,6 @@ RuntimeElement::~RuntimeElement(void) {
     }
     if (dataReceiver_) {
         std::cerr << "[RuntimeElement::~RuntimeElement] Data Subscriber still attached\n";
-    }
-    if (receiverPrototype_) {
-        std::cerr << "[RuntimeElement::~RuntimeElement] Receiver Prototype still set\n";
     }
     if (!calledCloseQueue_.empty()) {
         std::cerr << "[RuntimeElement::~RuntimeElement] Data publishers still attached\n";
@@ -109,10 +105,7 @@ std::string RuntimeElement::detachDataReceiver(void) {
     }
 
     dataReceiver_ = nullptr;
-
-    // if it has a receiver's prototype, release it
-    receiverPrototype_ = nullptr;
-
+    
     return "";
 }
 
@@ -158,28 +151,6 @@ std::string RuntimeElement::detachDataPublisher(const RuntimeElement* publisher)
 
     // TODO: Should this fail if the key has an unacceptable value?
     calledCloseQueue_.erase(itor);
-
-    return "";
-}
-
-/**
- * Set the data receiver's prototype for later use when passing
- * a DataItem to the data receiver, for calling a proper constructor.
- * Note that the receiver's prototype is only required for passing TilwWrapper, currently.
- * Thus, calling this function for the DataPacket has no effect.
- * The receiverPrototype_ will be nullified when RuntimeElement::detachDataReceiver is called.
- *
- * \param prototype - A prototype of a DataItem to be passed to the DataReceiver.
- */
-std::string RuntimeElement::setReceiverPrototype(const DataItem* prototype) {
-
-    if (!prototype) {
-        return "Null receiver prototype is given";
-    } else if (receiverPrototype_) {
-        return "A receiver prototype is already given";
-    }
-
-    receiverPrototype_ = prototype;
 
     return "";
 }

@@ -74,7 +74,7 @@ class TestCodeGenerators(unittest.TestCase):
                     ref = self.__load_code(ref_hdr_fname)
                     generated = self.__load_code(header_filename)
 
-                    self.assertEqual(len(ref), len(generated), f"generated != {ref_hdr_fname}")
+                    self.assertEqual(len(ref), len(generated))
                     for gen_line, ref_line in zip(generated, ref):
                         self.assertEqual(gen_line, ref_line, f"generated != {ref_hdr_fname}")
 
@@ -95,7 +95,7 @@ class TestCodeGenerators(unittest.TestCase):
                 ref = self.__load_code(ref_src_fname)
                 generated = self.__load_code(source_filename)
 
-                self.assertEqual(len(ref), len(generated), f"generated != {ref_src_fname}")
+                self.assertEqual(len(ref), len(generated))
                 for gen_line, ref_line in zip(generated, ref):
                     self.assertEqual(gen_line, ref_line, f"generated != {ref_src_fname}")
 

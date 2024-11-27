@@ -54,7 +54,6 @@
 
 #include <pthread.h>
 
-#include "Milhoja_TileWrapper.h"
 #include "Milhoja_actionRoutine.h"
 #include "Milhoja_RuntimeAction.h"
 #include "Milhoja_ThreadTeamMode.h"
@@ -114,7 +113,6 @@ public:
     //      into thread team configurations.
     std::string  attachDataReceiver(RuntimeElement* receiver) override;
     std::string  detachDataReceiver(void) override;
-    std::string  setReceiverPrototype(const DataItem* prototype) override;
 
 protected:
     constexpr static unsigned int   THREAD_START_STOP_TIMEOUT_SEC = 1;
