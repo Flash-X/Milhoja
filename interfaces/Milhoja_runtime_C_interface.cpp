@@ -1,6 +1,6 @@
 /** C/C++ interoperability layer - compile C++ code with C linkage convention
  *
- * The C interfaces do not consititute true C interfaces.  Indeed, it was
+ * The C interfaces do not constitute true C interfaces.  Indeed, it was
  * designed to be used by the Fortran/C interoperability layer.  For example,
  * milhoja_grid_init_c takes an MPI communicator in the form of an int, which
  * is intimately related to Fortran.  In addition, the C interface uses int
