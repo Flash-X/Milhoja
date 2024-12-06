@@ -38,7 +38,7 @@ contains
             )
         use DataPacket_gpu_tf_test_c2f_mod, ONLY : release_gpu_tf_test_extra_queue_c
         use iso_c_binding, ONLY : C_PTR
-        use openacc
+        use openacc, ONLY : acc_handle_kind
 
         use milhoja_types_mod, ONLY : MILHOJA_INT
 
@@ -47,10 +47,18 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_Z_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_updateSolutionHll_gpu_oacc
 
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_X_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_Y_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_Z_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
+#endif
 
         implicit none
 
