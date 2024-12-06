@@ -15,7 +15,7 @@ from . import (
 
 class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
     """
-    A class for generating final, compilable Fortran source code for the task
+    A class for generating final, compilable Fortran source code for the task
     function specified by the TaskFunction object given at instantiation.
 
     .. todo::
@@ -134,7 +134,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             # Boilerplate use statements
             fptr.write(f"{INDENT*2}use iso_c_binding, ONLY : C_PTR\n")
-            fptr.write(f"{INDENT*2}use openacc\n\n")
+            fptr.write(f"{INDENT*2}use openacc, ONLY : acc_handle_kind\n\n")
             if self._tf_spec.n_streams > 1:
                 fptr.write(f"{INDENT*2}use milhoja_types_mod, ONLY : MILHOJA_INT\n\n")
 
@@ -147,7 +147,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     assert interface.endswith(".F90")
                     interface = interface.rstrip(".F90")
                     fptr.write(f"{INDENT*2}use {interface}, ONLY : {subroutine}\n")
+                    offloading.append("#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP\n")
                     offloading.append(f"{INDENT*2}!$acc routine ({subroutine}) vector\n")
+                    offloading.append("#endif\n")
             fptr.writelines(["\n", *offloading, "\n"])
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")

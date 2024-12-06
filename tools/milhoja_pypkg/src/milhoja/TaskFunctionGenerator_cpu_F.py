@@ -30,7 +30,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
     def __init__(self, tf_spec, indent, logger):
         """
         Construct an object for use with the task function specified by the
-        given task function.
+        given specification object.
 
         :param tf_spec: Specification object derived from TaskFunction
         :param log_level: Milhoja level to use for logging generation
