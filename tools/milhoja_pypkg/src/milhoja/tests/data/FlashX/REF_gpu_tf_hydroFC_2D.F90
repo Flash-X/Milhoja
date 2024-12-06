@@ -33,17 +33,25 @@ contains
                     hydro_op1_auxc_d &
             )
         use iso_c_binding, ONLY : C_PTR
-        use openacc
+        use openacc, ONLY : acc_handle_kind
 
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeSoundSpeedHll_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_X_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_computeFluxesHll_Y_gpu_oacc
         use dr_cg_hydroAdvance_mod, ONLY : Hydro_updateSolutionHll_gpu_oacc
 
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeSoundSpeedHll_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_X_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_Y_gpu_oacc) vector
+#endif
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
+#endif
 
         implicit none
 
