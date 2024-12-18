@@ -1517,7 +1517,7 @@ void* ThreadTeam::threadRoutine(void* varg) {
                     if (auto tileWrapperPrototype =
                             dynamic_cast<const TileWrapper*>(team->receiverPrototype_)) {
                         // NOTE: this is the case where dataItem is a TilwWrapper,
-                        //       and the team->dataReceiver_ is another TileWrapper.
+                        //       and the team->receiverPrototype_ is another TileWrapper.
                         //       Need to transfer dataItem initialized with data receiver's
                         //       tileProtoType, as it may differ.
                         // TODO: very dirty ownership transfers
