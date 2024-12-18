@@ -115,11 +115,6 @@ FakeCudaStreamManager&   FakeCudaStreamManager::instance(void) {
     return manager;
 }
 
-/**
- * 
- *
- * \return 
- */
 FakeCudaStreamManager::FakeCudaStreamManager(void)
     : streams_{}
 {
