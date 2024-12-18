@@ -375,7 +375,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append("")
 
         lines.append(f"{indent*2}!$acc routine vector")
+        lines.append("#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP\n")
         lines.append(f"{indent*2}!$acc routine ({subroutine}) vector")
+        lines.append("#endif\n")
         lines.append("")
 
         lines.append(f"{indent*2}implicit none")
