@@ -31,11 +31,6 @@ unsigned int    Runtime::maxThreadsPerTeam_ = 0;
 bool            Runtime::initialized_       = false;
 bool            Runtime::finalized_         = false;
 
-/**
- * 
- *
- * \return 
- */
 void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
                             const unsigned int nStreams,
@@ -118,11 +113,6 @@ Runtime& Runtime::instance(void) {
     return singleton;
 }
 
-/**
- * 
- *
- * \return 
- */
 Runtime::Runtime(void)
     : teams_{nullptr}
 #ifndef RUNTIME_MUST_USE_TILEITER
@@ -144,11 +134,6 @@ Runtime::Runtime(void)
     }
  }
 
-/**
- * 
- *
- * \return 
- */
 #ifndef RUNTIME_MUST_USE_TILEITER
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -295,8 +280,6 @@ void Runtime::executeCpuTasks(const std::string& actionName,
 #endif
 /**
  * 
- *
- * \return 
  */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
@@ -541,11 +524,6 @@ void Runtime::teardownPipelineForGpuTasks(const std::string& bundleName) {
 #  endif
 
 #endif   // #ifdef RUNTIME_SUPPORT_DATAPACKETS
-/**
- * 
- *
- * \return 
- */
 
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
@@ -737,11 +715,6 @@ void Runtime::executeGpuTasks_timed(const std::string& bundleName,
 #  endif
 #endif
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuTasks(const std::string& bundleName,
@@ -1084,11 +1057,6 @@ void Runtime::teardownPipelineForCpuGpuTasks(const std::string& bundleName) {
 #  endif
 #endif
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeExtendedGpuTasks(const std::string& bundleName,
@@ -1379,11 +1347,6 @@ void Runtime::teardownPipelineForExtGpuTasks(const std::string& bundleName) {
 #  endif
 #endif
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuSplitTasks(const std::string& bundleName,
@@ -1762,11 +1725,6 @@ void Runtime::teardownPipelineForCpuGpuSplitTasks(const std::string& bundleName)
 #endif
 
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef MILHOJA_TIMED_PIPELINE_CONFIGS
 #    ifdef RUNTIME_CAN_USE_TILEITER
@@ -2019,11 +1977,6 @@ void Runtime::executeCpuGpuSplitTasks_timed(const std::string& bundleName,
 #  endif
 #endif
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeExtendedCpuGpuSplitTasks(const std::string& bundleName,
@@ -2423,11 +2376,6 @@ void Runtime::teardownPipelineForExtCpuGpuSplitTasks(const std::string& bundleNa
 #  endif   // ifndef RUNTIME_MUST_USE_TILEITER
 #endif     // ifdef RUNTIME_SUPPORT_DATAPACKETS
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
@@ -2599,11 +2547,6 @@ void Runtime::executeCpuGpuWowzaTasks(const std::string& bundleName,
 #  endif
 #endif
 
-/**
- * 
- *
- * \return 
- */
 #ifdef RUNTIME_SUPPORT_DATAPACKETS
 #  ifdef RUNTIME_CAN_USE_TILEITER
 void Runtime::executeTasks_FullPacket(const std::string& bundleName,
