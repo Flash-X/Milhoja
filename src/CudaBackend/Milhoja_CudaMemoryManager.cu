@@ -12,10 +12,6 @@ std::size_t   CudaMemoryManager::nBytes_ = 0;
 bool          CudaMemoryManager::initialized_ = false;
 bool          CudaMemoryManager::finalized_ = false;
 
-/**
- *
- * \return 
- */
 void CudaMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
@@ -163,11 +159,6 @@ CudaMemoryManager::CudaMemoryManager(void)
     pthread_mutex_unlock(&mutex_);
 }
 
-/**
- * 
- *
- * \return 
- */
 CudaMemoryManager::~CudaMemoryManager(void) {
     if (initialized_ && !finalized_) {
         std::cerr << "[CudaMemoryManager::~CudaMemoryManager] ERROR - Not finalized"
@@ -175,11 +166,6 @@ CudaMemoryManager::~CudaMemoryManager(void) {
     }
 }
 
-/**
- * 
- *
- * \return 
- */
 void   CudaMemoryManager::reset(void) {
     // There is no mechanism for now for releasing memory on a per request
     // basis.  This just resets the entire object so that it appears that 
