@@ -12,11 +12,6 @@ namespace milhoja {
 bool    FakeCudaGpuEnvironment::initialized_ = false;
 bool    FakeCudaGpuEnvironment::finalized_   = false;
 
-/**
- * 
- *
- * \return 
- */
 void   FakeCudaGpuEnvironment::initialize(void) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
@@ -71,11 +66,6 @@ FakeCudaGpuEnvironment& FakeCudaGpuEnvironment::instance(void) {
     return singleton;
 }
 
-/**
- * 
- *
- * \return 
- */
 FakeCudaGpuEnvironment::FakeCudaGpuEnvironment(void)
     : nDevices_{0},
       gpuDeviceName_{""},
