@@ -104,11 +104,6 @@ CudaMemoryManager&   CudaMemoryManager::instance(void) {
     return manager;
 }
 
-/**
- * 
- *
- * \return 
- */
 CudaMemoryManager::CudaMemoryManager(void)
     : pinnedBuffer_{nullptr},
       gpuBuffer_{nullptr},
