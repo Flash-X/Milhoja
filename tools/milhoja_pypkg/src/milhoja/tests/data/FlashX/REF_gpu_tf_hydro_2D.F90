@@ -162,7 +162,9 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeSoundSpeedHll_gpu_oacc
 
         !$acc routine vector
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeSoundSpeedHll_gpu_oacc) vector
+#endif
 
         implicit none
 
@@ -209,7 +211,9 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeFluxesHll_X_gpu_oacc
 
         !$acc routine vector
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_X_gpu_oacc) vector
+#endif
 
         implicit none
 
@@ -266,7 +270,9 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY: Hydro_computeFluxesHll_Y_gpu_oacc
 
         !$acc routine vector
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_computeFluxesHll_Y_gpu_oacc) vector
+#endif
 
         implicit none
 
@@ -322,7 +328,9 @@ contains
         use dr_cg_hydroAdvance_mod, ONLY: Hydro_updateSolutionHll_gpu_oacc
 
         !$acc routine vector
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
         !$acc routine (Hydro_updateSolutionHll_gpu_oacc) vector
+#endif
 
         implicit none
 
