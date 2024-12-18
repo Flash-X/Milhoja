@@ -70,11 +70,6 @@ CudaGpuEnvironment& CudaGpuEnvironment::instance(void) {
     return singleton;
 }
 
-/**
- * 
- *
- * \return 
- */
 CudaGpuEnvironment::CudaGpuEnvironment(void)
     : nDevices_{0},
       gpuDeviceName_{""},
