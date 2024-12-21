@@ -52,6 +52,7 @@ setup(
     maintainer_email="joneal@anl.gov",
     package_dir={"": "src"},
     package_data=package_data,
+    packages=['milhoja'],
     url="http://milhoja.org",
     project_urls=project_urls,
     license="???",
@@ -66,7 +67,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Intended Audience :: Science/Research",
         "Natural Language :: English",
-        "Operating System :: MacOS :: MacOS X",
+        "Classifier: Operating System :: OS Independent",
         "Topic :: Scientific/Engineering"
     ]
 )
