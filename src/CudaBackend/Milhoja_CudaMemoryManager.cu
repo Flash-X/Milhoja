@@ -14,7 +14,6 @@ bool          CudaMemoryManager::finalized_ = false;
 
 /**
  *
- * \return 
  */
 void CudaMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
     // finalized_ => initialized_
@@ -111,7 +110,6 @@ CudaMemoryManager&   CudaMemoryManager::instance(void) {
 /**
  * 
  *
- * \return 
  */
 CudaMemoryManager::CudaMemoryManager(void)
     : pinnedBuffer_{nullptr},
@@ -166,7 +164,6 @@ CudaMemoryManager::CudaMemoryManager(void)
 /**
  * 
  *
- * \return 
  */
 CudaMemoryManager::~CudaMemoryManager(void) {
     if (initialized_ && !finalized_) {
@@ -178,7 +175,6 @@ CudaMemoryManager::~CudaMemoryManager(void) {
 /**
  * 
  *
- * \return 
  */
 void   CudaMemoryManager::reset(void) {
     // There is no mechanism for now for releasing memory on a per request

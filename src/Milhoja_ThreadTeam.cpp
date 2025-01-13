@@ -446,7 +446,6 @@ ThreadTeamMode ThreadTeam::mode(void) {
 /**
  * Obtain the current mode of the team.
  *
- * \return The mode as an enum
  */
 void ThreadTeam::stateCounts(unsigned int* N_idle,
                                  unsigned int* N_wait,
