@@ -34,7 +34,6 @@ bool            Runtime::finalized_         = false;
 /**
  * 
  *
- * \return 
  */
 void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
@@ -121,7 +120,6 @@ Runtime& Runtime::instance(void) {
 /**
  * 
  *
- * \return 
  */
 Runtime::Runtime(void)
     : teams_{nullptr}
@@ -147,7 +145,6 @@ Runtime::Runtime(void)
 /**
  * 
  *
- * \return 
  */
 #ifndef RUNTIME_MUST_USE_TILEITER
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
