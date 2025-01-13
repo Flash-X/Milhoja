@@ -125,9 +125,13 @@ endif
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
 install:
-	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
-	mkdir $(LIB_MILHOJA_PREFIX)/include
-	mkdir $(LIB_MILHOJA_PREFIX)/lib
+	@if [ -d "$(LIB_MILHOJA_PREFIX)" ] && [ "$(shell ls -A $(LIB_MILHOJA_PREFIX) 2>/dev/null)" ]; then \
+		echo "WARNING: $(LIB_MILHOJA_PREFIX) is not empty. Removing old files before installing..."; \
+		echo rm -rf $(LIB_MILHOJA_PREFIX)/*; \
+		rm -rf $(LIB_MILHOJA_PREFIX)/*; \
+	fi
+	mkdir -p $(LIB_MILHOJA_PREFIX)/include
+	mkdir -p $(LIB_MILHOJA_PREFIX)/lib
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
 	cp $(HDRS) $(LIB_MILHOJA_PREFIX)/include
