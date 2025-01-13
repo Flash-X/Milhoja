@@ -18,6 +18,7 @@ SRCDIR          := ./src
 BUILDDIR        := ./build
 INTERFACEDIR    := ./interfaces
 TOOLSDIR        := ./tools
+THIRDPARTYDIR   := ./thirdparty
 CONFIG_MAKEFILE := ./Makefile.configure
 
 BACKEND_BUILDDIR :=
@@ -56,11 +57,11 @@ endif
 SIZES_JSON      := $(if $(SUPPORT_PACKETS),$(BUILDDIR)/sizes.json)
 
 ifeq ($(DEBUG),true)
-CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_AMREX)
-F90FLAGS = -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_DEBUG)
+CXXFLAGS = -I$(THIRDPARTYDIR) -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_DEBUG) $(CXXFLAGS_AMREX)
+F90FLAGS = -I$(THIRDPARTYDIR) -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_DEBUG)
 else
-CXXFLAGS = -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_PROD)  $(CXXFLAGS_AMREX)
-F90FLAGS = -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_PROD)
+CXXFLAGS = -I$(THIRDPARTYDIR) -I$(INCDIR) -I$(BUILDDIR) $(CXXFLAGS_STD) $(CXXFLAGS_PROD)  $(CXXFLAGS_AMREX)
+F90FLAGS = -I$(THIRDPARTYDIR) -I$(BUILDDIR) $(F90FLAGS_STD) $(F90FLAGS_PROD)
 endif
 
 CPP_SRCS := $(wildcard $(SRCDIR)/Milhoja_*.cpp)
@@ -159,7 +160,7 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed
 $(SIZES_JSON): $(TOOLSDIR)/createSizesJson.cpp $(MILHOJA_H) $(CPP_HDRS) $(MAKEFILES)
-	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -I$(JSONDIR) -o $(BUILDDIR)/createSizesJson.x
+	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
 	$(BUILDDIR)/createSizesJson.x $(SIZES_JSON)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
