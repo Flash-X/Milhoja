@@ -18,7 +18,6 @@ bool          CpuMemoryManager::finalized_ = false;
  *
  * \todo Check that memory pools are sized for byte alignment?
  *
- * \return 
  */
 void CpuMemoryManager::initialize(const std::size_t nBytesInMemoryPool) {
     // finalized_ => initialized_
