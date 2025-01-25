@@ -31,6 +31,10 @@ unsigned int    Runtime::maxThreadsPerTeam_ = 0;
 bool            Runtime::initialized_       = false;
 bool            Runtime::finalized_         = false;
 
+/**
+ * 
+ *
+ */
 void   Runtime::initialize(const unsigned int nTeams,
                             const unsigned int nThreadsPerTeam,
                             const unsigned int nStreams,
@@ -113,6 +117,10 @@ Runtime& Runtime::instance(void) {
     return singleton;
 }
 
+/**
+ * 
+ *
+ */
 Runtime::Runtime(void)
     : teams_{nullptr}
 #ifndef RUNTIME_MUST_USE_TILEITER
@@ -134,6 +142,10 @@ Runtime::Runtime(void)
     }
  }
 
+/**
+ * 
+ *
+ */
 #ifndef RUNTIME_MUST_USE_TILEITER
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -5,10 +5,6 @@
  * derived classes that will implement the ThreadTeam state-specific behavior.
  * This design follows the State design pattern.
  *
- * The template variable DT defines the data type (e.g. a tile, data packet of
- * tiles); T, refers to the main State class in the State design pattern and
- * should therefore always be ThreadTeam<DT>.  Note that T is necessary to break
- * a circular dependence with ThreadTeam.h.
  */
 
 #ifndef MILHOJA_THREAD_TEAM_STATE_H__

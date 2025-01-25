@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <tuple>
-#include <nlohmann/json.hpp>
 
 #include <Milhoja.h>
 #include <Milhoja_real.h>
@@ -45,26 +44,26 @@ int main(int argc, char* argv[]) {
 //        FArray3D, FArray4D, std::size_t
 //    >;
     //----- CREATE NEW JSON OBJECT
-    nlohmann::json sizes = {
-        {"byte_align", BYTE_ALIGNMENT},
-        {"int", sizeof(int)},
-        {"unsigned int", sizeof(unsigned int)},
-        {"std::size_t", sizeof(std::size_t)},
-        {"real", sizeof(milhoja::Real)},
-        {"IntVect", sizeof(milhoja::IntVect)},
-        {"RealVect", sizeof(milhoja::RealVect)},
-        {"FArray1D", sizeof(milhoja::FArray1D)},
-        {"FArray2D", sizeof(milhoja::FArray2D)},
-        {"FArray3D", sizeof(milhoja::FArray3D)},
-        {"FArray4D", sizeof(milhoja::FArray4D)}
-    };
+//    nlohmann::json sizes = {
+//        {"byte_align", BYTE_ALIGNMENT},
+//        {"int", sizeof(int)},
+//        {"unsigned int", sizeof(unsigned int)},
+//        {"std::size_t", sizeof(std::size_t)},
+//        {"real", sizeof(milhoja::Real)},
+//        {"IntVect", sizeof(milhoja::IntVect)},
+//        {"RealVect", sizeof(milhoja::RealVect)},
+//        {"FArray1D", sizeof(milhoja::FArray1D)},
+//        {"FArray2D", sizeof(milhoja::FArray2D)},
+//        {"FArray3D", sizeof(milhoja::FArray3D)},
+//        {"FArray4D", sizeof(milhoja::FArray4D)}
+//    };
 
     //----- SAVE TO FILE
     std::ofstream output;
     output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     try {
         output.open(filename, std::ofstream::out | std::ofstream::trunc);
-        //output << "{" << std::endl;
+        output << "{" << std::endl;
 
         // TODO: There should be a better way to print the name of a data
         //       type and its size by using a std::tuple object as well as
@@ -74,20 +73,20 @@ int main(int argc, char* argv[]) {
         //       variable for using a specific json library. However, for the
         //       sake of getting the datapacket_tests into main, I'll ignore
         //       this for now.
-        //output << "    \"byte_align\": " << BYTE_ALIGNMENT << "," << std::endl;
-        //output << "    \"int\": " << sizeof(int) << "," << std::endl;
-        //output << "    \"unsigned int\": " << sizeof(unsigned int) << "," << std::endl;
-        //output << "    \"std::size_t\": " << sizeof(std::size_t) << "," << std::endl;
-        //output << "    \"real\": " << sizeof(milhoja::Real) << "," << std::endl;
-        //output << "    \"IntVect\": " << sizeof(milhoja::IntVect) << "," << std::endl;
-        //output << "    \"RealVect\": " << sizeof(milhoja::RealVect) << "," << std::endl;
-        //output << "    \"FArray1D\": " << sizeof(milhoja::FArray1D) << "," << std::endl;
-        //output << "    \"FArray2D\": " << sizeof(milhoja::FArray2D) << "," << std::endl;
-        //output << "    \"FArray3D\": " << sizeof(milhoja::FArray3D) << "," << std::endl;
-        //output << "    \"FArray4D\": " << sizeof(milhoja::FArray4D) << std::endl;
-        output << sizes.dump(INDENT);
+        output << "    \"byte_align\": " << BYTE_ALIGNMENT << "," << std::endl;
+        output << "    \"int\": " << sizeof(int) << "," << std::endl;
+        output << "    \"unsigned int\": " << sizeof(unsigned int) << "," << std::endl;
+        output << "    \"std::size_t\": " << sizeof(std::size_t) << "," << std::endl;
+        output << "    \"real\": " << sizeof(milhoja::Real) << "," << std::endl;
+        output << "    \"IntVect\": " << sizeof(milhoja::IntVect) << "," << std::endl;
+        output << "    \"RealVect\": " << sizeof(milhoja::RealVect) << "," << std::endl;
+        output << "    \"FArray1D\": " << sizeof(milhoja::FArray1D) << "," << std::endl;
+        output << "    \"FArray2D\": " << sizeof(milhoja::FArray2D) << "," << std::endl;
+        output << "    \"FArray3D\": " << sizeof(milhoja::FArray3D) << "," << std::endl;
+        output << "    \"FArray4D\": " << sizeof(milhoja::FArray4D) << std::endl;
+        //output << sizes.dump(INDENT);
         
-        //output << "}" << std::endl;
+        output << "}" << std::endl;
         output.close();
     } catch (std::ifstream::failure e) {
         std::cerr << "Unable to open, write to, or close " << filename << std::endl;

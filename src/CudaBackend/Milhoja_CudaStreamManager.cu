@@ -114,6 +114,10 @@ CudaStreamManager&   CudaStreamManager::instance(void) {
     return manager;
 }
 
+/**
+ * 
+ *
+ */
 CudaStreamManager::CudaStreamManager(void)
     : streams_{}
 {

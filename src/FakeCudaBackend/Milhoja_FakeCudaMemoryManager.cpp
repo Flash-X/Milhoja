@@ -13,6 +13,9 @@ std::size_t   FakeCudaMemoryManager::nBytes_ = 0;
 bool          FakeCudaMemoryManager::initialized_ = false;
 bool          FakeCudaMemoryManager::finalized_ = false;
 
+/**
+ *
+ */
 void FakeCudaMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
@@ -107,6 +110,10 @@ FakeCudaMemoryManager&   FakeCudaMemoryManager::instance(void) {
     return manager;
 }
 
+/**
+ * 
+ *
+ */
 FakeCudaMemoryManager::FakeCudaMemoryManager(void)
     : pinnedBuffer_{nullptr},
       gpuBuffer_{nullptr},
@@ -151,6 +158,10 @@ FakeCudaMemoryManager::FakeCudaMemoryManager(void)
     pthread_mutex_unlock(&mutex_);
 }
 
+/**
+ * 
+ *
+ */
 FakeCudaMemoryManager::~FakeCudaMemoryManager(void) {
     if (initialized_ && !finalized_) {
         std::cerr << "[FakeCudaMemoryManager::~FakeCudaMemoryManager] ERROR - Not finalized"
@@ -158,6 +169,10 @@ FakeCudaMemoryManager::~FakeCudaMemoryManager(void) {
     }
 }
 
+/**
+ * 
+ *
+ */
 void   FakeCudaMemoryManager::reset(void) {
     // There is no mechanism for now for releasing memory on a per request
     // basis.  This just resets the entire object so that it appears that 

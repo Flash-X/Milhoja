@@ -11,6 +11,10 @@ namespace milhoja {
 bool    CudaGpuEnvironment::initialized_ = false;
 bool    CudaGpuEnvironment::finalized_   = false;
 
+/**
+ * 
+ *
+ */
 void   CudaGpuEnvironment::initialize(void) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
@@ -65,6 +69,10 @@ CudaGpuEnvironment& CudaGpuEnvironment::instance(void) {
     return singleton;
 }
 
+/**
+ * 
+ *
+ */
 CudaGpuEnvironment::CudaGpuEnvironment(void)
     : nDevices_{0},
       gpuDeviceName_{""},
