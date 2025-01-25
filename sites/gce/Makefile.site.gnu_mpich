@@ -21,7 +21,6 @@ else
   AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
 endif
 GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
-JSONDIR      = $(MILHOJA_TEST_CLONE)/gce/gnu_current/json/single_include
 CUDADIR      =
 
 CXXCOMPNAME  = gnu
