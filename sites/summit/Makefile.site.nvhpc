@@ -7,7 +7,6 @@
 BASEDIR      = $(MILHOJA_CODE_REPO)
 AMREXDIR     = $(MILHOJA_TEST_CLONE)/summit/nvhpc_current/AMReX_$(NDIM)d
 GTESTDIR     = $(MILHOJA_TEST_CLONE)/summit/nvhpc_current/googletest
-JSONDIR      = $(OLCF_NLOHMANN_JSON_ROOT)/include
 CUDADIR      = $(OLCF_CUDA_ROOT)
 
 # Define the following compiler-related flags

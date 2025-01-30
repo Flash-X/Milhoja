@@ -5,7 +5,6 @@ Requirements
 * Fortran compiler that supports F2003
 * MPI installation associated with the aforementioned C++ and Fortran compilers
 * googletest built with same compilers that will be used to build tests
-* Source-only installation of [nlohmann's C++ JSON library](https://github.com/nlohmann/json)
 * AMReX [123]D libraries including Fortran interfaces built with same compilers/MPI implementation that will be used to build tests
 
 Building Milhoja as a library

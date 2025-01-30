@@ -15,7 +15,6 @@ bool    FakeCudaGpuEnvironment::finalized_   = false;
 /**
  * 
  *
- * \return 
  */
 void   FakeCudaGpuEnvironment::initialize(void) {
     // finalized_ => initialized_
@@ -74,7 +73,6 @@ FakeCudaGpuEnvironment& FakeCudaGpuEnvironment::instance(void) {
 /**
  * 
  *
- * \return 
  */
 FakeCudaGpuEnvironment::FakeCudaGpuEnvironment(void)
     : nDevices_{0},

@@ -14,7 +14,6 @@
 BASEDIR      = 
 AMREXDIR     = $(FLASHX_AMREX$(NDIM)D_DIR)
 GTESTDIR     = $(FLASHX_GTEST_DIR)
-JSONDIR      = /lcrc/project/Flash-X/soft/src/json/include
 CUDADIR      = $(NVHPC_CUDA_HOME)
 
 # Define the following compiler-related flags

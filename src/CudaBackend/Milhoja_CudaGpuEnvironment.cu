@@ -14,7 +14,6 @@ bool    CudaGpuEnvironment::finalized_   = false;
 /**
  * 
  *
- * \return 
  */
 void   CudaGpuEnvironment::initialize(void) {
     // finalized_ => initialized_
@@ -73,7 +72,6 @@ CudaGpuEnvironment& CudaGpuEnvironment::instance(void) {
 /**
  * 
  *
- * \return 
  */
 CudaGpuEnvironment::CudaGpuEnvironment(void)
     : nDevices_{0},

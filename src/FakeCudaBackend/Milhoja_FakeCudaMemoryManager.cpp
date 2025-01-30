@@ -15,7 +15,6 @@ bool          FakeCudaMemoryManager::finalized_ = false;
 
 /**
  *
- * \return 
  */
 void FakeCudaMemoryManager::initialize(const std::size_t nBytesInMemoryPools) {
     // finalized_ => initialized_
@@ -114,7 +113,6 @@ FakeCudaMemoryManager&   FakeCudaMemoryManager::instance(void) {
 /**
  * 
  *
- * \return 
  */
 FakeCudaMemoryManager::FakeCudaMemoryManager(void)
     : pinnedBuffer_{nullptr},
@@ -163,7 +161,6 @@ FakeCudaMemoryManager::FakeCudaMemoryManager(void)
 /**
  * 
  *
- * \return 
  */
 FakeCudaMemoryManager::~FakeCudaMemoryManager(void) {
     if (initialized_ && !finalized_) {
@@ -175,7 +172,6 @@ FakeCudaMemoryManager::~FakeCudaMemoryManager(void) {
 /**
  * 
  *
- * \return 
  */
 void   FakeCudaMemoryManager::reset(void) {
     // There is no mechanism for now for releasing memory on a per request
