@@ -157,7 +157,12 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         f"{INDENT*2}use {interface}, ONLY : {subroutine}\n"
                     )
 
-                    if "Eos_" in subroutine:
+                    # hardwired assumption that these are the only
+                    # routine with POINTER arguments that can be
+                    # encountered here!
+                    has_pointer_args = ("Eos_guardCells" in subroutine or
+                                        "Eos_wrapped" in subroutine)
+                    if has_pointer_args:
                         target = ", target"
 
             fptr.writelines(["\n", *offloading, "\n"])
@@ -197,20 +202,23 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     array_spec = \
                         self._tf_spec.argument_specification(spec["array"])
                     if array_spec["source"] == GRID_DATA_ARGUMENT:
-                        # we have to set a pointer for EOS wrapped
+                        # We have to set a pointer for subroutines with POINTER dummy arguments -
+                        # some "Eos_" routines are known for this, hence the name.
                         eos_ptr[spec["array"]] = \
                             "({0}:,{1}:,{2}:,{3}:)".format(
                                 f"{arg}(1)", f"{arg}(2)",
                                 f"{arg}(3)", f"{arg}(4)"
                             ) + f" => {spec['array']}"
-                        grid_ptr_data.extend([
+                        pointerdeclaration = (
                             f"{INDENT*2}real, pointer :: "
-                            f"{spec['array']}_ptr(:, :, :, :)"
-                        ])
-                        grid_ptr_nullify.append(
-                            f"{INDENT*2}NULLIFY({spec['array']}_ptr)\n"
+                            f"{spec['array']}_ptr(:, :, :, :)\n"
                         )
-                        end_tf.extend([f"NULLIFY({spec['array']}_ptr)\n"])
+                        if pointerdeclaration not in grid_ptr_data:
+                            grid_ptr_data.extend([pointerdeclaration])
+                        grid_ptr_nullify.append(
+                            f"{INDENT*2}NULLIFY({spec['array']}_ptr) ! unnecessary??\n"
+                        )
+                        end_tf.extend([f"NULLIFY({spec['array']}_ptr) ! unnecessary?\n"])
 
                 elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
@@ -237,7 +245,14 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         f" :: {arg}(:, :, :, :)\n"
                     )
                     if arg not in eos_ptr:
-                        eos_ptr[arg] = f"(:, :, :, :) => {arg}\n"
+                        eos_ptr[arg] = f"(1:,1:,1:,1:) => {arg}\n" # DEV: or just f" => {arg}\n" ?  To be reviewed! KW
+                        pointerdeclaration = (
+                            f"{INDENT*2}real, pointer :: "
+                            f"{arg}_ptr(:, :, :, :)\n"
+                        )
+                        if pointerdeclaration not in grid_ptr_data:
+                            grid_ptr_data.extend([pointerdeclaration])
+#                        ])
 
                 elif src == SCRATCH_ARGUMENT:
                     arg_type = C2F_TYPE_MAPPING.get(
@@ -260,13 +275,19 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
-                    if "Eos_" in subroutine:
-                        for key in eos_ptr:
-                            fptr.write(f"{INDENT*2}{key}_ptr{eos_ptr[key]}\n")
-
-                    fptr.write(f"{INDENT*2}CALL {subroutine}( &\n")
+                    has_pointer_args = ("Eos_guardCells" in subroutine or
+                                        "Eos_wrapped" in subroutine)
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
+                    if has_pointer_args:
+                        for key in eos_ptr:
+                            if (
+                                    key in actual_args
+                                    and self._tf_spec.argument_specification(key)["source"] == GRID_DATA_ARGUMENT
+                            ):
+                                fptr.write(f"{INDENT*2}{key}_ptr{eos_ptr[key]}\n")
+
+                    fptr.write(f"{INDENT*2}CALL {subroutine}( &\n")
                     arg_list = []
                     for argument in actual_args:
                         spec = self._tf_spec.argument_specification(argument)
@@ -274,7 +295,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         # Eos is weird
                         if (
                             spec["source"] == GRID_DATA_ARGUMENT and
-                            "Eos" in subroutine and
+                            has_pointer_args and
                             argument in eos_ptr
                         ):
                             arg += "_ptr"
