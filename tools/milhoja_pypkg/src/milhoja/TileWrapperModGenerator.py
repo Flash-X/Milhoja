@@ -109,10 +109,10 @@ class TileWrapperModGenerator(AbcCodeGenerator):
                     f"intent(IN), value :: {name}"
                 )
 
+            arg_list.append("C_wrapper")
             args = f', &\n{self.INDENT * 3}'.join(arg_list)
-            module.write(f'{self.INDENT * 3}' + args)
+            module.write(f'{self.INDENT * 3}' + args + " &\n")
             module.write(
-                f", &\n{self.INDENT*3}C_wrapper &\n"
                 f"{self.INDENT*2}) result(C_ierr) &\n"
                 f'{self.INDENT*2}bind(c, name="{instance}")\n'
             )
