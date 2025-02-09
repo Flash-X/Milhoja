@@ -64,7 +64,7 @@ contains
 
         real, pointer :: CC_1_ptr(:, :, :, :)
 
-        NULLIFY(CC_1_ptr)
+        NULLIFY(CC_1_ptr) ! unnecessary??
 
         CALL Hydro_computeSoundSpeedHll_block_cpu( &
             tile_lo, &
@@ -127,7 +127,7 @@ contains
             tile_interior, &
             CC_1_ptr &
         )
-        NULLIFY(CC_1_ptr)
+        NULLIFY(CC_1_ptr) ! unnecessary??
     end subroutine cpu_tf_hydro_Fortran
 
 end module cpu_tf_hydro_mod
