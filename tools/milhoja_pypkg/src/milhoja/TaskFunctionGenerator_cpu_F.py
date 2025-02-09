@@ -145,6 +145,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
             target = ""
             offloading = []
+            any_node_with_pointer_args_byName = False
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
                     interface = \
@@ -160,9 +161,12 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     # hardwired assumption that these are the only
                     # routine with POINTER arguments that can be
                     # encountered here!
-                    has_pointer_args = ("Eos_guardCells" in subroutine or
-                                        "Eos_wrapped" in subroutine)
-                    if has_pointer_args:
+                    has_pointer_args_byName = ("Eos_guardCells" in subroutine or
+                                               "Eos_wrapped" in subroutine)
+                    any_node_with_pointer_args_byName = (
+                        any_node_with_pointer_args_byName or has_pointer_args_byName
+                    )
+                    if has_pointer_args_byName:
                         target = ", target"
 
             fptr.writelines(["\n", *offloading, "\n"])
@@ -270,8 +274,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     raise LogicError(f"{arg} of unknown argument class")
 
             fptr.write("\n")
-            fptr.write("".join(grid_ptr_data) + "\n")
-            fptr.write("".join(grid_ptr_nullify) + "\n")
+            if any_node_with_pointer_args_byName:
+                fptr.write("".join(grid_ptr_data) + "\n")
+                fptr.write("".join(grid_ptr_nullify) + "\n")
 
             for node in self._tf_spec.internal_subroutine_graph:
                 for subroutine in node:
