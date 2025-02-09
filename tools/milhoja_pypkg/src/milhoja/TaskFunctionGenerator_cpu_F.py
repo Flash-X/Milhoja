@@ -216,9 +216,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         if pointerdeclaration not in grid_ptr_data:
                             grid_ptr_data.extend([pointerdeclaration])
                         grid_ptr_nullify.append(
-                            f"{INDENT*2}NULLIFY({spec['array']}_ptr) ! unnecessary??\n"
+                            f"{INDENT*2}NULLIFY({spec['array']}_ptr)  ! unnecessary??\n"
                         )
-                        end_tf.extend([f"NULLIFY({spec['array']}_ptr) ! unnecessary?\n"])
+                        end_tf.extend([f"NULLIFY({spec['array']}_ptr)  ! unnecessary?\n"])
 
                 elif src == TILE_DELTAS_ARGUMENT:
                     fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}(:)\n")
@@ -245,7 +245,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                         f" :: {arg}(:, :, :, :)\n"
                     )
                     if arg not in eos_ptr:
-                        eos_ptr[arg] = f"(1:,1:,1:,1:) => {arg}\n" # DEV: or just f" => {arg}\n" ?  To be reviewed! KW
+                        eos_ptr[arg] = f"(1:,1:,1:,1:) => {arg}\n"  # DEV: or just f" => {arg}\n" ?  To be reviewed! KW
                         pointerdeclaration = (
                             f"{INDENT*2}real, pointer :: "
                             f"{arg}_ptr(:, :, :, :)\n"
