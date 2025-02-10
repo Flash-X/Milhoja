@@ -122,9 +122,8 @@ TEST_F(ThreadTeamTest, TestInitialState) {
 
     // Check that teams must have minimum number of threads
     EXPECT_THROW(new ThreadTeam(0, 2), std::logic_error);
-    EXPECT_THROW(new ThreadTeam(1, 2), std::logic_error);
 
-    for (unsigned int i=2; i<=N_ITERS; ++i) {
+    for (unsigned int i=1; i<=N_ITERS; ++i) {
         team2 = new ThreadTeam(i, 2);
 
         team2->stateCounts(&N_idle, &N_wait, &N_comp, &N_Q);
