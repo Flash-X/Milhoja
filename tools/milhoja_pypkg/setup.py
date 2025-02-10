@@ -38,9 +38,7 @@ package_data = {"milhoja": ["tests/data/*",
                             "templates/*"]}
 
 project_urls = {
-    "Source": "Git Hub",
-    "Documentation": "milhoja.org",
-    "Tracker": "Git Hub Issues"
+    "Source": "https://github.com/Flash-X/Milhoja",
 }
 
 setup(
@@ -53,9 +51,10 @@ setup(
     package_dir={"": "src"},
     package_data=package_data,
     packages=['milhoja'],
-    url="http://milhoja.org",
+    url="https://github.com/Flash-X/Milhoja",
     project_urls=project_urls,
-    license="???",
+    license="Apache-2.0",
+    license_files=("LICENSE",),
     description=description,
     long_description=readme_md(),
     long_description_content_type="text/markdown",
