@@ -36,7 +36,7 @@ namespace milhoja {
  *  - no data items in the queue.
  *
  * \param  nMaxThreads The maximum permissible number of threads in the team.
- *                     Zero or one thread is considered to be a logical error.
+ *                     Zero threads is considered to be a logical error.
  * \param  id          A unique thread team ID for debug use.
  */
 ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
@@ -62,10 +62,10 @@ ThreadTeam::ThreadTeam(const unsigned int nMaxThreads,
 {
     hdr_ = "Thread Team " + std::to_string(id_);
     
-    if (nMaxThreads_ <= 1) {
+    if (nMaxThreads_ == 0) {
         std::string   msg("[ThreadTeam::ThreadTeam] ");
         msg += hdr_;
-        msg += "\n\tTeams must have at least two threads";
+        msg += "\n\tEmpty thread teams are disallowed";
         throw std::logic_error(msg);
     }
 
