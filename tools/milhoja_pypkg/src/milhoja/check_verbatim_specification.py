@@ -31,22 +31,27 @@ def check_verbatim_specification(arg, spec, logger):
     # ----- VERBATIM SPECIFICATIONS
     expected = {"source", "application_specific"}
     actual = set(spec)
-    if actual != expected:
-        msg = f"Invalid verbatim specification keys for {arg} ({spec})"
-        raise ValueError(msg)
-    subspec = spec["application_specific"]
+    if actual == expected:
+        subspec = spec["application_specific"]
+        expected = {"kind", "value"}
+        if "kind" not in subspec:
+            raise TypeError(f"{arg}'s verbatim \"application_specific\" subspec has no kind ({subspec})")
+        verbatim_kind = subspec["kind"]
+        if not isinstance(verbatim_kind, str):
+            raise TypeError(f"{arg}'s verbatim kind not string ({verbatim_kind})")
+        if verbatim_kind != "literal":
+            raise TypeError(f"{arg}'s verbatim kind not recognized ({verbatim_kind})")
 
-    expected = {"kind", "value"}
+    else:
+        msg = f"Unexpected verbatim specification keys for {arg} ({spec})"
+        print(msg)
+        subspec = spec
+        expected = {"source", "value"}
+
     actual = set(subspec)
     if actual != expected:
         msg = f"Invalid verbatim \"application_specific\" keys for {arg} ({subspec})"
         raise ValueError(msg)
-
-    verbatim_kind = subspec["kind"]
-    if not isinstance(verbatim_kind, str):
-        raise TypeError(f"{arg}'s verbatim kind not string ({verbatim_kind})")
-    if verbatim_kind != "literal":
-        raise TypeError(f"{arg}'s verbatim kind not recognized ({verbatim_kind})")
 
     verbatim_value = subspec["value"]
     if not isinstance(verbatim_value, str):
