@@ -297,12 +297,12 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}CALL {subroutine}( &\n")
                     arg_list = []
                     name_the_arguments = False
-                    for dummy,argument,arg_source in self._tf_spec.subroutine_argument_triples(subroutine):
+                    for dummy, argument, arg_source in self._tf_spec.subroutine_argument_triples(subroutine):
                         if arg_source == VERBATIM_ARGUMENT:  # We expect argument to be "literal:<LITERAL VALUE>"
-                            _, argument = argument.split(':',1)  #  Ignore the "literal:" prefix, for now - KW
+                            _, argument = argument.split(':', 1)  # Ignore the "literal:" prefix, for now - KW
                             name_the_arguments = True
                         if name_the_arguments:
-                            arg = f"{INDENT*3}{dummy} = {argument}" # We could do this always.
+                            arg = f"{INDENT*3}{dummy} = {argument}"  # We could do this always.
                         else:
                             arg = f"{INDENT*3}{argument}"
                         # Eos is weird
