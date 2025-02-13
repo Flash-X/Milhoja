@@ -62,7 +62,7 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
         msg = f"argument_specifications ({arg_specs_all}) in {name} not dict"
         raise TypeError(msg)
     elif set(arg_list) != set(arg_specs_all):
-        msg = f"Incomptabile argument list & specifications in {name}"
+        msg = f"Incompatible argument list & specifications in {name}"
         raise ValueError(msg)
 
     lbdds_all = []

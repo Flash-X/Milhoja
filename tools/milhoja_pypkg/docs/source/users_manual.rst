@@ -356,7 +356,7 @@ Example:
 subroutines
 -----------
 
-Cotnains key-value pairs, where the subroutine name is the key, and the value 
+Contains key-value pairs, where the subroutine name is the key, and the value
 is a dictionary comprised of the information for generating calls to that subroutine
 inside of the task function. The dictionary includes this information:
 

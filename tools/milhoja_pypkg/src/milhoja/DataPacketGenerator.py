@@ -298,7 +298,7 @@ class DataPacketGenerator(AbcCodeGenerator):
         for item in args:
             external[item] = self._tf_spec.argument_specification(item)
             dtype = external[item]["type"]
-            # Note: Since the data packet geberator needs its own internal
+            # Note: Since the data packet generator needs its own internal
             #       representations of each item in the packet,
             #       I convert any potential fortran names into C++ names.
             #       This is because the data packet generator is always
