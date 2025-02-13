@@ -284,9 +284,9 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
                 for subroutine in node:
                     has_pointer_args = ("Eos_guardCells" in subroutine or
                                         "Eos_wrapped" in subroutine)
-                    actual_args = \
-                        self._tf_spec.subroutine_actual_arguments(subroutine)
                     if has_pointer_args:
+                        actual_args = \
+                            self._tf_spec.subroutine_actual_arguments(subroutine)
                         for key in eos_ptr:
                             if (
                                     key in actual_args
@@ -296,12 +296,18 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
 
                     fptr.write(f"{INDENT*2}CALL {subroutine}( &\n")
                     arg_list = []
-                    for argument in actual_args:
-                        spec = self._tf_spec.argument_specification(argument)
-                        arg = f"{INDENT*3}{argument}"
+                    name_the_arguments = False
+                    for dummy,argument,arg_source in self._tf_spec.subroutine_argument_triples(subroutine):
+                        if arg_source == VERBATIM_ARGUMENT:  # We expect argument to be "literal:<LITERAL VALUE>"
+                            _, argument = argument.split(':',1)  #  Ignore the "literal:" prefix, for now - KW
+                            name_the_arguments = True
+                        if name_the_arguments:
+                            arg = f"{INDENT*3}{dummy} = {argument}" # We could do this always.
+                        else:
+                            arg = f"{INDENT*3}{argument}"
                         # Eos is weird
                         if (
-                            spec["source"] == GRID_DATA_ARGUMENT and
+                            arg_source == GRID_DATA_ARGUMENT and
                             has_pointer_args and
                             argument in eos_ptr
                         ):

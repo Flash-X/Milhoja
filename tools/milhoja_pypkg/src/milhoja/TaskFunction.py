@@ -506,6 +506,29 @@ class TaskFunction(object):
         mapping = self.__subroutine_spec[subroutine]["argument_mapping"]
         return [mapping[dummy] for dummy in dummies]
 
+    def subroutine_argument_triples(self, subroutine):
+        """
+        Returns a list of (dummy_arg,actual_arg,source) triples
+        for the arguments of the given subroutine.
+        """
+        dummies = self.subroutine_dummy_arguments(subroutine)
+        mapping = self.__subroutine_spec[subroutine]["argument_mapping"]
+        return (
+            (
+                dummy,
+                mapping[dummy],
+                VERBATIM_ARGUMENT
+            )
+            if (mapping[dummy][:len("literal:")] == "literal:")
+            else
+            (
+                dummy,
+                mapping[dummy],
+                self.__tf_spec["argument_specifications"][mapping[dummy]]["source"]
+            )
+            for dummy in dummies
+        )
+
     @property
     def n_streams(self):
         """

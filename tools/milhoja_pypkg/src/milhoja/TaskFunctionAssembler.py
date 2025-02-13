@@ -888,6 +888,15 @@ class TaskFunctionAssembler(object):
                     if [idx for idx in arg_indices if idx == (subroutine, arg)]:
                         assert arg not in arg_to_tf_dummies
                         arg_to_tf_dummies[arg] = tf_dummy
+                if arg not in arg_to_tf_dummies:
+                    arg_spec = group.argument_specification(subroutine, arg)
+                    if arg_spec["source"] == VERBATIM_ARGUMENT:
+                        if "application_specific" in arg_spec:
+                            if "value" in arg_spec["application_specific"]:
+                                arg_to_tf_dummies[arg] = "%s:%s" % (
+                                    arg_spec["application_specific"]["kind"],
+                                    arg_spec["application_specific"]["value"],
+                                )
 
             assert subroutine not in spec[outer]
             spec[outer][subroutine] = {
