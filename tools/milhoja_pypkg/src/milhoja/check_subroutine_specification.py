@@ -3,6 +3,7 @@ from .constants import (
     ERROR_CHECK_LOG_TAG,
     TILE_ARGUMENTS_ALL,
     EXTERNAL_ARGUMENT,
+    VERBATIM_ARGUMENT,
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
     LBOUND_ARGUMENT,
@@ -11,6 +12,7 @@ from .constants import (
 from .LogicError import LogicError
 from .check_tile_specification import check_tile_specification
 from .check_external_specification import check_external_specification
+from .check_verbatim_specification import check_verbatim_specification
 from .check_scratch_specification import check_scratch_specification
 from .check_grid_data_specification import check_grid_data_specification
 from .check_lbound_specification import check_lbound_specification
@@ -82,6 +84,8 @@ def check_subroutine_specification(name, spec, variable_index_base, logger):
             check_tile_specification(arg, arg_spec, logger)
         elif source == EXTERNAL_ARGUMENT:
             check_external_specification(arg, arg_spec, logger)
+        elif source == VERBATIM_ARGUMENT:
+            check_verbatim_specification(arg, arg_spec, logger)
         elif source == SCRATCH_ARGUMENT:
             check_scratch_specification(arg, arg_spec, logger)
         elif source == GRID_DATA_ARGUMENT:

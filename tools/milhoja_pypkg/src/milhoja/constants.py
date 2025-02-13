@@ -36,6 +36,7 @@ ERROR_CHECK_LOG_TAG = "Milhoja Cordura"
 #   in camelcase with no separation
 INTERNAL_ARGUMENT = "internal"
 EXTERNAL_ARGUMENT = "external"
+VERBATIM_ARGUMENT = "verbatim"
 SCRATCH_ARGUMENT = "scratch"
 GRID_DATA_ARGUMENT = "grid_data"
 LBOUND_ARGUMENT = "lbound"

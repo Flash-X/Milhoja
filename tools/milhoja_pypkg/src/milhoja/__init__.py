@@ -21,6 +21,7 @@ from .constants import (
     LOG_LEVEL_MAX, LOG_LEVELS,
     INTERNAL_ARGUMENT,
     EXTERNAL_ARGUMENT,
+    VERBATIM_ARGUMENT,
     SCRATCH_ARGUMENT,
     GRID_DATA_ARGUMENT,
     LBOUND_ARGUMENT,
@@ -51,6 +52,7 @@ from .LogicError import LogicError
 from .check_grid_specification import check_grid_specification
 from .check_tile_specification import check_tile_specification
 from .check_external_specification import check_external_specification
+from .check_verbatim_specification import check_verbatim_specification
 from .check_scratch_specification import check_scratch_specification
 from .check_grid_data_specification import check_grid_data_specification
 from .check_lbound_specification import check_lbound_specification
