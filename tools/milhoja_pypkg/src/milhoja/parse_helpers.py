@@ -58,7 +58,7 @@ def parse_lbound(lbound: str) -> list:
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
         TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
     }
-    # find all words in teh lbound string and ensure that they contain valid
+    # find all words in the lbound string and ensure that they contain valid
     # keywords.
     words = re.findall(r'\b(?:[\w]+)\b', lbound)
     # just use python to throw out all numeric values because I'm bad at
@@ -299,10 +299,13 @@ def parse_extents(extents: str, src=None) -> list:
 
     # isnumeric does not account for negative numbers.
     extents_list = [item.strip() for item in extents.split(',') if item]
-    # if any([(not item.lstrip('-').isnumeric()) for item in extents_list]):
-    #     raise NonIntegerException(
-    #         f"A value in the extents ({extents_list}) was not an integer."
-    #     )
+    if any([(not (item.lstrip('-').isnumeric() or \
+                  (item[0] in "(n" and \
+                   ("nxb" in item or "nyb" in item or "nzb" in item)))) \
+             for item in extents_list]):
+        raise NonIntegerException(
+            f"A value in the extents ({extents_list}) was not an integer."
+        )
 
     # don't allow negative values for array sizes.
     if any([(item.isnumeric() and int(item) < 0) for item in extents_list]):
