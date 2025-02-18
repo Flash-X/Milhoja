@@ -277,28 +277,35 @@ def parse_extents(extents: str, src=None) -> list:
     if src:
         raise NotImplementedError("Source specific extents not implemented.")
 
-    # default for parsing extents. Extents is assume to be a string
-    # containing a list of integers surrounded by parentheses.
-    if extents.count('(') != 1 or extents.count(')') != 1:
+    # default for parsing extents. Extents is assumed to be a string
+    # containing a list of integers surrounded by parentheses;
+    # or it can be an integer expression that may contain the special
+    # variable names nxb, nyb, nzb in addition to integer literals and
+    # operators + - * and parentheses ( ).
+    if extents.count('(') < 1 or extents.count(')') < 1:
         raise IncorrectFormatException(
             f"Incorrect parenthesis placement for {extents}"
+        )
+    if extents.count('(') != extents.count(')'):
+        raise IncorrectFormatException(
+            f"Unbalanced parenthesis placement in {extents}"
         )
 
     if not extents.startswith('(') or not extents.endswith(')'):
         raise IncorrectFormatException(
             f"{extents} is not the correct format of (x, y, z, ...)"
         )
-    extents = extents.replace('(', '').replace(')', '')
+    extents = extents[1:-1]
 
     # isnumeric does not account for negative numbers.
     extents_list = [item.strip() for item in extents.split(',') if item]
-    if any([(not item.lstrip('-').isnumeric()) for item in extents_list]):
-        raise NonIntegerException(
-            f"A value in the extents ({extents_list}) was not an integer."
-        )
+    # if any([(not item.lstrip('-').isnumeric()) for item in extents_list]):
+    #     raise NonIntegerException(
+    #         f"A value in the extents ({extents_list}) was not an integer."
+    #     )
 
     # don't allow negative values for array sizes.
-    if any([(int(item) < 0) for item in extents_list]):
+    if any([(item.isnumeric() and int(item) < 0) for item in extents_list]):
         raise RuntimeError(
             f"A value in {extents_list} was negative."
         )

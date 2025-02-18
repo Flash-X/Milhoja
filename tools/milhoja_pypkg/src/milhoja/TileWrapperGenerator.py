@@ -125,8 +125,8 @@ class TileWrapperGenerator(AbcCodeGenerator):
         extents = spec.strip()
         assert extents.startswith("(")
         assert extents.endswith(")")
-        extents = extents.lstrip("(").rstrip(")")
-        return [int(e) for e in extents.split(",")]
+        extents = extents[1:-1]
+        return [int(e) if (isinstance(e,int) or not (isinstance(e,str) and 'n' in e)) else e for e in extents.split(",")]
 
     def __generate_constructor_declaration(self):
         """
