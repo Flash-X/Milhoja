@@ -299,23 +299,21 @@ def parse_extents(extents: str, src=None) -> list:
 
     # isnumeric does not account for negative numbers.
     extents_list = [item.strip() for item in extents.split(',') if item]
-    if any([(not (item.lstrip('-').isnumeric() or \
-                  (item[0] in "(n" and \
-                   ("nxb" in item or "nyb" in item or "nzb" in item)))) \
-             for item in extents_list]):
+    if any([(not (item.lstrip('-').isnumeric() or
+                  (item[0] in "(n" and
+                   ("nxb" in item or "nyb" in item or "nzb" in item))))
+            for item in extents_list]):
         raise NonIntegerException(
             f"A value in the extents ({extents_list}) was not an integer."
         )
 
     # don't allow negative values for array sizes.
-    if any([(item.isnumeric() and int(item) < 0) for item in extents_list]):
-        raise RuntimeError(
-            f"A value in {extents_list} was negative."
-        )
-    if any([(item.lstrip('-').isnumeric() and int(item.lstrip('-')) < 0) \
+    if any([(len(item) > 1 and item[0] == '-' and
+             item.lstrip('-').isnumeric() and
+             int(item) < 0)
             for item in extents_list]):
         raise RuntimeError(
-            f"A value in {extents_list} looks negative."
+            f"A value in {extents_list} is negative."
         )
 
     return extents_list
