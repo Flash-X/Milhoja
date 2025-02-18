@@ -299,7 +299,7 @@ def parse_extents(extents: str, src=None) -> list:
 
     extents_list = [item.strip() for item in extents.split(',') if item]
 
-    if any([(item.count('(') != item.count('('))
+    if any([(item.count('(') != item.count(')'))
             for item in extents_list]):
         raise IncorrectFormatException(
             f"Unbalanced parenthesis placement within {extents}"
