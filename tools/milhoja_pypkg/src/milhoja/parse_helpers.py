@@ -297,8 +297,15 @@ def parse_extents(extents: str, src=None) -> list:
         )
     extents = extents[1:-1]
 
-    # isnumeric does not account for negative numbers.
     extents_list = [item.strip() for item in extents.split(',') if item]
+
+    if any([(item.count('(') != item.count('('))
+            for item in extents_list]):
+        raise IncorrectFormatException(
+            f"Unbalanced parenthesis placement within {extents}"
+        )
+
+    # isnumeric does not account for negative numbers.
     if any([(not (item.lstrip('-').isnumeric() or
                   (item[0] in "(n" and
                    ("nxb" in item or "nyb" in item or "nzb" in item))))
