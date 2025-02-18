@@ -312,6 +312,11 @@ def parse_extents(extents: str, src=None) -> list:
         raise RuntimeError(
             f"A value in {extents_list} was negative."
         )
+    if any([(item.lstrip('-').isnumeric() and int(item.lstrip('-')) < 0) \
+            for item in extents_list]):
+        raise RuntimeError(
+            f"A value in {extents_list} looks negative."
+        )
 
     return extents_list
 

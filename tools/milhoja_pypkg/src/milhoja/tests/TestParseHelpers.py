@@ -35,7 +35,7 @@ class TestParseHelpers(milhoja.tests.TestCodeGenerators):
 
         with self.assertRaises(
             NonIntegerException,
-            msg="parse_extents should have raise a NonIntegerException."
+            msg="parse_extents should raise a NonIntegerException."
         ):
             input = "(1, 2, 3A, VBNVN)"
             parsed = parse_extents(input)
