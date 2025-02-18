@@ -58,7 +58,7 @@ def parse_lbound(lbound: str) -> list:
         TILE_LO_ARGUMENT, TILE_HI_ARGUMENT,
         TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT
     }
-    # find all words in teh lbound string and ensure that they contain valid
+    # find all words in the lbound string and ensure that they contain valid
     # keywords.
     words = re.findall(r'\b(?:[\w]+)\b', lbound)
     # just use python to throw out all numeric values because I'm bad at
@@ -277,30 +277,50 @@ def parse_extents(extents: str, src=None) -> list:
     if src:
         raise NotImplementedError("Source specific extents not implemented.")
 
-    # default for parsing extents. Extents is assume to be a string
-    # containing a list of integers surrounded by parentheses.
-    if extents.count('(') != 1 or extents.count(')') != 1:
+    # default for parsing extents. Extents is assumed to be a string
+    # containing a list of integers surrounded by parentheses;
+    # or it can be an integer expression that may contain the special
+    # variable names nxb, nyb, nzb in addition to integer literals and
+    # operators + - * and parentheses ( ).
+    if extents.count('(') < 1 or extents.count(')') < 1:
         raise IncorrectFormatException(
             f"Incorrect parenthesis placement for {extents}"
+        )
+    if extents.count('(') != extents.count(')'):
+        raise IncorrectFormatException(
+            f"Unbalanced parenthesis placement in {extents}"
         )
 
     if not extents.startswith('(') or not extents.endswith(')'):
         raise IncorrectFormatException(
             f"{extents} is not the correct format of (x, y, z, ...)"
         )
-    extents = extents.replace('(', '').replace(')', '')
+    extents = extents[1:-1]
+
+    extents_list = [item.strip() for item in extents.split(',') if item]
+
+    if any([(item.count('(') != item.count(')'))
+            for item in extents_list]):
+        raise IncorrectFormatException(
+            f"Unbalanced parenthesis placement within {extents}"
+        )
 
     # isnumeric does not account for negative numbers.
-    extents_list = [item.strip() for item in extents.split(',') if item]
-    if any([(not item.lstrip('-').isnumeric()) for item in extents_list]):
+    if any([(not (item.lstrip('-').isnumeric() or
+                  (item[0] in "(n" and
+                   ("nxb" in item or "nyb" in item or "nzb" in item))))
+            for item in extents_list]):
         raise NonIntegerException(
             f"A value in the extents ({extents_list}) was not an integer."
         )
 
     # don't allow negative values for array sizes.
-    if any([(int(item) < 0) for item in extents_list]):
+    if any([(len(item) > 1 and item[0] == '-' and
+             item.lstrip('-').isnumeric() and
+             int(item) < 0)
+            for item in extents_list]):
         raise RuntimeError(
-            f"A value in {extents_list} was negative."
+            f"A value in {extents_list} is negative."
         )
 
     return extents_list
