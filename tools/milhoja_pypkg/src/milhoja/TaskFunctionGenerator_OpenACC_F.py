@@ -9,7 +9,8 @@ from . import (
     TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT,
     C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    TILE_LEVEL_ARGUMENT
+    TILE_LEVEL_ARGUMENT,
+    VERBATIM_ARGUMENT,
 )
 
 
@@ -220,6 +221,15 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     array = "(" + ", ".join(tmp) + ")"
                     fptr.write(f"{INDENT*2}{arg_type}, intent(INOUT) :: {arg}_d{array}\n")
 
+                elif src == VERBATIM_ARGUMENT:
+                    arg_type = spec["type"]
+                    print(f"generate_source_code: Strange Arg spec {spec} for arg {arg} \n")
+                    dimension = 3
+                    assert dimension > 0
+                    tmp = [":" for _ in range(dimension + 1)]
+                    array = "(" + ", ".join(tmp) + ")"
+                    fptr.write(f"{INDENT*2}{arg_type}, intent(INOUT) :: {arg}_d{array}\n")
+
                 else:
                     raise LogicError(f"{arg} of unknown argument class")
 
@@ -301,13 +311,14 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}!$acc& async({queue})\n")
                     fptr.write(f"{INDENT*2}do n = 1, nTiles_d\n")
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
-                    actual_args = \
-                        self._tf_spec.subroutine_actual_arguments(subroutine)
+                    arg_triples = \
+                        self._tf_spec.subroutine_argument_triples(subroutine)
                     arg_list = [f"{INDENT*5}n"]
-                    for argument in actual_args:
-                        spec = self._tf_spec.argument_specification(argument)
+                    for _, argument, src in arg_triples:
+                        if src == VERBATIM_ARGUMENT:
+                            continue  # Do not pass an argument to the wrapper for this one
                         offs = ""
-                        if spec["source"] == TILE_LEVEL_ARGUMENT:
+                        if src == TILE_LEVEL_ARGUMENT:
                             offs = " + 1"
                         arg_list.append(f"{INDENT*5}{argument}_d{offs}")
                     fptr.write(", &\n".join(arg_list) + " &\n")
@@ -361,13 +372,20 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         subroutine_wrapper = self._get_wrapper_name(subroutine)
         lines = []
 
-        actual_args = self._tf_spec.subroutine_actual_arguments(subroutine)
-        dummy_args = ["nblk"] + [f"{arg}_d" for arg in actual_args]
+        # Note that we have to convert to a list here (from a tuple;
+        # alternatively, change subroutine_argument_triples in
+        # TaskFunction.py to return a list), otherwise something goes
+        # wrong below where arg_triples is used repeatedly, with the
+        # effect that output will be missing for some arguments. - kW
+        arg_triples = list(self._tf_spec.subroutine_argument_triples(subroutine))
+#        actual_args = self._tf_spec.subroutine_actual_arguments(subroutine)
+        wrapper_dummy_args = ["nblk"] + [f"{arg}_d" for (dum,arg,src) in arg_triples
+                                         if src != VERBATIM_ARGUMENT]
 
         lines.append(f"{indent*1}subroutine {subroutine_wrapper} ( &")
-        dummy_arg_str = f"{indent*5}" + f", &\n{indent*5}".join(dummy_args) + f" &\n{indent*3})\n"
-        dummy_arg_str = "()\n" if len(dummy_args) == 0 else dummy_arg_str
-        lines.append(dummy_arg_str)
+        wr_arg_str = f"{indent*5}" + f", &\n{indent*5}".join(wrapper_dummy_args) + f" &\n{indent*3})\n"
+        wr_arg_str = "()\n" if len(wrapper_dummy_args) == 0 else wr_arg_str
+        lines.append(wr_arg_str)
 
         interface = self._tf_spec.subroutine_interface_file(subroutine).strip()
         interface = interface.rstrip(".F90")
@@ -393,9 +411,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         bounds = {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}
         pointer_extents = {}
         pointer_types = {}
-        for arg in actual_args:
+#        actual_args = [act for (_, act, _) in arg_triples]
+        for _, arg, src in arg_triples:
             spec = self._tf_spec.argument_specification(arg)
-            src = spec["source"]
+            assert src == spec["source"]
             if src == EXTERNAL_ARGUMENT:
                 extents = spec["extents"]
                 if extents != "()":
@@ -452,14 +471,20 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 pointer_types[arg] = arg_type
                 lines.append(f"{indent*2}{arg_type}, target, intent(INOUT) :: {arg}_d{array}")
 
+            elif src == VERBATIM_ARGUMENT:
+                arg_type = spec["type"]
+                print(f"generate_source_code: Generating comment for verbatim arg {arg}")
+                lines.append(f"!!!{indent*1}{arg_type}, intent(INOUT) :: {arg}")
+
             else:
                 raise LogicError(f"{arg} of unknown argument class")
         lines.append("")
 
         lines.append(f"{indent*2}! Local variables")
         pointer_mapping = {}
-        for arg in actual_args:
-            spec = self._tf_spec.argument_specification(arg)
+        for _, arg, src in arg_triples:
+            if src == VERBATIM_ARGUMENT:
+                continue
             arg_p = f"{arg}_d_p"
 
             ptr_type = pointer_types[arg]
@@ -483,8 +508,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append(f"{indent*2}! Call subroutine")
         lines.append(f"{indent*2}CALL {subroutine}( &")
         arg_list = []
-        for arg in actual_args:
-            _arg = pointer_mapping[arg] if arg in pointer_mapping else f"{arg}_d"
+        name_the_arguments = False
+#        for arg in actual_args:
+        for dummy, arg, arg_source in arg_triples: #self._tf_spec.subroutine_argument_triples(subroutine):
+            if arg_source == VERBATIM_ARGUMENT:  # We expect argument to be "literal:<LITERAL VALUE>"
+                _, _arg = arg.split(':', 1)  # Ignore the "literal:" prefix, for now - KW
+                name_the_arguments = True
+            else:
+                _arg = pointer_mapping[arg] if arg in pointer_mapping else f"{arg}_d"
+            if name_the_arguments:
+                _arg = f"{dummy} = " + _arg
             arg_list.append(_arg)
         lines.append(f"{indent*5}" + f", &\n{indent*5}".join(arg_list) + " &")
         lines.append(f"{indent*4})")

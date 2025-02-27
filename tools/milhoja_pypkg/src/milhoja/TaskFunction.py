@@ -316,7 +316,10 @@ class TaskFunction(object):
             This should reinterpret variable types so that we return the
             correct type for the task function's processor and device.
         """
-        if argument not in self.__tf_spec["argument_specifications"]:
+        if (argument[:len("literal:")] == "literal:"):
+            spec = {"source" : VERBATIM_ARGUMENT, "type" : "TYPE(?)"}
+            return spec
+        elif argument not in self.__tf_spec["argument_specifications"]:
             msg = "{} not an argument for task function {}"
             raise ValueError(msg.format(argument, self.name))
 
@@ -508,7 +511,7 @@ class TaskFunction(object):
 
     def subroutine_argument_triples(self, subroutine):
         """
-        Returns a list of (dummy_arg,actual_arg,source) triples
+        Returns a tuple of (dummy_arg,actual_arg,source) triples
         for the arguments of the given subroutine.
         """
         dummies = self.subroutine_dummy_arguments(subroutine)
