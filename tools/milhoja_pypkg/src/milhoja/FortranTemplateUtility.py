@@ -138,6 +138,8 @@ class FortranTemplateUtility(TemplateUtility):
                     lbound = GRID_DATA_LBOUNDS[struct].format(init)
                     lbound, _ = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
+                    one_time_mdata[TILE_LBOUND_ARGUMENT] = \
+                        {"source": "tile_lbound", "type": "IntVect"}
                     one_time_mdata[TILE_LO_ARGUMENT] = \
                         {"source": "tile_lo", "type": "IntVect"}
                 # todo::
