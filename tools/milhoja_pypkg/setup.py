@@ -44,10 +44,8 @@ project_urls = {
 setup(
     name="milhoja",
     version=version(),
-    author="Tom Klosterman, Wesley Kwiecinski, Jared O'Neal",
+    author="Tom Klosterman, Wesley Kwiecinski, Jared O'Neal, Klaus Weide",
     author_email="joneal@anl.gov",
-    maintainer="Jared O'Neal",
-    maintainer_email="joneal@anl.gov",
     package_dir={"": "src"},
     package_data=package_data,
     packages=['milhoja'],
@@ -62,9 +60,10 @@ setup(
     install_requires=install_requires,
     keywords="Milhoja",
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
         "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Classifier: Operating System :: OS Independent",
         "Topic :: Scientific/Engineering"

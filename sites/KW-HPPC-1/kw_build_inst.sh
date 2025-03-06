@@ -15,7 +15,7 @@ test -d "${KW_INSTALL_DIR}"  && rm -rv "${KW_INSTALL_DIR}"
 	       --support_push --support_packets
 make clean
 # The following is required on gce for building sizes.json, only needed for --support_packets
-export MILHOJA_TEST_CLONE=/nfs/gce/projects/Milhoja/MilhojaTest
-export JSON_CODE_REPO=/home/kweide/projects/json
+##export MILHOJA_TEST_CLONE=/nfs/gce/projects/Milhoja/MilhojaTest
+##export JSON_CODE_REPO=/home/kweide/projects/json
 make -j2 all
 make install
