@@ -379,7 +379,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         # effect that output will be missing for some arguments. - kW
         arg_triples = list(self._tf_spec.subroutine_argument_triples(subroutine))
 #        actual_args = self._tf_spec.subroutine_actual_arguments(subroutine)
-        wrapper_dummy_args = ["nblk"] + [f"{arg}_d" for (dum,arg,src) in arg_triples
+        wrapper_dummy_args = ["nblk"] + [f"{arg}_d" for (dum, arg, src) in arg_triples
                                          if src != VERBATIM_ARGUMENT]
 
         lines.append(f"{indent*1}subroutine {subroutine_wrapper} ( &")
@@ -510,7 +510,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         arg_list = []
         name_the_arguments = False
 #        for arg in actual_args:
-        for dummy, arg, arg_source in arg_triples: #self._tf_spec.subroutine_argument_triples(subroutine):
+        for dummy, arg, arg_source in arg_triples:  # self._tf_spec.subroutine_argument_triples(subroutine):
             if arg_source == VERBATIM_ARGUMENT:  # We expect argument to be "literal:<LITERAL VALUE>"
                 _, _arg = arg.split(':', 1)  # Ignore the "literal:" prefix, for now - KW
                 name_the_arguments = True

@@ -317,7 +317,7 @@ class TaskFunction(object):
             correct type for the task function's processor and device.
         """
         if (argument[:len("literal:")] == "literal:"):
-            spec = {"source" : VERBATIM_ARGUMENT, "type" : "TYPE(?)"}
+            spec = {"source": VERBATIM_ARGUMENT, "type": "TYPE(?)"}
             return spec
         elif argument not in self.__tf_spec["argument_specifications"]:
             msg = "{} not an argument for task function {}"
