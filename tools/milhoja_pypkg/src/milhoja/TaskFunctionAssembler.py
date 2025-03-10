@@ -898,12 +898,18 @@ class TaskFunctionAssembler(object):
                                     arg_spec["application_specific"]["value"],
                                 )
 
-            assert subroutine not in spec[outer]
-            spec[outer][subroutine] = {
-                "interface_file": sub_spec["interface_file"],
-                "argument_list": sub_dummies,
-                "argument_mapping": arg_to_tf_dummies
-            }
+            if subroutine not in spec[outer]:
+                spec[outer][subroutine] = {
+                    "interface_file": sub_spec["interface_file"],
+                    "argument_list": sub_dummies,
+                    "argument_mapping": arg_to_tf_dummies
+                }
+            else:
+                assert spec[outer][subroutine] == {
+                    "interface_file": sub_spec["interface_file"],
+                    "argument_list": sub_dummies,
+                    "argument_mapping": arg_to_tf_dummies
+                }
 
         with open(filename, "w") as fptr:
             json.dump(
