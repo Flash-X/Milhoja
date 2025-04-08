@@ -18,7 +18,7 @@ from . import (
     LOG_LEVEL_BASIC_DEBUG, VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES,
     F2C_TYPE_MAPPING
 )
-
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
 
 class DataPacketGenerator(AbcCodeGenerator):
     """
@@ -84,7 +84,22 @@ class DataPacketGenerator(AbcCodeGenerator):
         """Generates templates from creating the data packet source code."""
         self._connectors[self.template_utility._CON_ARGS] = []
         self._connectors[self.template_utility._SET_MEMBERS] = []
+        if opts['nxyzb_args']:
+            self._connectors[self.template_utility._CONXYZ_ARGS] = \
+                ['\nconst int nxb','const int nyb','const int nzb']
+            self._connectors[self.template_utility._HOSTXYZ_MEMBERS] = \
+                ['\nnxb','nyb','nzb']
+            self._connectors[self.template_utility._TILECONST_MEMBERS] = \
+                ['const int nxb;','const int nyb;','const int nzb;']
+            self._connectors[self.template_utility._SET_TILECONST] = \
+                ['nxb{nxb}','nyb{nyb}','nzb{nzb}']
+        else:
+            self._connectors[self.template_utility._CONXYZ_ARGS] = []
+            self._connectors[self.template_utility._HOSTXYZ_MEMBERS] = []
+            self._connectors[self.template_utility._TILECONST_MEMBERS] = []
+            self._connectors[self.template_utility._SET_TILECONST] = []
         self._connectors[self.template_utility._SIZE_DET] = []
+        self._connectors[self.template_utility._SET_SIZE_DET] = []
         self._set_default_params()
 
         destination_path = self.get_destination_path(destination)

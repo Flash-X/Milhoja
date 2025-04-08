@@ -14,6 +14,7 @@ from .constants import (
     C2F_TYPE_MAPPING
 )
 
+from .milhoja_pypkg_opts import opts, nxyzb_mod
 
 @dataclass
 class C2FInfo:
@@ -371,6 +372,12 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
                 f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
+            ])
+            if opts[nxyzb_mod]:
+                fp.write(
+                    f'{self.INDENT}use or_gridData, ONLY : nxb, nyb, nzb\n'
+                )
+            fp.writelines([
                 f'{self.INDENT}use {fortran_mod}, ONLY : '
                 f'{self._tf_spec.function_name}\n',
                 f'{self.INDENT}implicit none\n\n'

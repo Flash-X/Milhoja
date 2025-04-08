@@ -258,7 +258,9 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             current_queues = ["dataQ_h"]
 
             subroutine_wrappers = {}
+            print(f"self._tf_spec is {self._tf_spec}.")
             for node in self._tf_spec.internal_subroutine_graph:
+                print(f"Now, node from self._tf_spec.internal_subroutine_graph is {node}.")
                 # Insert waits if needed before next round of kernel launches
                 extras = [f"queue{i}_h" for i in range(2, len(node) + 1)]
                 next_queues = ["dataQ_h"] + extras
@@ -299,6 +301,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     assert current_queues == next_queues
 
                 current_queues = next_queues.copy()
+                print(f"current_queues is {current_queues}, node is {node}.")
                 assert len(current_queues) == len(node)
                 for subroutine, queue in zip(node, current_queues):
                     # subroutine wrapper
@@ -361,7 +364,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
     def _get_wrapper_name(self, subroutine):
         """
-        A helper function to determine the name of subroutine wrapper, consisntently
+        A helper function to determine the name of subroutine wrapper, consistently
         """
         return "wrapper_" + subroutine
 

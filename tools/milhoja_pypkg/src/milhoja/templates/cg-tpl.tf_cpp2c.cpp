@@ -10,6 +10,10 @@
 
 #include "_param:data_item_header_file_name"
 
+#if 0
+/* _link:external_args */
+#endif
+
 using real = milhoja::Real;
 
 extern "C" {
@@ -19,7 +23,7 @@ extern "C" {
     );
 
     int _param:instance(
-        /* _link:external_args */,
+        /* _link:instance_args */
         void** wrapper
     ) {
         if (wrapper == nullptr) {
@@ -32,7 +36,7 @@ extern "C" {
 
         try {
             *wrapper = static_cast<void*>(new _param:data_item_class{
-                /* _link:instance_args */
+                /* _link:instance_actargs */
             });
         } catch (const std::exception& exc) {
             std::cerr << exc.what() << std::endl;
@@ -53,8 +57,12 @@ extern "C" {
         return MILHOJA_SUCCESS;
     }
 
-    int _param:acquire_scratch_function(void) {
-        _param:data_item_class::acquireScratch();
+    int _param:acquire_scratch_function(
+					/* _link:tileconst_args */
+    ) {
+        _param:data_item_class::acquireScratch(
+					       /* _link:tileconst_actargs */
+        );
         return MILHOJA_SUCCESS;
     }
 

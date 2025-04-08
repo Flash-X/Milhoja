@@ -15,6 +15,8 @@ from . import (
     GRID_DATA_EXTENTS, GRID_DATA_LBOUNDS, C2F_TYPE_MAPPING, TILE_LEVEL_ARGUMENT
 )
 
+from .milhoja_pypkg_opts import opts, nxyzb_mod
+
 
 # todo::
 #   * There is also a dataclass in the DataPacket version of the C2F
@@ -261,6 +263,10 @@ class TaskFunctionC2FGenerator_cpu_F(AbcCodeGenerator):
                 f'{self.INDENT}use milhoja_types_mod, '
                 'ONLY : MILHOJA_INT, MILHOJA_REAL\n'
             )
+            if opts[nxyzb_mod]:
+                c2f.write(
+                    f'{self.INDENT}use or_gridData, ONLY : nxb, nyb, nzb\n'
+                )
             f_name = self._tf_spec.fortran_module_name
             tf_name = self._tf_spec.name + "_Fortran"
             c2f.write(f'{self.INDENT}use {f_name}, ONLY : {tf_name}\n')

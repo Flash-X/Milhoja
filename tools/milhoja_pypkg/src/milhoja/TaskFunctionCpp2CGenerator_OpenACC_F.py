@@ -11,6 +11,7 @@ from .generate_packet_file import generate_packet_file
 from . import (
     EXTERNAL_ARGUMENT, LOG_LEVEL_MAX, THREAD_INDEX_VAR_NAME, LOG_LEVEL_BASIC
 )
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
 
 
 class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
@@ -257,6 +258,13 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
                         )
 
             self._connectors[self._INSTANCE_ARGS].append("void** packet")
+            if opts[nxyzt_args]:
+                self._connectors[self._CONSTRUCT_ARGS].append("nxt")
+                self._connectors[self._CONSTRUCT_ARGS].append("nyt")
+                self._connectors[self._CONSTRUCT_ARGS].append("nzt")
+                self._connectors[self._INSTANCE_ARGS].append("const int nxt")
+                self._connectors[self._INSTANCE_ARGS].append("const int nyt")
+                self._connectors[self._INSTANCE_ARGS].append("const int nzt")
 
             # insert instantiation function arguments.
             helper.write(f'/* _connector:{self._INSTANCE_ARGS} */\n')

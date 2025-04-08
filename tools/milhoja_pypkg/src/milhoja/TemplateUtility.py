@@ -16,6 +16,8 @@ from .LogicError import LogicError
 from .TaskFunction import TaskFunction
 from . import GRID_DATA_PTRS
 
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+
 
 class TemplateUtility():
     _EXT = "constructor"
@@ -27,9 +29,14 @@ class TemplateUtility():
 
     _NTILES_VALUE = 'nTiles_value'
     _CON_ARGS = 'constructor_args'
+    _CONXYZ_ARGS = 'constr_nxyzb_args'
     _SET_MEMBERS = 'set_members'
+    _SET_TILECONST = 'set_tileconst'
     _SIZE_DET = 'size_determination'
+    _SET_SIZE_DET = 'set_size_det'
     _HOST_MEMBERS = 'host_members'
+    _HOSTXYZ_MEMBERS = 'host_nxyzb_members'
+    _TILECONST_MEMBERS = 'tileconst_members'
     _PUB_MEMBERS = 'public_members'
     _IN_PTRS = 'in_pointers'
     _OUT_PTRS = 'out_pointers'
@@ -229,10 +236,21 @@ class TemplateUtility():
         connectors[cls._SET_MEMBERS].append(
             f'{info.device}{{nullptr}}'
         )
-        connectors[cls._SIZE_DET].append(
-            f'static constexpr std::size_t {info.size} = '
-            f'{info.SIZE_EQ};\n'
-        )
+        if 'n' in f'{info.SIZE_EQ}':
+            connectors[cls._SET_SIZE_DET].append(
+                f'{info.size}{{{info.SIZE_EQ}}}'
+            )
+            connectors[cls._SIZE_DET].append(
+                f'std::size_t {info.size};\n'
+            )
+        else:
+            # connectors[cls._SET_MEMBERS].append(
+            #     f'{info.device}{{nullptr}}'
+            # )
+            connectors[cls._SIZE_DET].append(
+                f'static constexpr std::size_t {info.size} = '
+                f'{info.SIZE_EQ};\n'
+            )
         connectors[f'pointers_{cls._T_SCRATCH}'].append(
             f"{info.device} = static_cast<{info.dtype}*>( "
             f"static_cast<void*>(ptr_d) );\n"
@@ -515,26 +533,48 @@ class TemplateUtility():
         """
         # constructor args requires a special formatting
         template.writelines(
+            ['/* _connector:tileconst_args */'] +
+            [','.join(connectors[cls._CONXYZ_ARGS])] +
+            ['\n']
+        )
+
+        connectors[cls._CON_ARGS].extend(connectors[cls._CONXYZ_ARGS])
+        # constructor args requires a special formatting
+        template.writelines(
             ['/* _connector:constructor_args */\n'] +
             [','.join(connectors[cls._CON_ARGS])] +
             ['\n\n']
         )
+        del connectors[cls._CONXYZ_ARGS]
         del connectors[cls._CON_ARGS]
 
+        connectors[cls._SET_MEMBERS].extend(connectors[cls._SET_TILECONST])
+        connectors[cls._SET_MEMBERS].extend(connectors[cls._SET_SIZE_DET])
         # set members needs a special formatting
         template.writelines(
             ['/* _connector:set_members */\n'] +
             [',\n'.join(connectors[cls._SET_MEMBERS])] +
             ['\n\n']
         )
+        del connectors[cls._SET_TILECONST]
+        del connectors[cls._SET_SIZE_DET]
         del connectors[cls._SET_MEMBERS]
 
+        connectors[cls._HOST_MEMBERS].extend(connectors[cls._HOSTXYZ_MEMBERS])
         template.writelines(
             ['/* _connector:host_members */\n'] +
             [','.join(connectors[cls._HOST_MEMBERS])] +
             ['\n\n']
         )
+        del connectors[cls._HOSTXYZ_MEMBERS]
         del connectors[cls._HOST_MEMBERS]
+
+        # template.writelines(
+        #     ['/* _connector:tileconst_members */\n'] +
+        #     [','.join(connectors[cls._TILECONST_MEMBERS])] +
+        #     ['\n\n']
+        # )
+        # del connectors[cls._TILECONST_MEMBERS]
 
         # write any leftover connectors
         for connection in connectors:

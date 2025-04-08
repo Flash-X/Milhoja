@@ -8,6 +8,7 @@ from .constants import (
 from .TaskFunction import TaskFunction
 from .AbcLogger import AbcLogger
 from .AbcCodeGenerator import AbcCodeGenerator
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
 
 
 class TileWrapperGenerator(AbcCodeGenerator):
@@ -140,6 +141,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
         INDENT = " " * self.indentation
 
         constructor_args = self._tf_spec.constructor_dummy_arguments
+        constructor_args.extend(self._tf_spec.constructor_nxyzb_arguments)
         n_args = len(constructor_args)
 
         if n_args == 0:
@@ -180,6 +182,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
         if (not overwrite) and source_filename.exists():
             raise RuntimeError(f"{source_filename} already exists")
 
+        set_size_lines = []
         with open(source_filename, "w") as fptr:
             # ----- HEADER INCLUSION
             # Task function's header file
@@ -198,8 +201,22 @@ class TileWrapperGenerator(AbcCodeGenerator):
             scratch_vars = self.__scratch_variables
             for arg in sorted(list(scratch_vars)):
                 fptr.write(f"void*  {classname}::{arg}_ = nullptr;\n")
+                arg_spec = self.__scratch_specification(arg)
+                if 'n' in arg_spec["extents"]:
+                    fptr.write(f"std::size_t  {classname}::{arg.upper()}_SIZE_ = 0;\n")
             fptr.write("\n")
-            fptr.write(f"void {classname}::acquireScratch(void) {{\n")
+
+            if opts[nxyzb_args]:
+                outlines = []
+#                fptr.write(f"{INDENT}static void acquireScratch(\n{INDENT*3}")
+                fptr.write(f"void {classname}::acquireScratch(\n{INDENT*3}")
+                for arg, arg_type in self._tf_spec.constructor_nxyzb_arguments:
+                    arg_type = F2C_TYPE_MAPPING.get(arg_type, arg_type)
+                    outlines.append(f"const {arg_type} {arg}")
+                fptr.write(f",\n{INDENT*3}".join(outlines))
+                fptr.write("\n) {\n")
+            else:
+                fptr.write(f"void {classname}::acquireScratch(void) {{\n")
             if len(scratch_vars) > 0:
                 fptr.write(f"{INDENT}const unsigned int  nThreads = ")
                 fptr.write("milhoja::Runtime::instance().nMaxThreadsPerTeam();\n")
@@ -213,6 +230,27 @@ class TileWrapperGenerator(AbcCodeGenerator):
                 fptr.write(f'{arg}_ scratch already allocated");\n')
                 fptr.write(f"{INDENT}}}\n")
                 fptr.write("\n")
+                arg_extents = self.__parse_extents_spec(arg_spec["extents"])
+                if 'n' in arg_spec["extents"]:
+                    if len(arg_extents) == 1:
+                        # set_size_lines.append(f"{arg.upper()}_SIZE_{{{arg_extents[0]}}}")
+                        set_size_line = f"{INDENT}{arg.upper()}_SIZE_ = {arg_extents[0]};\n"
+                        set_size_lines.append(set_size_line)
+                    elif len(arg_extents) > 0:
+                        # set_size_lines.append(
+                        #     f"{arg.upper()}_SIZE_"
+                        #     f"{{{' * '.join( (str(n) for n in arg_extents) )}}}")
+                        set_size_line = (
+                            f"{INDENT}{arg.upper()}_SIZE_ = "
+                            f"{' * '.join( (str(n) for n in arg_extents) )};\n"
+                        )
+                        set_size_lines.append(set_size_line)
+                        # for j, each in enumerate(arg_extents):
+                        #     if j == 0:
+                        #         fptr.write(f"\n{INDENT*5}  {each}")
+                        #     else:
+                        #         fptr.write(f"\n{INDENT*5}* {each}")
+                    fptr.write(set_size_line)
                 fptr.write(f"{INDENT}const std::size_t nBytes_{arg} = nThreads\n")
                 fptr.write(f"{INDENT*5}* {classname}::{arg.upper()}_SIZE_\n")
                 fptr.write(f"{INDENT*5}* sizeof({arg_type});\n")
@@ -255,17 +293,27 @@ class TileWrapperGenerator(AbcCodeGenerator):
             constructor_args = self._tf_spec.constructor_dummy_arguments
             arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
-            fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
-            fptr.write("\n" if len(constructor_args) == 0 else ",\n")
-            for j, (arg, _) in enumerate(constructor_args):
-                fptr.write(f"{INDENT}  {arg}_{{{arg}}}")
-                fptr.write(",\n" if j < len(constructor_args) - 1 else "\n")
-            fptr.write("{\n")
+            set_lines = \
+                [ ": milhoja::TileWrapper{}"] + \
+                [f"  {arg}_{{{arg}}}"
+                 for (arg, _) in constructor_args] + \
+                [f"  {arg}{{{arg}}}"
+                 for (arg, _) in self._tf_spec.constructor_nxyzb_arguments] #  + set_size_lines
+            fptr.write(f"{INDENT}")
+            fptr.write(f",\n{INDENT}".join(set_lines))
+            # fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
+            # fptr.write("\n" if len(constructor_args) == 0 else ",\n")
+            # for j, (arg, _) in enumerate(constructor_args):
+            #     fptr.write(f"{INDENT}  {arg}_{{{arg}}}")
+            #     fptr.write(",\n" if j < len(constructor_args) - 1 else "\n")
+            fptr.write("\n{\n")
             fptr.write("#ifdef DEBUG_RUNTIME\n")
             fptr.write(f'{INDENT}std::string   msg = "[{classname}] ')
             fptr.write('Creating wrapper object";\n')
             fptr.write(f"{INDENT}milhoja::Logger::instance().log(msg);\n")
             fptr.write("#endif\n")
+            if set_size_lines:
+                fptr.writelines(set_size_lines)
             fptr.write("}\n")
             fptr.write("\n")
 
@@ -284,16 +332,24 @@ class TileWrapperGenerator(AbcCodeGenerator):
             fptr.write("(std::shared_ptr<milhoja::Tile>&& tileToWrap)")
             fptr.write(" const {\n")
             fptr.write(f"{INDENT}{classname}* ptr = new {classname}")
-            if len(constructor_args) == 0:
+            pass_lines = \
+                [f"{arg}_"
+                 for (arg, _) in constructor_args] + \
+                [arg
+                 for (arg, _) in self._tf_spec.constructor_nxyzb_arguments]
+
+            if len(pass_lines) == 0:
                 fptr.write("{};\n")
-            elif len(constructor_args) == 1:
-                fptr.write(f"{{{constructor_args[0][0]}_}};\n")
+            elif len(pass_lines) == 1:
+                fptr.write(f"{{{pass_lines[0]}}};\n")
             else:
                 fptr.write("{")
-                for j, (arg, _) in enumerate(constructor_args):
-                    fptr.write(f"\n{INDENT*5}{arg}_")
-                    if j < len(constructor_args) - 1:
-                        fptr.write(",")
+                fptr.write(f"\n{INDENT*5}")
+                fptr.write(f",\n{INDENT*5}".join(pass_lines))
+                # for j, (arg, _) in enumerate(constructor_args):
+                #     fptr.write(f"\n{INDENT*5}{arg}_")
+                #     if j < len(constructor_args) - 1:
+                #         fptr.write(",")
                 fptr.write("};\n")
             fptr.write("\n")
             fptr.write(f"{INDENT}if (ptr->tile_) {{\n")
@@ -369,24 +425,40 @@ class TileWrapperGenerator(AbcCodeGenerator):
             for arg, arg_type in constructor_args:
                 arg_type = F2C_TYPE_MAPPING.get(arg_type, arg_type)
                 fptr.write(f"{INDENT}{arg_type}  {arg}_;\n")
+            constructor_args = self._tf_spec.constructor_nxyzb_arguments
+            for arg, arg_type in constructor_args:
+                arg_type = F2C_TYPE_MAPPING.get(arg_type, arg_type)
+                fptr.write(f"{INDENT}const {arg_type}  {arg};\n")
             fptr.write("\n")
 
-            fptr.write(f"{INDENT}static void acquireScratch(void);\n")
+            if opts[nxyzb_args]: # DEV: Should these be different? - KW
+                outlines = []
+                fptr.write(f"{INDENT}static void acquireScratch(\n{INDENT*3}")
+                for arg, arg_type in constructor_args:
+                    arg_type = F2C_TYPE_MAPPING.get(arg_type, arg_type)
+                    outlines.append(f"const {arg_type} {arg}")
+                fptr.write(f",\n{INDENT*3}".join(outlines))
+                fptr.write(f"\n{INDENT});\n")
+            else:
+                fptr.write(f"{INDENT}static void acquireScratch(void);\n")
             fptr.write(f"{INDENT}static void releaseScratch(void);\n")
             fptr.write("\n")
             for arg in sorted(list(self.__scratch_variables)):
                 arg_spec = self.__scratch_specification(arg)
                 arg_extents = self.__parse_extents_spec(arg_spec["extents"])
-                fptr.write(f"{INDENT}constexpr static std::size_t  {arg.upper()}_SIZE_ =")
-                if len(arg_extents) == 1:
-                    fptr.write(f" {arg_extents[0]};\n")
+                if 'n' in arg_spec["extents"]:
+                    fptr.write(f"{INDENT}static std::size_t  {arg.upper()}_SIZE_")
                 else:
-                    for j, each in enumerate(arg_extents):
-                        if j == 0:
-                            fptr.write(f"\n{INDENT*5}  {each}")
-                        else:
-                            fptr.write(f"\n{INDENT*5}* {each}")
-                    fptr.write(";\n")
+                    fptr.write(f"{INDENT}constexpr static std::size_t  {arg.upper()}_SIZE_ =")
+                    if len(arg_extents) == 1:
+                        fptr.write(f" {arg_extents[0]};\n")
+                    else:
+                        for j, each in enumerate(arg_extents):
+                            if j == 0:
+                                fptr.write(f"\n{INDENT*5}  {each}")
+                            else:
+                                fptr.write(f"\n{INDENT*5}* {each}")
+                fptr.write(";\n")
             fptr.write("\n")
             for arg in sorted(list(self.__scratch_variables)):
                 fptr.write(f"{INDENT}static void* {arg}_;\n")

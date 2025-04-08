@@ -6,6 +6,8 @@ from . import TaskFunction
 from . import LogicError
 from . import LOG_LEVEL_BASIC
 
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+
 
 class DataPacketModGenerator(AbcCodeGenerator):
     """
@@ -95,6 +97,13 @@ class DataPacketModGenerator(AbcCodeGenerator):
                 )
 
             arg_list.append("C_packet")
+            if  opts['nxyzt_args']:
+                for name in 'nxt', 'nyt', 'nzt':
+                    arg_list.append(name)
+                    var_declarations.append(
+                        f"integer, intent(IN), value :: {name}"
+                    )
+
             args = f', &\n{self.INDENT * 3}'.join(arg_list)
             module.write(f'{self.INDENT * 3}' + args + " &\n")
             module.write(

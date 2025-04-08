@@ -11,6 +11,8 @@ from . import (
     SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS
 )
 
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+
 
 class TaskFunction(object):
     """
@@ -51,7 +53,7 @@ class TaskFunction(object):
 
         return TaskFunction(filename, configuration)
 
-    def __init__(self, filename, specification):
+    def __init__(self, filename, specification: dict):
         """
         The constructor eagerly sanity checks the full contents of the packet
         so that error checking does not depend on what member functions are
@@ -75,6 +77,10 @@ class TaskFunction(object):
         self.__data_spec = specification["data_item"]
         self.__subroutine_spec = specification["subroutines"]
         self.__grid_spec = specification["grid"]
+        if opts[nxyzb_args]:
+            self.__dummy_nxyzb_args = ['nxb', 'nyb', 'nzb']
+        else:
+            self.__dummy_nxyzb_args = ()
 
     @property
     def specification_filename(self):
@@ -319,7 +325,11 @@ class TaskFunction(object):
         if (argument[:len("literal:")] == "literal:"):
             spec = {"source": VERBATIM_ARGUMENT, "type": "TYPE(?)"}
             return spec
-        elif argument not in self.__tf_spec["argument_specifications"]:
+        # elif argument not in self.__tf_spec["argument_specifications"]:
+        #     msg = "{} not an argument for task function {}"
+        #     raise ValueError(msg.format(argument, self.name))
+        elif argument not in self.__tf_spec["argument_specifications"] and \
+             argument not in self.__dummy_nxyzb_args:
             msg = "{} not an argument for task function {}"
             raise ValueError(msg.format(argument, self.name))
 
@@ -346,6 +356,15 @@ class TaskFunction(object):
             arg_spec = self.argument_specification(arg)
             if arg_spec["source"].lower() == EXTERNAL_ARGUMENT:
                 arguments.append((arg, arg_spec["type"]))
+
+        return arguments
+
+    @property
+    def constructor_nxyzb_arguments(self):
+        """
+        """
+        # We want this to always generate the same argument order
+        arguments = [(arg, 'int') for arg in self.__dummy_nxyzb_args]
 
         return arguments
 

@@ -7,6 +7,8 @@
 
 #if 0
 /* _link:public_members */
+/* _link:tileconst_members */
+/* _link:tileconst_args */
 /* _link:size_determination */
 /* _link:includes */
 /* _link:stream_functions_h */
@@ -29,7 +31,9 @@ _param:class_name::_param:class_name(
 )
     : 
     milhoja::DataPacket{},
-    /* _link:set_members */ 
+    /* _link:set_members */
+    /* _link:set_tileconst */
+    /* _link:set_size_det */
     {
 }
 

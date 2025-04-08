@@ -19,7 +19,7 @@ from . import (
     VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
     TILE_INDEX_DATA,
 )
-
+from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
 
 # todo::
 #   * update argument list order to use the tf argument list order.
@@ -37,6 +37,9 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
     REAL_ARGS = "real_args"
     EXTERNAL_ARGS = "external_args"
     INSTANCE_ARGS = "instance_args"
+    INSTANCE_AARGS = "instance_actargs"
+    TILECONST_ARGS = "tileconst_args"
+    TILECONST_AARGS = "tileconst_actargs"
 
     def __init__(self, tf_spec: TaskFunction, indent, logger):
         """Constructor."""
@@ -131,7 +134,8 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         connectors[self.C2F_ARG_LIST].append(f"const {dtype} {arg}")
         connectors[self.REAL_ARGS].append(f"wrapper->{arg}_")
         connectors[self.EXTERNAL_ARGS].append(f"const {dtype} {arg}")
-        connectors[self.INSTANCE_ARGS].append(arg)
+        connectors[self.INSTANCE_ARGS].append(f"const {dtype} {arg}")
+        connectors[self.INSTANCE_AARGS].append(arg)
 
     def _fill_mdata_connectors(self, arg, spec, connectors: dict, saved):
         """
@@ -322,6 +326,9 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         self.connectors[self.AC_SCRATCH] = []
         self.connectors[self.EXTERNAL_ARGS] = []
         self.connectors[self.INSTANCE_ARGS] = []
+        self.connectors[self.INSTANCE_AARGS] = []
+        self.connectors[self.TILECONST_ARGS] = []
+        self.connectors[self.TILECONST_AARGS] = []
 
         # save names of any tile metadata that was already added.
         saved = set()
@@ -340,6 +347,21 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 self._fill_grid_connectors(var, spec, self.connectors)
             elif src == SCRATCH_ARGUMENT:
                 self._fill_scratch_connectors(var, spec, self.connectors)
+        if opts[nxyzt_args]:
+            self.connectors[self.INSTANCE_AARGS].append("nxt")
+            self.connectors[self.INSTANCE_AARGS].append("nyt")
+            self.connectors[self.INSTANCE_AARGS].append("nzt")
+            self.connectors[self.TILECONST_AARGS].append(f"{self.INDENT}nxt")
+            self.connectors[self.TILECONST_AARGS].append(f"{self.INDENT}nyt")
+            self.connectors[self.TILECONST_AARGS].append(f"{self.INDENT}nzt")
+            self.connectors[self.INSTANCE_ARGS].append("const int nxt")
+            self.connectors[self.INSTANCE_ARGS].append("const int nyt")
+            self.connectors[self.INSTANCE_ARGS].append("const int nzt")
+            self.connectors[self.TILECONST_ARGS].append("const int nxt")
+            self.connectors[self.TILECONST_ARGS].append("const int nyt")
+            self.connectors[self.TILECONST_ARGS].append("const int nzt")
+        else:
+            self.connectors[self.TILECONST_ARGS].append("void")
 
         # generate helper template
         with open(helper_template, 'w') as helper:
@@ -347,13 +369,16 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
                 (self.C2F_ARG_LIST, "\n"),
                 (self.REAL_ARGS, "\n"),
                 (self.EXTERNAL_ARGS, ",\n"),
-                (self.INSTANCE_ARGS, "\n")
+                (self.INSTANCE_ARGS, ",\n"),
+                (self.INSTANCE_AARGS, "\n"),
+                (self.TILECONST_ARGS, "\n"),
+                (self.TILECONST_AARGS, "\n")
             ]
 
             for key, end in keys_and_end:
                 helper.write(f"/* _connector:{key} */\n")
                 arg_list = self.connectors[key]
-                helper.write(', \n'.join(arg_list))
+                helper.write(',\n'.join(arg_list))
                 helper.write(end)
                 del self.connectors[key]
 

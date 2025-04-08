@@ -4,6 +4,8 @@
 
 #if 0
 /* _link:set_members */
+/* _link:set_size_det */
+/* _link:tileconst_args */
 /* _link:stream_functions_cxx */
 /* _link:destructor */
 /* _link:pointers_tile_scratch */
@@ -78,6 +80,7 @@ public:
     // Since both files are auto-generated and not maintained by humans, this is fine.
     /* _link:public_members */
 private:
+    /* _link:tileconst_members */
     static constexpr std::size_t ALIGN_SIZE=_param:align_size;
     static constexpr std::size_t pad(const std::size_t size) {
         return (((size + ALIGN_SIZE - 1) / ALIGN_SIZE) * ALIGN_SIZE);
