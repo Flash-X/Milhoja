@@ -113,14 +113,15 @@ class TileWrapperModGenerator(AbcCodeGenerator):
                     f"{self._CUSTOM_TYPE_MAPPING.get(dtype, dtype)}, "
                     f"intent(IN), value :: {name}"
                 )
-            for var in 'nxt', 'nyt', 'nzt':
-                dtype = data["type"]
-                name = f"{var}"
-                arg_list.append(name)
-                var_declarations.append(
-                    f"integer, "
-                    f"intent(IN), value :: {name}"
-                )
+            if opts[nxyzt_args]:
+                for var in 'nxt', 'nyt', 'nzt':
+                    dtype = data["type"]
+                    name = f"{var}"
+                    arg_list.append(name)
+                    var_declarations.append(
+                        f"integer, "
+                        f"intent(IN), value :: {name}"
+                    )
 
             arg_list.append("C_wrapper")
             args = f', &\n{self.INDENT * 3}'.join(arg_list)
@@ -141,7 +142,10 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             )
             module.write(f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n")
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
-            module.write(f"{self.INDENT * 2}module procedure {instance}_nonxyzb\n\n")
+            if opts[nxyzt_args]:
+                module.write(
+                    f"{self.INDENT * 2}module procedure {instance}_nonxyzb\n\n"
+                )
 
             module.write(f"{self.INDENT}end interface\n\n")
 
@@ -184,55 +188,48 @@ class TileWrapperModGenerator(AbcCodeGenerator):
 
             module.write(f"{self.INDENT}end interface\n\n")
 
-            module.write(" contains\n")
-            module.write(f"{self.INDENT}function {instance}_nonxyzb( &\n")
+            if opts[nxyzt_args]:
+                module.write(" contains\n")
+                module.write(f"{self.INDENT}function {instance}_nonxyzb( &\n")
 
-            # spec = self._tf_spec
-            # externals = {
-            #     item: spec.argument_specification(item)
-            #     for item in self._tf_spec.dummy_arguments
-            #     if spec.argument_specification(item)["source"] == ext_arg
-            # }
+                arg_list = []
+                var_declarations = []
+                for var, data in externals.items():
+                    dtype = data["type"]
+                    name = f"C_{var}"
+                    arg_list.append(name)
+                    var_declarations.append(
+                        f"{self._CUSTOM_TYPE_MAPPING.get(dtype, dtype)}, "
+                        f"intent(IN), value :: {name}"
+                    )
 
-            arg_list = []
-            var_declarations = []
-            for var, data in externals.items():
-                dtype = data["type"]
-                name = f"C_{var}"
-                arg_list.append(name)
-                var_declarations.append(
-                    f"{self._CUSTOM_TYPE_MAPPING.get(dtype, dtype)}, "
-                    f"intent(IN), value :: {name}"
+                args = f', &\n{self.INDENT * 2}'.join(arg_list + ["C_wrapper"])
+                module.write(f'{self.INDENT * 2}' + args + " &\n")
+                module.write(
+                    f"{self.INDENT*2}) result(C_ierr) &\n"
+                    f'{self.INDENT*2}bind(c)\n'
                 )
+                module.write(f"{self.INDENT * 2}use iso_c_binding, ONLY : C_PTR\n")
+                module.write(
+                    f"{self.INDENT * 2}use milhoja_types_mod, "
+                    "ONLY : MILHOJA_INT, MILHOJA_REAL\n"
+                )
+                vars = f'\n{self.INDENT * 2}'.join(var_declarations)
+                module.write(f"{self.INDENT * 2}" + vars + "\n")
+                module.write(
+                    f"{self.INDENT * 2}type(C_PTR), intent(IN) :: C_wrapper\n"
+                )
+                module.write(f"{self.INDENT * 2}integer(MILHOJA_INT) :: C_ierr\n\n")
 
-###            # arg_list.append("C_wrapper")
-            args = f', &\n{self.INDENT * 2}'.join(arg_list + ["C_wrapper"])
-            module.write(f'{self.INDENT * 2}' + args + " &\n")
-            module.write(
-                f"{self.INDENT*2}) result(C_ierr) &\n"
-                f'{self.INDENT*2}bind(c)\n'
-            )
-            module.write(f"{self.INDENT * 2}use iso_c_binding, ONLY : C_PTR\n")
-            module.write(
-                f"{self.INDENT * 2}use milhoja_types_mod, "
-                "ONLY : MILHOJA_INT, MILHOJA_REAL\n"
-            )
-            vars = f'\n{self.INDENT * 2}'.join(var_declarations)
-            module.write(f"{self.INDENT * 2}" + vars + "\n")
-            module.write(
-                f"{self.INDENT * 2}type(C_PTR), intent(IN) :: C_wrapper\n"
-            )
-            module.write(f"{self.INDENT * 2}integer(MILHOJA_INT) :: C_ierr\n\n")
+                module.write(f"{self.INDENT * 2}C_ierr = {instance}( &\n")
+                for var in 'nxb', 'nyb', 'nzb':
+                    dtype = data["type"]
+                    name = f"{var}"
+                    arg_list.append(name)
+                arg_list.append("C_wrapper")
+                args = f', &\n{self.INDENT * 5}'.join(arg_list)
+                module.write(f'{self.INDENT * 5}' + args + ")\n")
 
-            module.write(f"{self.INDENT * 2}C_ierr = {instance}( &\n")
-            for var in 'nxb', 'nyb', 'nzb':
-                dtype = data["type"]
-                name = f"{var}"
-                arg_list.append(name)
-            arg_list.append("C_wrapper")
-            args = f', &\n{self.INDENT * 5}'.join(arg_list)
-            module.write(f'{self.INDENT * 5}' + args + ")\n")
-
-            module.write(f"{self.INDENT}end function {instance}_nonxyzb\n\n")
+                module.write(f"{self.INDENT}end function {instance}_nonxyzb\n\n")
 
             module.write(f"end module {module_name}\n")
