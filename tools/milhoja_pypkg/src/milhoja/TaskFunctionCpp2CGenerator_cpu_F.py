@@ -19,7 +19,8 @@ from . import (
     VECTOR_ARRAY_EQUIVALENT, TILE_ARGUMENTS_ALL, GRID_DATA_LBOUNDS,
     TILE_INDEX_DATA,
 )
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+from .milhoja_pypkg_opts import opts, nxyzt_args
+
 
 # todo::
 #   * update argument list order to use the tf argument list order.

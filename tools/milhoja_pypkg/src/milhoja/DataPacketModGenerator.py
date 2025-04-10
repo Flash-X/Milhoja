@@ -6,7 +6,7 @@ from . import TaskFunction
 from . import LogicError
 from . import LOG_LEVEL_BASIC
 
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+from .milhoja_pypkg_opts import opts
 
 
 class DataPacketModGenerator(AbcCodeGenerator):
@@ -97,7 +97,7 @@ class DataPacketModGenerator(AbcCodeGenerator):
                 )
 
             arg_list.append("C_packet")
-            if  opts['nxyzt_args']:
+            if opts['nxyzt_args']:
                 for name in 'nxt', 'nyt', 'nzt':
                     arg_list.append(name)
                     var_declarations.append(

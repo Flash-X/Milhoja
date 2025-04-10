@@ -11,7 +11,7 @@ from . import (
     SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS
 )
 
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+from .milhoja_pypkg_opts import opts, nxyzb_args
 
 
 class TaskFunction(object):
@@ -325,11 +325,8 @@ class TaskFunction(object):
         if (argument[:len("literal:")] == "literal:"):
             spec = {"source": VERBATIM_ARGUMENT, "type": "TYPE(?)"}
             return spec
-        # elif argument not in self.__tf_spec["argument_specifications"]:
-        #     msg = "{} not an argument for task function {}"
-        #     raise ValueError(msg.format(argument, self.name))
-        elif argument not in self.__tf_spec["argument_specifications"] and \
-             argument not in self.__dummy_nxyzb_args:
+        elif (argument not in self.__tf_spec["argument_specifications"] and \
+              argument not in self.__dummy_nxyzb_args):
             msg = "{} not an argument for task function {}"
             raise ValueError(msg.format(argument, self.name))
 

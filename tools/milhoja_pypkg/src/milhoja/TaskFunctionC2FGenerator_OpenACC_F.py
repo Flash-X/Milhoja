@@ -16,6 +16,7 @@ from .constants import (
 
 from .milhoja_pypkg_opts import opts, nxyzb_mod
 
+
 @dataclass
 class C2FInfo:
     """

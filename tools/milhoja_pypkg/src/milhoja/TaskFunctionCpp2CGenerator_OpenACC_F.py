@@ -11,7 +11,7 @@ from .generate_packet_file import generate_packet_file
 from . import (
     EXTERNAL_ARGUMENT, LOG_LEVEL_MAX, THREAD_INDEX_VAR_NAME, LOG_LEVEL_BASIC
 )
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+from .milhoja_pypkg_opts import opts, nxyzt_args
 
 
 class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
