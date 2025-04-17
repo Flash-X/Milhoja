@@ -8,7 +8,7 @@ from .constants import (
 from .TaskFunction import TaskFunction
 from .AbcLogger import AbcLogger
 from .AbcCodeGenerator import AbcCodeGenerator
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
+from .milhoja_pypkg_opts import opts
 
 
 class TileWrapperGenerator(AbcCodeGenerator):
@@ -206,7 +206,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
                     fptr.write(f"std::size_t  {classname}::{arg.upper()}_SIZE_ = 0;\n")
             fptr.write("\n")
 
-            if opts[nxyzb_args]:
+            if opts['nxyzb_args']:
                 outlines = []
 #                fptr.write(f"{INDENT}static void acquireScratch(\n{INDENT*3}")
                 fptr.write(f"void {classname}::acquireScratch(\n{INDENT*3}")
@@ -294,11 +294,11 @@ class TileWrapperGenerator(AbcCodeGenerator):
             arg_list = self.__generate_constructor_declaration()
             fptr.write(f"{classname}::{classname}{arg_list}\n")
             set_lines = \
-                [ ": milhoja::TileWrapper{}"] + \
+                [": milhoja::TileWrapper{}"] + \
                 [f"  {arg}_{{{arg}}}"
                  for (arg, _) in constructor_args] + \
                 [f"  {arg}{{{arg}}}"
-                 for (arg, _) in self._tf_spec.constructor_nxyzb_arguments] #  + set_size_lines
+                 for (arg, _) in self._tf_spec.constructor_nxyzb_arguments]
             fptr.write(f"{INDENT}")
             fptr.write(f",\n{INDENT}".join(set_lines))
             # fptr.write(f"{INDENT}: milhoja::TileWrapper{{}}")
@@ -431,7 +431,7 @@ class TileWrapperGenerator(AbcCodeGenerator):
                 fptr.write(f"{INDENT}const {arg_type}  {arg};\n")
             fptr.write("\n")
 
-            if opts[nxyzb_args]: # DEV: Should these be different? - KW
+            if opts['nxyzb_args']:  # DEV: Should these be different? - KW
                 outlines = []
                 fptr.write(f"{INDENT}static void acquireScratch(\n{INDENT*3}")
                 for arg, arg_type in constructor_args:

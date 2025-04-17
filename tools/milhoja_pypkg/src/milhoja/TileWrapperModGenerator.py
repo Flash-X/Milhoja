@@ -6,7 +6,7 @@ from . import TaskFunction
 from . import LogicError
 from . import (LOG_LEVEL_BASIC)
 
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args, nxyzb_mod
+from .milhoja_pypkg_opts import opts
 
 
 class TileWrapperModGenerator(AbcCodeGenerator):
@@ -82,7 +82,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
 
             # declare interface functions for time advance unit
             module.write(f"module {module_name}\n")
-            if opts[nxyzb_mod]:
+            if opts['nxyzb_mod']:
                 module.write(f"{self.INDENT}use or_gridData, ONLY : nxb, nyb, nzb\n\n")
 
             module.write(f"{self.INDENT}implicit none\n")
@@ -113,7 +113,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
                     f"{self._CUSTOM_TYPE_MAPPING.get(dtype, dtype)}, "
                     f"intent(IN), value :: {name}"
                 )
-            if opts[nxyzt_args]:
+            if opts['nxyzt_args']:
                 for var in 'nxt', 'nyt', 'nzt':
                     dtype = data["type"]
                     name = f"{var}"
@@ -142,7 +142,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             )
             module.write(f"{self.INDENT * 3}integer(MILHOJA_INT) :: C_ierr\n")
             module.write(f"{self.INDENT * 2}end function {instance}\n\n")
-            if opts[nxyzt_args]:
+            if opts['nxyzt_args']:
                 module.write(
                     f"{self.INDENT * 2}module procedure {instance}_nonxyzb\n\n"
                 )
@@ -166,7 +166,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
             module.write(f"{self.INDENT * 2}end function {delete}\n\n")
 
             for funct in [acquire, release]:
-                if opts[nxyzt_args] and funct == acquire:
+                if opts['nxyzt_args'] and funct == acquire:
                     module.write(f"{self.INDENT*2}function {funct}( &\n")
                     module.write(f"{self.INDENT*3}nxt,nyt,nzt &\n")
                     module.write(f"{self.INDENT*2})")
@@ -180,7 +180,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
                     f"{self.INDENT*3}use milhoja_types_mod, ONLY : MILHOJA_INT"
                     f"\n{self.INDENT*3}integer(MILHOJA_INT) :: C_ierr\n"
                 ])
-                if opts[nxyzt_args] and funct == acquire:
+                if opts['nxyzt_args'] and funct == acquire:
                     module.write(
                         f"{self.INDENT*3}integer,intent(in), value :: nxt,nyt,nzt\n"
                     )
@@ -188,7 +188,7 @@ class TileWrapperModGenerator(AbcCodeGenerator):
 
             module.write(f"{self.INDENT}end interface\n\n")
 
-            if opts[nxyzt_args]:
+            if opts['nxyzt_args']:
                 module.write(" contains\n")
                 module.write(f"{self.INDENT}function {instance}_nonxyzb( &\n")
 
