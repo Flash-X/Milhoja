@@ -16,8 +16,6 @@ from .LogicError import LogicError
 from .TaskFunction import TaskFunction
 from . import GRID_DATA_PTRS
 
-from .milhoja_pypkg_opts import opts, nxyzb_args, nxyzt_args
-
 
 class TemplateUtility():
     _EXT = "constructor"

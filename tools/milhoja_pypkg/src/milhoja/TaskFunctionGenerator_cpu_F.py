@@ -26,7 +26,7 @@ class TaskFunctionGenerator_cpu_F(AbcCodeGenerator):
           subroutine to be included in the template by CG-kit might
           stay as is.
     """
-    __LOG_TAG = "Milhoja Fortran/OpenACC Task Function"
+    __LOG_TAG = "Milhoja Fortran/CPU Task Function"
 
     def __init__(self, tf_spec, indent, logger):
         """
