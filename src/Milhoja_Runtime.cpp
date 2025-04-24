@@ -1568,15 +1568,6 @@ void Runtime::setupPipelineForCpuGpuSplitTasks(const std::string& bundleName,
     ThreadTeam*        cpuTeam = teams_[0];
     ThreadTeam*        gpuTeam = teams_[1];
 
-    // Assume that the GPU task function is heavy enough that the GPU team's
-    // threads will usually sleep and therefore not battle the host-side
-    // computation threads for resources.  Based on this, we concentrate on
-    // getting the CPU teams as many threads as possible (i.e. by setting a high
-    // initial thread number and by giving distributor threads to the team) and
-    // will let the GPU threads go to sleep once the GPU work is done.  Simpler
-    // and more predictable host-side thread balancing.
-    gpuTeam->attachDataReceiver(&gpuToHost1_);
-
     // The action parallel distributor's thread resource is used
     // once the distributor starts to wait
     unsigned int nTotalThreads =   cpuAction.nInitialThreads
@@ -1586,6 +1577,15 @@ void Runtime::setupPipelineForCpuGpuSplitTasks(const std::string& bundleName,
                                 "CPU could receive too many thread "
                                 "activation calls");
     }
+
+    // Assume that the GPU task function is heavy enough that the GPU team's
+    // threads will usually sleep and therefore not battle the host-side
+    // computation threads for resources.  Based on this, we concentrate on
+    // getting the CPU teams as many threads as possible (i.e. by setting a high
+    // initial thread number and by giving distributor threads to the team) and
+    // will let the GPU threads go to sleep once the GPU work is done.  Simpler
+    // and more predictable host-side thread balancing.
+    gpuTeam->attachDataReceiver(&gpuToHost1_);
 
     //***** START EXECUTION CYCLE
     cpuTeam->startCycle(cpuAction, "ActionSharing_CPU_Block_Team");

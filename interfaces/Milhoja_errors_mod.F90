@@ -58,6 +58,12 @@ contains
             errorMsg = "Unable to access contents of a tile wrapper"
         case (MILHOJA_ERROR_UNABLE_TO_RELEASE_STREAM)
             errorMsg = "Unable to release stream/async queue"
+        case (MILHOJA_ERROR_PIPELINE_N_THREADS_TOO_SMALL)
+            errorMsg = "A thread team the in pipeline requires more threads"
+        case (MILHOJA_ERROR_UNABLE_TO_TEARDOWN_PIPELINE)
+            errorMsg = "Unable to tear down pipeline"
+        case (MILHOJA_ERROR_UNABLE_TO_SETUP_PIPELINE)
+            errorMsg = "Unable to set up pipeline"
         case (MILHOJA_ERROR_UNABLE_TO_RESET_RUNTIME)
             errorMsg = "Unable to reset the runtime backend"
         case (MILHOJA_ERROR_UNABLE_TO_INIT_GRID)
