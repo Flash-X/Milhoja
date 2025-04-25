@@ -136,6 +136,7 @@ Logger::Logger(void)
         std::strftime(timestamp, sizeof(timestamp), "%FT%T", std::gmtime(&now_t));
         std::string   msg{};
         log("[Logger] Started at " + std::string(timestamp) + " UTC");
+        log("MILHOJA_LIB_VERSION " MILHOJA_LIB_VERSION);
     }
 }
 

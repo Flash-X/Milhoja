@@ -7,6 +7,7 @@ command line arguments, run the script with the flag -h.
 
 import sys
 import argparse
+import subprocess
 
 from pathlib import Path
 
@@ -199,10 +200,32 @@ if __name__ == '__main__':
         not runtime_support_push
         )
 
+    milhoja_git_description = \
+        subprocess.check_output(
+            ["git", "describe", "--all", "--always", "--abbrev=8", "--candidates=30", "--long", "--dirty"],
+            shell=False,text=True
+        ).strip()
+    milhoja_git_description = milhoja_git_description.replace('"','.')
+    milhoja_git_description = milhoja_git_description.replace("\\",'?')
+    if not milhoja_git_description.isprintable():
+        milhoja_git_description = '???'
+
+    milhoja_pypkg_version = ""
+    with open("tools/milhoja_pypkg/VERSION","r") as f:
+        milhoja_pypkg_version = f.readline().strip()
+    milhoja_pypkg_version = milhoja_pypkg_version.replace('"','.')
+    milhoja_pypkg_version = milhoja_pypkg_version.replace("\\",'?')
+    if not milhoja_pypkg_version.isprintable():
+        milhoja_pypkg_version = '???'
+
+    milhoja_lib_version = f"{milhoja_pypkg_version} ({milhoja_git_description})"
+    # This should now be safe to use in C/C++ code within a doublequote-string!
+
     #####----- OUTPUT FLAG INFORMATION FOR RECORD
     print()
     print('-' * 80)
     print(f'Creating {filename.name} library header file')
+    print(f'  MILHOJA_LIB_VERSION       {milhoja_lib_version}')
     print(f'  Path                      {filename.parent}')
     print(f'  Domain dimension          {ndim}')
     print(f'  Floating point system     {floating_point_system}')
@@ -222,6 +245,8 @@ if __name__ == '__main__':
     with open(filename, 'w') as fptr:
         fptr.write( '#ifndef MILHOJA_H__\n')
         fptr.write( '#define MILHOJA_H__\n')
+        fptr.write( '\n')
+        fptr.write(f'#define MILHOJA_LIB_VERSION "{milhoja_lib_version}"\n')
         fptr.write( '\n')
         fptr.write(f'#define MILHOJA_MDIM      {_DEFAULT_MDIM}\n')
         fptr.write(f'#define MILHOJA_NDIM      {ndim}\n')
