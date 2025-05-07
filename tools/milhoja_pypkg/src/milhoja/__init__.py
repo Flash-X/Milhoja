@@ -78,6 +78,7 @@ from .TaskFunctionC2FGenerator_OpenACC_F \
     import TaskFunctionC2FGenerator_OpenACC_F
 from .TaskFunctionCpp2CGenerator_OpenACC_F \
     import TaskFunctionCpp2CGenerator_OpenACC_F
+from .TaskFunctionGenerator_OpenMP_F import TaskFunctionGenerator_OpenMP_F
 from .DataPacketModGenerator import DataPacketModGenerator
 
 # Functions that use classes
