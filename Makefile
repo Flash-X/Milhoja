@@ -20,14 +20,16 @@ INTERFACEDIR    := ./interfaces
 TOOLSDIR        := ./tools
 CONFIG_MAKEFILE := ./Makefile.configure
 
+include $(CONFIG_MAKEFILE)
+
 BACKEND_BUILDDIR :=
 ifeq ($(RUNTIME_BACKEND),CUDA)
 BACKEND_BUILDDIR := $(BUILDDIR)/CudaBackend
 else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 BACKEND_BUILDDIR := $(BUILDDIR)/FakeCudaBackend
+else ifeq ($(RUNTIME_BACKEND),OMPTARGET)
+BACKEND_BUILDDIR := $(BUILDDIR)/OmpTargetBackend
 endif
-
-include $(CONFIG_MAKEFILE)
 
 GRID_BACKEND := $(shell echo $(GRID_BACKEND) | tr A-Z a-z)
 
@@ -103,11 +105,22 @@ CPP_HDRS += $(wildcard $(INCDIR)/FakeCudaBackend/Milhoja_*.h)
 CU_SRCS :=
 CU_HDRS :=
 CUFLAGS :=
+else ifeq ($(RUNTIME_BACKEND),OMPTARGET)
+CXXFLAGS += -I$(INCDIR)/OmpTargetBackend
+CXXFLAGS += -I$(INCDIR) -I$(BUILDDIR)
+CPP_SRCS += $(wildcard $(SRCDIR)/OmpTargetBackend/Milhoja_*.cpp)
+CPP_HDRS += $(wildcard $(INCDIR)/OmpTargetBackend/Milhoja_*.h)
+CU_SRCS :=
+CU_HDRS :=
+CUFLAGS :=
 else
 $(error Unknown backend $(RUNTIME_BACKEND))
 endif
 
 CPP_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CPP_SRCS:.cpp=.o))
+ifneq ($(BACKEND_BUILDDIR),)
+CPP_OBJS := $(patsubst $(BACKEND_BUILDDIR)/%,$(BUILDDIR)/%,$(CPP_OBJS))
+endif
 INT_OBJS := $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(CINT_SRCS:.cpp=.o))
 INT_OBJS += $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(FINT_SRCS:.F90=.o))
 CU_OBJS  := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CU_SRCS:.cu=.o))
@@ -117,6 +130,8 @@ HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
 ifeq      ($(COMPUTATION_OFFLOADING),None)
 else ifeq ($(COMPUTATION_OFFLOADING),OpenACC)
 CXXFLAGS += $(OACC_FLAGS)
+else ifeq ($(COMPUTATION_OFFLOADING),OpenMP)
+CXXFLAGS += $(OMP_FLAGS)
 else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
@@ -146,7 +161,7 @@ $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) $(BACKEND_BUILDDIR)
 
 $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
-	@./tools/write_library_header.py --dim $(NDIM) \
+	./tools/write_library_header.py --dim $(NDIM) \
                                      --runtime $(RUNTIME_BACKEND) \
                                      --grid $(GRID_BACKEND) \
                                      --fps $(FLOATING_POINT_SYSTEM) \
@@ -159,7 +174,7 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed
 $(SIZES_JSON): $(TOOLSDIR)/createSizesJson.cpp $(MILHOJA_H) $(CPP_HDRS) $(MAKEFILES)
-	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(DEPFLAGS) $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
+	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
 	$(BUILDDIR)/createSizesJson.x $(SIZES_JSON)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
@@ -174,6 +189,11 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 
 ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 $(BUILDDIR)/Milhoja_FakeCuda%.o: $(SRCDIR)/FakeCudaBackend/Milhoja_FakeCuda%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
+	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
+endif
+
+ifeq ($(RUNTIME_BACKEND),OMPTARGET)
+$(BUILDDIR)/Milhoja_OmpTarget%.o: $(SRCDIR)/OmpTargetBackend/Milhoja_OmpTarget%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 	$(CXXCOMP) -c $(DEPFLAGS) $(CXXFLAGS) -o $@ $<
 endif
 

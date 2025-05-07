@@ -16,8 +16,8 @@ from pathlib import Path
 _VALID_DIM     = [1, 2, 3]
 _VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
-_VALID_RUNTIME = ['none', 'cuda', 'hostmem']
-_VALID_OFFLOAD = ['none', 'openacc']
+_VALID_RUNTIME = ['none', 'cuda', 'hostmem', 'omptarget']
+_VALID_OFFLOAD = ['none', 'openacc', 'openmp']
 
 #####----- DEFAULT CONFIGURATION VALUES
 # No restriction on case for these variables
@@ -151,12 +151,14 @@ if __name__ == '__main__':
         gpu_support_included = True
     elif runtime_backend.lower() == 'hostmem': # handle packets in host memory, "fake CUDA"
         runtime_backend_macro = 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
-    elif runtime_backend.lower() == 'openmpi': # omp_ calls for mem calls / target coyping, can we do it?
-        runtime_backend_macro = 'MILHOJA_OPENMPI_RUNTIME_BACKEND'
+    elif runtime_backend.lower() == 'omptarget': # omp_target_ calls for mem calls / target coyping, WIP...
+        runtime_backend_macro = 'MILHOJA_OMPTARGET_RUNTIME_BACKEND'
+    elif runtime_backend.lower() == 'openmp': # omp_ calls for mem calls / target coyping, can we do it?
+        runtime_backend_macro = 'MILHOJA_OMPTARGET_RUNTIME_BACKEND'
     elif runtime_backend.lower() == 'openacc': # oacc_ calls for mem alloc, device coyping, can we do it?
         runtime_backend_macro = 'MILHOJA_OPENACC_RUNTIME_BACKEND'
     else:
-        print('PROGRAMMER LOGIC ERROR - runtime_backend')
+        print('PROGRAMMER LOGIC ERROR - runtime_backend: %s' % runtime_backend)
         exit(100)
 
     if runtime_backend_macro != 'MILHOJA_NO_RUNTIME_BACKEND' and not runtime_support_packets:
@@ -188,6 +190,8 @@ if __name__ == '__main__':
         offload_macro = 'MILHOJA_NO_OFFLOADING'
     elif computation_offloading.lower() == 'openacc':
         offload_macro = 'MILHOJA_OPENACC_OFFLOADING'
+    elif computation_offloading.lower() == 'openmp':
+        offload_macro = 'MILHOJA_OPENMP_OFFLOADING'
     else:
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)
@@ -316,6 +320,12 @@ if __name__ == '__main__':
             fptr.write( '\n')
         if runtime_support_exec and runtime_can_use_tileiters and grid_backend_macro == 'MILHOJA_AMREX_GRID_BACKEND':
             fptr.write( '#define FULL_MILHOJAGRID\n')
+            fptr.write( '\n')
+        if runtime_backend_macro == 'MILHOJA_OMPTARGET_RUNTIME_BACKEND' and offload_macro == 'MILHOJA_OPENMP_OFFLOADING':
+            fptr.write( '#define perhaps_MILHOJA_USE_MEMCPY_ASYNC\n') # Openmp 5.1 or later
+            fptr.write( '#define perhaps_MILHOJA_USE_TARGET_ASYNC\n') # OpenMP 4.5 or later
+            fptr.write( '#define perhaps_MILHOJA_USE_OMP_DEPOBJ\n')  # OpenMP 5.0 or later
+            fptr.write( '#define perhaps_MILHOJA_USE_OMP_INTEROP\n')  # OpenMP 5.1 or later; also targetsync
             fptr.write( '\n')
         fptr.write( '#endif\n\n')
 
