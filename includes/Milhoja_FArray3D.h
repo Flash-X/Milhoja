@@ -10,6 +10,12 @@
 #include "Milhoja_real.h"
 #include "Milhoja_IntVect.h"
 
+#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP
+#define ACC_ROUTINE_FOR_METH
+#endif
+#endif
+
 namespace milhoja {
 
 /**
@@ -43,7 +49,7 @@ public:
     /**
      * Get and set data in a Fortran-style way.
      */
-#ifdef MILHOJA_OPENACC_OFFLOADING
+#ifdef ACC_ROUTINE_FOR_METH
     #pragma acc routine seq
 #endif
     Real& operator()(const int i, const int j, const int k) const {

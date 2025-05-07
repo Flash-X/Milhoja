@@ -7,6 +7,8 @@
 #include "Milhoja_Logger.h"
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 #include "Milhoja_CudaBackend.h"
+#elif defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)
+#include "Milhoja_OmpTargetBackend.h"
 #elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
 #include "Milhoja_FakeCudaBackend.h"
 #include "Milhoja_NullBackend.h"
@@ -97,6 +99,9 @@ RuntimeBackend&   RuntimeBackend::instance(void) {
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
     static CudaBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
+    return singleton;
+#elif defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)
+    static OmpTargetBackend singleton{nStreams_, nBytesInGpuMemoryPools_};
     return singleton;
 #elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
     if (nStreams_ > 0 || nBytesInGpuMemoryPools_ > 0) {

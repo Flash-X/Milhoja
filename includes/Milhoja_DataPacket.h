@@ -233,7 +233,7 @@ public:
      */
     std::size_t            returnToHostSizeInBytes(void) const { return nReturnToHostBytes_; };
 
-#ifdef MILHOJA_OPENACC_OFFLOADING
+#if defined(MILHOJA_OPENACC_OFFLOADING) || defined(MILHOJA_OPENMP_OFFLOADING)
     /**
      * Obtain the main OpenACC asynchronous queue assigned to the packet, on
      * which communications are scheduled and computation can also be scheduled.

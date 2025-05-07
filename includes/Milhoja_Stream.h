@@ -23,6 +23,11 @@
 
 #if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
 #include <cuda_runtime.h>
+#elif defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)
+typedef void * cudaStream_t;
+#endif
+#if (defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_OPENMP_OFFLOADING))&&defined(MILHOJA_USE_OMP_INTEROP)
+#include <omp.h>
 #endif
 
 namespace milhoja {
@@ -37,37 +42,50 @@ namespace milhoja {
 constexpr int NULL_ACC_ASYNC_QUEUE = -1;
 
 struct Stream {
-#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)||defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_CUDA_OFFLOADING)
     // cudaStream_t is a typedef of a pointer.  Therefore, this
     // default value is valid and moves should be quick.
     cudaStream_t   cudaStream = nullptr;
 #endif
 #if defined(MILHOJA_OPENACC_OFFLOADING)
     int            accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
+#elif defined(MILHOJA_OPENMP_OFFLOADING)
+  int            accAsyncQueue = milhoja::NULL_ACC_ASYNC_QUEUE;
+#endif
+#if (defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_OPENMP_OFFLOADING))&&defined(MILHOJA_USE_OMP_INTEROP)
+    omp_interop_t  ompInteropObj = omp_interop_none;
 #endif
 
     Stream(void) = default;
     ~Stream(void)  { };
 
     Stream(Stream&& stream) {
-#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)||defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_CUDA_OFFLOADING)
         cudaStream = stream.cudaStream;
         stream.cudaStream = nullptr;
 #endif
-#if defined(MILHOJA_OPENACC_OFFLOADING)
+#if defined(MILHOJA_OPENACC_OFFLOADING) || defined(MILHOJA_OPENMP_OFFLOADING)
         accAsyncQueue = stream.accAsyncQueue;
-        stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
+        stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
+#endif
+#if (defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_OPENMP_OFFLOADING))&&defined(MILHOJA_USE_OMP_INTEROP)
+        ompInteropObj = stream.ompInteropObj;
+	stream.ompInteropObj = 0;
 #endif
     }
 
     Stream& operator=(Stream&& rhs) {
-#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
+#if defined(MILHOJA_CUDA_RUNTIME_BACKEND)||defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_CUDA_OFFLOADING)
         cudaStream = rhs.cudaStream;
         rhs.cudaStream = nullptr;
 #endif
-#if defined(MILHOJA_OPENACC_OFFLOADING)
+#if defined(MILHOJA_OPENACC_OFFLOADING) || defined(MILHOJA_OPENMP_OFFLOADING)
         accAsyncQueue = rhs.accAsyncQueue;
         rhs.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
+#endif
+#if (defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_OPENMP_OFFLOADING))&&defined(MILHOJA_USE_OMP_INTEROP)
+        ompInteropObj = rhs.ompInteropObj;
+	rhs.ompInteropObj = 0;
 #endif
 
         return *this;
@@ -79,7 +97,9 @@ struct Stream {
     Stream& operator=(const Stream&) = delete;
 
     bool   isValid(void) const {
-#if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
+#ifndef MILHOJA_USE_TARGET_ASYNC
+      return (accAsyncQueue > NULL_ACC_ASYNC_QUEUE);
+#elif defined(MILHOJA_CUDA_RUNTIME_BACKEND)||defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_CUDA_OFFLOADING)
         if (cudaStream == nullptr) {
             return false;
         }

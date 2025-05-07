@@ -12,6 +12,10 @@
 #include <cuda_runtime.h>
 #endif
 
+#ifdef MILHOJA_OMPTARGET_RUNTIME_BACKEND
+#include <omp.h>
+#endif
+
 namespace milhoja {
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
