@@ -66,8 +66,8 @@ def check_partial_tf_specification(spec):
         raise TypeError(f"computation_offloading not string ({offloading})")
     elif (processor.lower() == "cpu") and (offloading != ""):
         raise ValueError("No computation offloading for CPU task functions")
-    elif (processor.lower() == "gpu") and (offloading.lower() != "openacc"):
-        raise ValueError("Only OpenACC computation offloading with GPU")
+    elif (processor.lower() == "gpu") and (offloading.lower() not in ("openacc", "openmp")):
+        raise ValueError("Only OpenACC or OpenMP computation offloading with GPU")
 
     # ----- DATA ITEM
     data_item = spec["data_item"]

@@ -6,9 +6,9 @@
 
 #include "_param:file_name"
 
-#ifndef MILHOJA_OPENACC_OFFLOADING
-#error "This file should only be compiled if using OpenACC offloading"
-#endif
+//#ifndef MILHOJA_OPENACC_OFFLOADING
+//#error "This file should only be compiled if using OpenACC offloading"
+//#endif
 
 using milhoja::Real;
 

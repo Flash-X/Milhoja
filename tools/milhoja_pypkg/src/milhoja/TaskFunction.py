@@ -11,7 +11,7 @@ from . import (
     SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS
 )
 
-from .milhoja_pypkg_opts import opts, nxyzb_args
+from .milhoja_pypkg_opts import opts  # for 'nxyzb_args'
 
 
 class TaskFunction(object):
@@ -77,7 +77,7 @@ class TaskFunction(object):
         self.__data_spec = specification["data_item"]
         self.__subroutine_spec = specification["subroutines"]
         self.__grid_spec = specification["grid"]
-        if opts[nxyzb_args]:
+        if opts['nxyzb_args']:
             self.__dummy_nxyzb_args = ['nxb', 'nyb', 'nzb']
         else:
             self.__dummy_nxyzb_args = ()

@@ -16,6 +16,8 @@ from .LogicError import LogicError
 from .TaskFunction import TaskFunction
 from . import GRID_DATA_PTRS
 
+from .milhoja_pypkg_opts import opts
+
 
 class TemplateUtility():
     _EXT = "constructor"
@@ -380,7 +382,8 @@ class TemplateUtility():
         # normally these would be in the template but these functions
         # have no reason to exist if the
         # task function does not use more than 1 stream.
-        connectors[cls._STREAM_FUNCS_CXX].extend([
+        if opts['MILHOJA_USE_TARGET_ASYNC']:
+          connectors[cls._STREAM_FUNCS_CXX].extend([
                 'int _param:class_name::extraAsynchronousQueue('
                 'const unsigned int id) {\n',
                 '\tif (id > INT_MAX)\n\t\tthrow std::overflow_error("'
@@ -420,17 +423,69 @@ class TemplateUtility():
                 for i in range(2, extra_streams+2)
             ] +
             ['\n''}\n']
-        )
+          )
 
         # Inserts the code necessary to acquire extra streams.
-        connectors[cls._EXTRA_STREAMS_PACK].extend([
+          connectors[cls._EXTRA_STREAMS_PACK].extend([
             f'stream{i}_ = RuntimeBackend::instance()'
             '.requestStream(true);\n' +
             f'if(!stream{i}_.isValid())\n' +
             f'\tthrow std::runtime_error("[_param:class_name::pack] '
             f'Unable to acquire stream {i}.");\n'
             for i in range(2, extra_streams+2)
-        ])
+          ])
+        else:
+          connectors[cls._STREAM_FUNCS_CXX].extend([
+                'int _param:class_name::extraAsynchronousQueue('
+                'const unsigned int id) {\n',
+                '\tif (id > INT_MAX)\n\t\tthrow std::overflow_error("'
+                '[_param:class_name extraAsynchronousQueue]'
+                ' id is too large for int.");\n'
+                f'\tif((id < 2) || (id > {extra_streams} + 1))\n' +
+                '\t\tthrow std::invalid_argument("'
+                '[_param:class_name::extraAsynchronousQueue] '
+                'Invalid id.");\n\t',
+            ] + [
+                f'else if (id == {i}) {{\n' +
+                f'\t\tif (!stream{i}_.isValid()) ' +
+                '\n\t\t\tthrow std::logic_error("'
+                '[_param:class_name::extraAsynchronousQueue] ' +
+                f'Stream {i} invalid.");'
+                f'\n\t\treturn stream{i}_.accAsyncQueue;\n' +
+                '\t} '
+                for i in range(2, extra_streams+2)
+            ] + [
+                '\n\treturn 0;\n',
+                '}\n\n'
+            ] + [
+                'void _param:class_name::releaseExtraQueue'
+                '(const unsigned int id) {\n',
+                f'\tif((id < 2) || (id > {extra_streams} + 1))\n' +
+                '\t\tthrow std::invalid_argument("['
+                '_param:class_name::releaseExtraQueue] Invalid id.");\n\t',
+            ] + [
+                f'else if(id == {i}) {{\n'
+                f'\t\tif(!stream{i}_.isValid())\n' +
+                '\t\t\tthrow std::logic_error("'
+                '[_param:class_name::releaseExtraQueue] '
+                f'Stream {i} invalid.");\n' +
+                '\t\tmilhoja::RuntimeBackend::instance()'
+                f'.releaseStream(stream{i}_);\n'
+                '\t} '
+                for i in range(2, extra_streams+2)
+            ] +
+            ['\n''}\n']
+          )
+
+        # Inserts the code necessary to acquire extra streams.
+          connectors[cls._EXTRA_STREAMS_PACK].extend([
+            f'stream{i}_ = RuntimeBackend::instance()'
+            '.requestStream(true);\n' +
+            f'if(!stream{i}_.isValid())\n' +
+            f'\tthrow std::runtime_error("[_param:class_name::pack] '
+            f'Unable to acquire stream {i}.");\n'
+            for i in range(2, extra_streams+2)
+          ])
 
     @classmethod
     def add_memcpy_connector(

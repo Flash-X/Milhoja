@@ -125,7 +125,7 @@ computation_offloading
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The computation offloading to use. Leave empty when :ref:`users_manual:processor` is **CPU**, 
-and use **OpenACC** when **GPU** is the processor.
+and use **OpenACC** or **OpenMP** (implementation in progress) when **GPU** is the processor.
 
 variable_index_base
 ^^^^^^^^^^^^^^^^^^^

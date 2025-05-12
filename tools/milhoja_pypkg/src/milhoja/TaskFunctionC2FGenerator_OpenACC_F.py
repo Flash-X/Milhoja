@@ -349,14 +349,24 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                     real_args.append(info)
 
             # # WRITE BOILERPLATE
-            fp.writelines([
-                '#include "Milhoja.h"\n',
-                '#ifndef MILHOJA_OPENACC_OFFLOADING\n',
-                '#error "This file should only be compiled '
-                'if using OpenACC offloading"\n',
-                '#endif\n\n',
-                f'subroutine {self._tf_spec.c2f_layer_name}( &\n'
-            ])
+            if opts['computation_offloading'] == 'OpenACC':
+                fp.writelines([
+                    '#include "Milhoja.h"\n',
+                    '#ifndef MILHOJA_OPENACC_OFFLOADING\n',
+                    '#error "This file should only be compiled '
+                    'if using OpenACC offloading"\n',
+                    '#endif\n\n',
+                    f'subroutine {self._tf_spec.c2f_layer_name}( &\n'
+                ])
+            else:
+                fp.writelines([
+                    '#include "Milhoja.h"\n',
+                    '#ifndef MILHOJA_OPENMP_OFFLOADING\n',
+                    '#error "This file should only be compiled '
+                    'if using OpenMP offloading"\n',
+                    '#endif\n\n',
+                    f'subroutine {self._tf_spec.c2f_layer_name}( &\n'
+                ])
 
             # write dummy argument list
             fp.write(
