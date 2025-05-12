@@ -1,0 +1,74 @@
+include $(Makefile_h)
+
+BASEDIR      = $(MILHOJA_CODE_REPO)
+# Made conditional below:
+#AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+
+#----------------------------------------------------------------------------
+# Set the AMReX library path -- installation for multiple variants
+#----------------------------------------------------------------------------
+ifeq ("$(USEOPENMP)","1")
+  AMREX_PATH=${FLASHX_AMREX_OMP${NDIM}D_DIR}
+else
+  AMREX_PATH=${FLASHX_AMREX${NDIM}D_DIR}
+endif
+
+ifneq ($(AMREX_PATH),)
+# The env variables FLASHX_AMREXOMPnD_DIR, FLASHX_AMREXnD_DIR have presumably
+# been set by a command like 'module load FlashX-TestEnv-gcc'. Use if nonempty.
+  AMREXDIR     = ${AMREX_PATH}
+else
+  AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+endif
+GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
+JSONDIR      = $(JSON_CODE_REPO)/single_include
+CUDADIR      =
+
+CXXCOMPNAME  = gnu
+CXXCOMP      = mpicxx
+
+CXXFLAGS_PROD    = -O3 $(CFLAGS_OPT)
+CXXFLAGS_DEBUG   = $(CFLAGS_DEBUG) -g3 -Og -DGRID_LOG -DRUNTIME_PERTILE_LOG # -DDEBUG_RUNTIME
+
+CUCOMP       =
+CUFLAGS_PROD =
+
+F90COMP        = mpif90
+F90FLAGS_PROD  = \
+	$(FFLAGS_OPT) \
+	-O3 -cpp -fbacktrace -march='skylake-avx512' \
+	-fdefault-real-8 -fdefault-double-8 \
+	-finit-real=snan -finit-derived \
+	-finline-functions $F
+F90FLAGS_DEBUG = \
+	$(FFLAGS_DEBUG) \
+	-g3 -Og -cpp -fbacktrace \
+	-fdefault-real-8 -fdefault-double-8 \
+	-finit-real=snan -finit-derived \
+	-fbounds-check \
+	-ffpe-trap=invalid,zero,underflow,overflow \
+	-pedantic -Wall -Waliasing \
+	-Wsurprising -Wconversion -Wunderflow \
+	-fimplicit-none -fstack-protector-all
+
+LDFLAGS_STD = -g3 -lpthread -lstdc++ -lgfortran
+
+CXXFLAGS_AMREX   = -I$(AMREXDIR)/include
+CXXFLAGS_GTEST   = -I$(GTESTDIR)/include
+CUFLAGS_AMREX    =
+CUFLAGS_GTEST    =
+LIB_AMREX        = -lamrex -L$(AMREXDIR)/lib
+LIB_GTEST        = -lgtest -L$(GTESTDIR)/lib
+
+LCOV = lcov
+GENHTML = genhtml
+
+CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
+LDFLAGS_COV  = --coverage
+
+# Define flags for OpenMP
+AMREXDIR_OMP  =
+OMP_FLAGS     = -fopenmp
+CU_OMP_FLAGS  =
+OACC_FLAGS    =
+

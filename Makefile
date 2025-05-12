@@ -139,7 +139,7 @@ endif
 .PHONY: all install clean
 all:     $(TARGET) $(SIZES_JSON)
 install:
-	mkdir $(LIB_MILHOJA_PREFIX) || exit $?
+	mkdir -pv $(LIB_MILHOJA_PREFIX) || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/include
 	mkdir $(LIB_MILHOJA_PREFIX)/lib
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
@@ -174,7 +174,7 @@ $(MILHOJA_H): $(MAKEFILES) | $(BUILDDIR)
 # - Program depends directly on Milhoja.h and other Milhoja headers
 # - Sizes might change if compiler flags are changed
 $(SIZES_JSON): $(TOOLSDIR)/createSizesJson.cpp $(MILHOJA_H) $(CPP_HDRS) $(MAKEFILES)
-	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(CXXFLAGS) -o $(BUILDDIR)/createSizesJson.x
+	$(CXXCOMP) $(TOOLSDIR)/createSizesJson.cpp $(filter-out -c,$(CXXFLAGS)) -o $(BUILDDIR)/createSizesJson.x
 	$(BUILDDIR)/createSizesJson.x $(SIZES_JSON)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
