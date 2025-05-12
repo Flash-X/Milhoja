@@ -21,7 +21,6 @@ else
   AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
 endif
 GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
-JSONDIR      = $(JSON_CODE_REPO)/single_include
 CUDADIR      =
 
 CXXCOMPNAME  = gnu
@@ -39,7 +38,7 @@ F90FLAGS_PROD  = \
 	-O3 -cpp -fbacktrace -march='skylake-avx512' \
 	-fdefault-real-8 -fdefault-double-8 \
 	-finit-real=snan -finit-derived \
-	-finline-functions $F
+	-finline-functions
 F90FLAGS_DEBUG = \
 	$(FFLAGS_DEBUG) \
 	-g3 -Og -cpp -fbacktrace \
