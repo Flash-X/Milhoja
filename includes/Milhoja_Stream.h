@@ -97,7 +97,7 @@ struct Stream {
     Stream& operator=(const Stream&) = delete;
 
     bool   isValid(void) const {
-#ifndef MILHOJA_USE_TARGET_ASYNC
+#if !defined(MILHOJA_USE_TARGET_ASYNC) && (defined(MILHOJA_OPENACC_OFFLOADING)||defined(MILHOJA_OPENMP_OFFLOADING))
       return (accAsyncQueue > NULL_ACC_ASYNC_QUEUE);
 #elif defined(MILHOJA_CUDA_RUNTIME_BACKEND)||defined(MILHOJA_OMPTARGET_RUNTIME_BACKEND)||defined(MILHOJA_CUDA_OFFLOADING)
         if (cudaStream == nullptr) {
