@@ -140,7 +140,8 @@ endif
 all:     $(TARGET) $(SIZES_JSON)
 install:
 	mkdir -pv $(LIB_MILHOJA_PREFIX) || exit $?
-	mkdir $(LIB_MILHOJA_PREFIX)/include
+	test -d $(LIB_MILHOJA_PREFIX)/include && ls -l $(LIB_MILHOJA_PREFIX)/include
+	mkdir -pv $(LIB_MILHOJA_PREFIX)/include || exit $?
 	mkdir $(LIB_MILHOJA_PREFIX)/lib
 	cp $(TARGET) $(LIB_MILHOJA_PREFIX)/lib
 	cp $(MILHOJA_H) $(LIB_MILHOJA_PREFIX)/include
