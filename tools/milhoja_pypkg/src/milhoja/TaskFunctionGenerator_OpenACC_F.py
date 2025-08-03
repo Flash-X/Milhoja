@@ -153,9 +153,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         f"{INDENT*2}!$acc routine ({self._get_wrapper_name(subroutine)}) vector\n"
                     )
                     offloading.append("#endif\n")
-            fptr.writelines(["\n", *offloading, "\n"])
+
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
+            fptr.writelines(["\n", *offloading, "\n"])
 
             # Milhoja-internal host-side variables
             #
@@ -392,13 +393,13 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append(f"{indent*2}use {interface}, ONLY: {subroutine}")
         lines.append("")
 
+        lines.append(f"{indent*2}implicit none")
+        lines.append("")
+
         lines.append(f"{indent*2}!$acc routine vector")
         lines.append("#ifndef SUPPRESS_ACC_ROUTINE_FOR_METH_IN_APP\n")
         lines.append(f"{indent*2}!$acc routine ({subroutine}) vector")
         lines.append("#endif\n")
-        lines.append("")
-
-        lines.append(f"{indent*2}implicit none")
         lines.append("")
 
         lines.append(f"{indent*2}! Arguments")
