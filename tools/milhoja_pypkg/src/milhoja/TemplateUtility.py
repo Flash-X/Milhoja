@@ -383,7 +383,7 @@ class TemplateUtility():
         # have no reason to exist if the
         # task function does not use more than 1 stream.
         if opts['MILHOJA_USE_TARGET_ASYNC']:
-          connectors[cls._STREAM_FUNCS_CXX].extend([
+            connectors[cls._STREAM_FUNCS_CXX].extend([
                 'int _param:class_name::extraAsynchronousQueue('
                 'const unsigned int id) {\n',
                 '\tif (id > INT_MAX)\n\t\tthrow std::overflow_error("'
@@ -423,19 +423,19 @@ class TemplateUtility():
                 for i in range(2, extra_streams+2)
             ] +
             ['\n''}\n']
-          )
+            )
 
-        # Inserts the code necessary to acquire extra streams.
-          connectors[cls._EXTRA_STREAMS_PACK].extend([
-            f'stream{i}_ = RuntimeBackend::instance()'
-            '.requestStream(true);\n' +
-            f'if(!stream{i}_.isValid())\n' +
-            f'\tthrow std::runtime_error("[_param:class_name::pack] '
-            f'Unable to acquire stream {i}.");\n'
-            for i in range(2, extra_streams+2)
-          ])
+            # Inserts the code necessary to acquire extra streams.
+            connectors[cls._EXTRA_STREAMS_PACK].extend([
+                f'stream{i}_ = RuntimeBackend::instance()'
+                '.requestStream(true);\n' +
+                f'if(!stream{i}_.isValid())\n' +
+                f'\tthrow std::runtime_error("[_param:class_name::pack] '
+                f'Unable to acquire stream {i}.");\n'
+                for i in range(2, extra_streams+2)
+            ])
         else:
-          connectors[cls._STREAM_FUNCS_CXX].extend([
+            connectors[cls._STREAM_FUNCS_CXX].extend([
                 'int _param:class_name::extraAsynchronousQueue('
                 'const unsigned int id) {\n',
                 '\tif (id > INT_MAX)\n\t\tthrow std::overflow_error("'
@@ -475,17 +475,17 @@ class TemplateUtility():
                 for i in range(2, extra_streams+2)
             ] +
             ['\n''}\n']
-          )
+            )
 
-        # Inserts the code necessary to acquire extra streams.
-          connectors[cls._EXTRA_STREAMS_PACK].extend([
-            f'stream{i}_ = RuntimeBackend::instance()'
-            '.requestStream(true);\n' +
-            f'if(!stream{i}_.isValid())\n' +
-            f'\tthrow std::runtime_error("[_param:class_name::pack] '
-            f'Unable to acquire stream {i}.");\n'
-            for i in range(2, extra_streams+2)
-          ])
+            # Inserts the code necessary to acquire extra streams.
+            connectors[cls._EXTRA_STREAMS_PACK].extend([
+                f'stream{i}_ = RuntimeBackend::instance()'
+                '.requestStream(true);\n' +
+                f'if(!stream{i}_.isValid())\n' +
+                f'\tthrow std::runtime_error("[_param:class_name::pack] '
+                f'Unable to acquire stream {i}.");\n'
+                for i in range(2, extra_streams+2)
+            ])
 
     @classmethod
     def add_memcpy_connector(

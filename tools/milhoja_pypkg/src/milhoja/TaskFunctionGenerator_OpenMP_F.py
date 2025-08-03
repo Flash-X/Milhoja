@@ -328,10 +328,10 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                 async_clauses = ""
                 async_clauses_fmt = None
                 if opts['MILHOJA_USE_TARGET_ASYNC']:
-                   if opts['computation_offloading'] == 'OpenACC':
-                       async_clauses_fmt = "async(%s)"
-                   if opts['computation_offloading'] == 'OpenMP':
-                       async_clauses_fmt = "depend(inout:%s) nowait"
+                    if opts['computation_offloading'] == 'OpenACC':
+                        async_clauses_fmt = "async(%s)"
+                    if opts['computation_offloading'] == 'OpenMP':
+                        async_clauses_fmt = "depend(inout:%s) nowait"
                 for subroutine, queue in zip(node, current_queues):
                     # subroutine wrapper
                     # to prevent passing a slice of array
