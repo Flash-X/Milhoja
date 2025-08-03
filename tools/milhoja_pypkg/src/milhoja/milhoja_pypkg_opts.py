@@ -17,3 +17,5 @@ if not opts['computation_offloading']:  # fallback if envvar not set
 opts['MILHOJA_USE_TARGET_ASYNC'] = False
 if getenv('MILHOJA_USE_TARGET_ASYNC'):
     opts['MILHOJA_USE_TARGET_ASYNC'] = True
+
+opts['emit_HDA'] = True

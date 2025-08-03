@@ -357,8 +357,9 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                         if src == TILE_LEVEL_ARGUMENT:
                             offs = " + 1"
                         arg_list.append(f"{INDENT*5}{argument}_d{offs}")
-                    fptr.write(f"{INDENT*2}!$omp& has_device_addr(nTiles_d, &\n")
-                    fptr.write(f"{INDENT*2}!$omp&" + f", &\n{INDENT*2}!$omp&".join(arg_list[1:]) + ") &\n")
+                    if opts['emit_HDA']:
+                        fptr.write(f"{INDENT*2}!$omp& has_device_addr(nTiles_d, &\n")
+                        fptr.write(f"{INDENT*2}!$omp&" + f", &\n{INDENT*2}!$omp&".join(arg_list[1:]) + ") &\n")
                     fptr.write(f"{INDENT*2}!$omp& {async_clauses}\n")
 
                     fptr.write(f"{INDENT*2}do n = 1, nTiles_d\n")
