@@ -422,7 +422,7 @@ class TemplateUtility():
                 '\t} '
                 for i in range(2, extra_streams+2)
             ] +
-            ['\n''}\n']
+                ['\n''}\n']
             )
 
             # Inserts the code necessary to acquire extra streams.
@@ -474,7 +474,7 @@ class TemplateUtility():
                 '\t} '
                 for i in range(2, extra_streams+2)
             ] +
-            ['\n''}\n']
+                ['\n''}\n']
             )
 
             # Inserts the code necessary to acquire extra streams.
