@@ -18,6 +18,8 @@
 #error "This file need not be compiled if the OmpTarget backend isn't used"
 #endif
 
+#include <omp.h>
+
 namespace milhoja {
 
 class OmpTargetMemoryManager {
@@ -52,6 +54,8 @@ private:
     static bool         initialized_;
     static bool         finalized_;
     static int          device_num_;
+
+    static omp_allocator_handle_t pinned_allocator_;
 
     pthread_mutex_t   mutex_;
     pthread_cond_t    memoryReleased_;
