@@ -14,6 +14,7 @@ std::size_t   OmpTargetMemoryManager::nBytes_ = 0;
 bool          OmpTargetMemoryManager::initialized_ = false;
 bool          OmpTargetMemoryManager::finalized_ = false;
 int           OmpTargetMemoryManager::device_num_ = -1;
+omp_allocator_handle_t OmpTargetMemoryManager::pinned_allocator_ = omp_null_allocator;
 
 /**
  *
@@ -35,6 +36,14 @@ int           OmpTargetMemoryManager::device_num_ = -1;
 
     nBytes_ = nBytesInMemoryPools;
     device_num_ = target_device_num;
+
+    omp_memspace_handle_t pinned_mem_space = omp_default_mem_space; // or a specific device memory space?
+
+    omp_alloctrait_t traits[1];
+    traits[0].key = omp_atk_pinned;
+    traits[0].value = omp_atv_true; // Request pinned memory
+
+    pinned_allocator_ = omp_init_allocator(pinned_mem_space, 1, traits);
     initialized_ = true;
 
     instance();
@@ -58,7 +67,7 @@ void    OmpTargetMemoryManager::finalize(void) {
 
     if (pinnedBuffer_ != nullptr) {
       //cudaError_t   cErr = cudaFreeHost(pinnedBuffer_);
-        free (pinnedBuffer_);
+      omp_free(pinnedBuffer_, pinned_allocator_);
 	// if (cErr != cudaSuccess) {
         //    std::string  msg = "[OmpTargetMemoryManager::finalize] Unable to deallocate pinned memory\n";
         //    msg += "CUDA error - " + std::string(cudaGetErrorName(cErr)) + "\n";
@@ -70,6 +79,8 @@ void    OmpTargetMemoryManager::finalize(void) {
                                + std::to_string(nBytes_ / std::pow(1024.0, 3.0))
                                + " Gb of pinned memory");
     }
+    omp_destroy_allocator(pinned_allocator_);
+    Logger::instance().log("[OmpTargetMemoryManager] Destroyed pinned_allocator_");
 
     if (gpuBuffer_ != nullptr) {
       //cudaError_t   cErr = cudaFree(gpuBuffer_);
@@ -140,7 +151,7 @@ OmpTargetMemoryManager::OmpTargetMemoryManager(void)
     pthread_mutex_lock(&mutex_);
 
     // cudaError_t    cErr = cudaMallocHost(&pinnedBuffer_, nBytes_);
-    pinnedBuffer_ = static_cast<char*>(malloc(nBytes_));
+    pinnedBuffer_ = static_cast<char*>(omp_alloc(nBytes_, pinned_allocator_));
     if (pinnedBuffer_ == nullptr) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[OmpTargetMemoryManager::OmpTargetMemoryManager] ";
