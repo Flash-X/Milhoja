@@ -248,13 +248,13 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
             if len(device_args) == 0:
                 raise NotImplementedError("No test case for no arguments")
 
-            fptr.write(f"{INDENT*2}!$omp parallel num_threads(1) default(shared)\n")
-            fptr.write(f"{INDENT*2}!$omp target data &\n")
-            fptr.write(f"{INDENT*2}!$omp& use_device_addr( &\n")  # not use_device_ptr ?
+            fptr.write(f"!!{INDENT*2}!$omp parallel num_threads(1) default(shared)\n")
+            fptr.write(f"!!{INDENT*2}!$omp target data &\n")
+            fptr.write(f"!!{INDENT*2}!$omp& use_device_addr( &\n")  # not use_device_ptr ?
             for arg in device_args[:-1]:
-                fptr.write(f"{INDENT*2}!$omp&{INDENT*2}{arg}, &\n")
-            fptr.write(f"{INDENT*2}!$omp&{INDENT*2}{device_args[-1]} &\n")
-            fptr.write(f"{INDENT*2}!$omp&{INDENT})\n\n")
+                fptr.write(f"!!{INDENT*2}!$omp&{INDENT*2}{arg}, &\n")
+            fptr.write(f"!!{INDENT*2}!$omp&{INDENT*2}{device_args[-1]} &\n")
+            fptr.write(f"!!{INDENT*2}!$omp&{INDENT})\n\n")
 
             # Implement internal subroutine call graph with OpenMP offloading.
             # Data packet sent on dataQ_h
@@ -390,8 +390,8 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                 fptr.write(f"{INDENT*2}end if\n\n")
 
             # End OpenMP data region
-            fptr.write(f"{INDENT*2}!$omp end target data\n")
-            fptr.write(f"{INDENT*2}!$omp end parallel\n")
+            fptr.write(f"!!{INDENT*2}!$omp end target data\n")
+            fptr.write(f"!!{INDENT*2}!$omp end parallel\n")
             # End subroutine declaration
             fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")

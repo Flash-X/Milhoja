@@ -20,7 +20,7 @@ from .milhoja_pypkg_opts import opts, nxyzb_mod
 @dataclass
 class C2FInfo:
     """
-    Scruct containing various attributes of the
+    Struct containing various attributes of the
     pointers to be generated for the c2f layer.
     """
     name: str
@@ -190,7 +190,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
         shape = []
         info = C2FInfo(
-            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer,CONTIGUOUS",
             shape=shape,
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
@@ -205,7 +205,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             shape = [str(len(extents) + grid_adjust)] + \
                 ['F_nTiles_h']
             info.shape = shape
-            info.ftype = 'integer, pointer'
+            info.ftype = 'integer, pointer,cONTIGUOUS'
             info.conversion_eq = info.conversion_eq.format(
                 info.cname, info.fname, ','.join(info.shape)
             )
@@ -240,7 +240,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             spec.get('variables_out', None)
         )
         info = C2FInfo(
-            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer,coNTIGUOUS",
             shape=extents + [str(largest), 'F_nTiles_h'],
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
@@ -260,7 +260,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
         extents = self.__get_array_extents(spec)
         info = C2FInfo(
-            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
+            name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer,conTIGUOUS",
             shape=extents + ["F_nTiles_h"],
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
