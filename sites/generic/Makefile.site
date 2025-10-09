@@ -1,0 +1,31 @@
+include $(Makefile_h)
+
+BASEDIR      = $(MILHOJA_CODE_REPO)
+# Made conditional below:
+#AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+
+#----------------------------------------------------------------------------
+# Set the AMReX library path -- installation for multiple variants
+#----------------------------------------------------------------------------
+ifeq ("$(USEOPENMP)","1")
+  AMREX_PATH=${FLASHX_AMREX_OMP${NDIM}D_DIR}
+else
+  AMREX_PATH=${FLASHX_AMREX${NDIM}D_DIR}
+endif
+
+ifneq ($(AMREX_PATH),)
+# The env variables FLASHX_AMREXOMPnD_DIR, FLASHX_AMREXnD_DIR have presumably
+# been set by a command like 'module load FlashX-TestEnv-gcc'. Use if nonempty.
+  AMREXDIR     = ${AMREX_PATH}
+else
+  AMREXDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/AMReX_$(NDIM)D
+endif
+GTESTDIR     = $(MILHOJA_TEST_CLONE)/gce/gnu_current/googletest
+CUDADIR      =
+
+# Set a default, in case CXXCOMPNAME was not defined in $(Makefile_h):
+CXXCOMPNAME ?= gnu
+
+ifneq ($(CXXCOMPNAME),)
+  include $(SITE_MAKEFILE).$(CXXCOMPNAME)
+endif
