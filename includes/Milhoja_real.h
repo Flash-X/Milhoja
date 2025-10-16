@@ -52,13 +52,13 @@ inline namespace literals {
     ```
   */
   constexpr milhoja::Real
-  operator"" _wp( long double x )
+  operator""_wp( long double x )
   {
       return milhoja::Real( x );
   }
 
   constexpr milhoja::Real
-  operator"" _wp( unsigned long long int x )
+  operator""_wp( unsigned long long int x )
   {
       return milhoja::Real( x );
   }
