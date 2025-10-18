@@ -47,7 +47,7 @@ def generate_data_item(tf_spec, destination, overwrite, library_path, indent,
         library = Path(library_path).resolve()
         sizes_json = library.joinpath("include", "sizes.json")
         if not library.is_dir():
-            msg = f"{library_path} does not exist or is not a directory"
+            msg = f"Library path '{library_path}' does not exist or is not a directory"
             raise ValueError(msg)
         elif not sizes_json.is_file():
             msg = \
