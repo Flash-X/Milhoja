@@ -23,6 +23,7 @@ omp_allocator_handle_t OmpTargetMemoryManager::pinned_allocator_ = omp_null_allo
                                           const int target_device_num) {
     // finalized_ => initialized_
     // Therefore, no need to check finalized_.
+    constexpr int N_PINNEDTRAITS = 2;
     if (initialized_) {
         throw std::logic_error("[OmpTargetMemoryManager::initialize] "
                                "Memory manager already initialized");
@@ -39,10 +40,15 @@ omp_allocator_handle_t OmpTargetMemoryManager::pinned_allocator_ = omp_null_allo
 
     omp_memspace_handle_t pinned_mem_space = omp_default_mem_space; // or a specific device memory space?
 
-    omp_alloctrait_t traits[1];
-    traits[0].key = omp_atk_pinned;
-    traits[0].value = omp_atv_true; // Request pinned memory
+    omp_alloctrait_t traits[N_PINNEDTRAITS];
+    traits[0].key = omp_atk_alignment;
+    traits[0].value = 4096; // alignment for pinned memory
+    traits[1].key = omp_atk_pinned;
+    traits[1].value = omp_atv_true; // Request pinned memory
 
+    Logger::instance().log("[OmpTargetMemoryManager] Requesting pinned allocator with "
+			   + std::to_string(N_PINNEDTRAITS)
+			   + " traits...");
     pinned_allocator_ = omp_init_allocator(pinned_mem_space, 1, traits);
     initialized_ = true;
 
@@ -149,9 +155,11 @@ OmpTargetMemoryManager::OmpTargetMemoryManager(void)
     pthread_mutex_init(&mutex_, NULL);
 
     pthread_mutex_lock(&mutex_);
+    Logger::instance().log(  "[OmpTargetMemoryManager] DBG mutex_ locked" );
 
     // cudaError_t    cErr = cudaMallocHost(&pinnedBuffer_, nBytes_);
     pinnedBuffer_ = static_cast<char*>(omp_alloc(nBytes_, pinned_allocator_));
+    Logger::instance().log(  "[OmpTargetMemoryManager] DBG pinned allocated" );
     if (pinnedBuffer_ == nullptr) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[OmpTargetMemoryManager::OmpTargetMemoryManager] ";
