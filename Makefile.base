@@ -35,6 +35,9 @@ DEPFLAG = -MMD
 else ifeq ($(CXXCOMPNAME), llvm)
 CXXFLAGS_STD = -std=c++11
 DEPFLAG = -MMD
+else ifeq ($(CXXCOMPNAME), amd)
+CXXFLAGS_STD = -std=c++17
+DEPFLAG = -MMD
 else
 $(info $(CXXCOMPNAME) compiler not yet supported.)
 endif

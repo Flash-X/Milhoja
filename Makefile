@@ -47,10 +47,14 @@ RM ?= /bin/rm
 
 ifeq      ($(CXXCOMPNAME),gnu)
 include ./gnu.mk
+else ifeq      ($(CXXCOMPNAME),gnunompi)
+include ./gnu.mk
 else ifeq ($(CXXCOMPNAME),intel)
 include ./intel.mk
 else ifeq ($(CXXCOMPNAME),nvhpc)
 include ./nvhpc.mk
+else ifeq ($(CXXCOMPNAME),amd)
+include ./gnu.mk		# for now
 else
 $(error $(CXXCOMPNAME) compiler not yet supported.)
 endif
@@ -154,6 +158,9 @@ endif
 clean:
 	$(RM) $(BUILDDIR)/*.o
 	$(RM) $(BUILDDIR)/*.d
+ifneq ($(SIZES_JSON),)
+	$(RM) $(SIZES_JSON)
+endif
 
 $(BUILDDIR):
 	@echo
