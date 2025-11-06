@@ -340,15 +340,12 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                     # which may introduce unnecessary device to host maps
                     wrapper_name, wrapper_lines = self._generate_subroutine_wrapper(INDENT, subroutine)
                     subroutine_wrappers[wrapper_name] = wrapper_lines
-                    if async_clauses_fmt:
-                        async_clauses = async_clauses_fmt % queue
 
                     fptr.write(f"{INDENT*2}!$omp target teams distribute &\n")
                     # fptr.write(f"{INDENT*2}!$omp& default(private) {async_clauses}\n")
-                    fptr.write(f"{INDENT*2}!$omp& defaultmap(default:scalar) &\n")
-                    fptr.write(f"{INDENT*2}!$omp& defaultmap(none:aggregate) &\n")
-                    fptr.write(f"{INDENT*2}!$omp& defaultmap(default:pointer) &\n")
-                    fptr.write(f"{INDENT*2}!$omp& defaultmap(none:allocatable) &\n")
+                    if async_clauses_fmt:
+                        async_clauses = async_clauses_fmt % queue
+                        fptr.write(f"{INDENT*2}!$omp& {async_clauses}\n")
                     arg_triples = \
                         self._tf_spec.subroutine_argument_triples(subroutine)
                     arg_list = [f"{INDENT*5}n"]
@@ -362,7 +359,11 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                     if opts['emit_HDA']:
                         fptr.write(f"{INDENT*2}!$omp& has_device_addr(nTiles_d, &\n")
                         fptr.write(f"{INDENT*2}!$omp&" + f", &\n{INDENT*2}!$omp&".join(arg_list[1:]) + ") &\n")
-                    fptr.write(f"{INDENT*2}!$omp& {async_clauses}\n")
+                    fptr.write(f"{INDENT*2}!$omp& defaultmap(default:scalar) &\n")
+                    fptr.write(f"{INDENT*2}!$omp& defaultmap(none:aggregate) &\n")
+                    fptr.write(f"{INDENT*2}!$omp& defaultmap(default:pointer) &\n")
+                    fptr.write(f"{INDENT*2}!$omp& defaultmap(none:allocatable)\n")
+                    # fptr.write(f"{INDENT*2}!$omp& {async_clauses}\n")
 
                     fptr.write(f"{INDENT*2}do n = 1, nTiles_d\n")
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
