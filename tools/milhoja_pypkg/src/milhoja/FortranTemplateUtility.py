@@ -16,6 +16,8 @@ from . import (
     TILE_LEVEL_ARGUMENT, SOURCE_DATATYPES
 )
 
+from .milhoja_pypkg_opts import opts
+
 
 class FortranTemplateUtility(TemplateUtility):
     """
@@ -409,3 +411,11 @@ class FortranTemplateUtility(TemplateUtility):
             )
 
             self._common_iterate_tile_scratch(connectors, info)
+
+    def get_requires_lines(
+        self, connectors: dict
+    ):
+        lines = self._common_get_requires_line()
+        for directive in lines:
+            # connectors[self._REQUIRES_DIRECTIVE].append(f"!$omp {directive}\n")
+            connectors[self._REQUIRES_DIRECTIVE].append(f"\n#pragma omp {directive}\n")

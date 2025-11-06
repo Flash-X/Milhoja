@@ -51,6 +51,7 @@ using milhoja::FArray4D;
 using milhoja::IntVect;
 using milhoja::RealVect;
 
+/* _link:omp_requires */
 class _param:class_name : public milhoja::DataPacket {
 public:
     // constructor

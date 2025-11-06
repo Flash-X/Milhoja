@@ -4,6 +4,7 @@
 #include <Milhoja_interface_error_codes.h>
 #include "_param:data_item_header_file_name"
 
+/* _link:omp_requires */
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     int _param:instance(

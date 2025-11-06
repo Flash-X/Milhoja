@@ -14,6 +14,7 @@
 /* _link:stream_functions_h */
 /* _link:memcpy_tile_scratch */
 /* _link:extra_streams*/
+/* _link:omp_requires */
 #endif
 
 std::unique_ptr<milhoja::DataPacket> _param:class_name::clone(void) const {

@@ -43,6 +43,7 @@ class TemplateUtility():
     _T_DESCRIPTOR = 'tile_descriptor'
     _EXTENTS = "extents"
     _LBOUND = "lbound"
+    _REQUIRES_DIRECTIVE = "omp_requires"
 
     _STREAM_FUNCS_H = 'stream_functions_h'
     _EXTRA_STREAMS = 'extra_streams'
@@ -50,6 +51,11 @@ class TemplateUtility():
     _DESTRUCTOR = 'destructor'
     _STREAM_FUNCS_CXX = 'stream_functions_cxx'
     _TILE_DESC = "tileDesc_h"
+
+    if opts["use_omp_requires"] and (opts['computation_offloading'] == 'OpenMP'):
+        _REQUIRES_DIRECTIVE = 'requires unified_address'
+    else:
+        _REQUIRES_DIRECTIVE = None
 
     # C++ Index space is always 0.
     # todo:: Should this be handled by the TF Spec?
@@ -145,6 +151,13 @@ class TemplateUtility():
         tilemetadata: OrderedDict, num_arrays: int
     ):
         ...
+
+    @classmethod
+    def _common_get_requires_line(cls):
+        if opts["use_omp_requires"]:
+            return ["requires unified_address"]
+        else:
+            return []
 
     @classmethod
     @abstractmethod
@@ -621,6 +634,13 @@ class TemplateUtility():
         )
         del connectors[cls._HOSTXYZ_MEMBERS]
         del connectors[cls._HOST_MEMBERS]
+
+        template.writelines(
+            ['/* _connector:omp_requires */\n'] +
+            [',\n'.join(connectors[cls._REQUIRES_DIRECTIVE])] +
+            ['\n\n']
+        )
+        del connectors[cls._REQUIRES_DIRECTIVE]
 
         # template.writelines(
         #     ['/* _connector:tileconst_members */\n'] +

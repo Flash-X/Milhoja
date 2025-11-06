@@ -4,6 +4,8 @@ from .TemplateUtility import TemplateUtility
 from .parse_helpers import (parse_lbound, get_array_size)
 from . import TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT
 
+from .milhoja_pypkg_opts import opts
+
 
 class CppTemplateUtility(TemplateUtility):
     """
@@ -388,3 +390,10 @@ class CppTemplateUtility(TemplateUtility):
             f"""std::memcpy(static_cast<void*>(char_ptr), """
             f"""static_cast<const void*>(&{alt_name}), {info.size});\n\n"""
         ])
+
+    def get_requires_lines(
+        self, connectors: dict
+    ):
+        lines = self._common_get_requires_line()
+        for directive in lines:
+            connectors[self._REQUIRES_DIRECTIVE].append(f"\n#pragma omp {directive}\n")

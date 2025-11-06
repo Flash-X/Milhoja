@@ -19,3 +19,5 @@ if getenv('MILHOJA_USE_TARGET_ASYNC'):
     opts['MILHOJA_USE_TARGET_ASYNC'] = True
 
 opts['emit_HDA'] = True
+
+opts['use_omp_requires'] = (opts['computation_offloading'] == 'OpenMP')

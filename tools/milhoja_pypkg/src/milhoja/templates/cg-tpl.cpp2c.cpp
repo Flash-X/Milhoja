@@ -12,6 +12,8 @@
 
 using milhoja::Real;
 
+/* _link:omp_requires */
+
 extern "C" {
     //----- C DECLARATION OF FORTRAN ROUTINE WITH C-COMPATIBLE INTERFACE
     void _param:taskfunctionnamec2f (

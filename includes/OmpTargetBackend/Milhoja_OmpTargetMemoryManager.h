@@ -20,6 +20,10 @@
 
 #include <omp.h>
 
+#ifdef ORCHA_USE_OMP_REQ
+#pragma omp requires unified_address
+#endif
+
 namespace milhoja {
 
 class OmpTargetMemoryManager {

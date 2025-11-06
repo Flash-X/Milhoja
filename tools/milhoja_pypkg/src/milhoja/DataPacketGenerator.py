@@ -101,6 +101,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             self._connectors[self.template_utility._SET_TILECONST] = []
         self._connectors[self.template_utility._SIZE_DET] = []
         self._connectors[self.template_utility._SET_SIZE_DET] = []
+        self._connectors[self.template_utility._REQUIRES_DIRECTIVE] = []
         self._set_default_params()
 
         destination_path = self.get_destination_path(destination)
@@ -163,6 +164,9 @@ class DataPacketGenerator(AbcCodeGenerator):
 
             self.template_utility.generate_extra_streams_information(
                 self._connectors, self.n_extra_streams
+            )
+            self.template_utility.get_requires_lines(
+                self._connectors
             )
             self.template_utility.write_connectors(self._connectors, template)
         self._log("Done", LOG_LEVEL_BASIC_DEBUG)
