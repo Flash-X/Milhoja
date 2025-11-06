@@ -107,6 +107,10 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
                 f"{INDENT}private\n\n",
                 f"{INDENT}public :: {self._tf_spec.function_name}\n",
                 f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n",
+            ])
+            if opts['computation_offloading'] == 'OpenMP' and opts['use_omp_requires']:
+                fptr.write(f"{INDENT*2}!$omp requires unified_address\n\n")
+            fptr.writelines([
                 f"{INDENT}interface\n{INDENT*2}",
                 "!> C++ task function that TimeAdvance passes to Orchestration unit\n",
                 f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}",

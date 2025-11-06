@@ -399,6 +399,9 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                 f'{self.INDENT}implicit none\n\n'
             ])
 
+            if opts['computation_offloading'] == 'OpenMP' and opts['use_omp_requires']:
+                fp.write(f"{self.INDENT}!$omp requires unified_address\n\n")
+
             if opts['computation_offloading'] != 'OpenACC':
                 fp.writelines([
                     f'{self.INDENT}integer,parameter :: acc_handle_kind=KIND(0)\n',
