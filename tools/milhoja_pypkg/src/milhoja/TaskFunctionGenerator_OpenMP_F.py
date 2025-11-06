@@ -136,7 +136,7 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
 
             # Boilerplate use statements
             fptr.write(f"{INDENT*2}use iso_c_binding, ONLY : C_PTR\n")
-            fptr.write(f"{INDENT*2}use openacc, ONLY : acc_handle_kind\n\n")
+            fptr.write(f"!!${INDENT*2}use openacc, ONLY : acc_handle_kind\n\n")
             if self._tf_spec.n_streams > 1:
                 fptr.write(f"{INDENT*2}use milhoja_types_mod, ONLY : MILHOJA_INT\n\n")
 
@@ -157,6 +157,8 @@ class TaskFunctionGenerator_OpenMP_F(AbcCodeGenerator):
 
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
+
+            fptr.write(f"{INDENT*2}integer,parameter :: acc_handle_kind=KIND(0)\n")
             fptr.writelines(["\n", *offloading, "\n"])
 
             # Milhoja-internal host-side variables

@@ -381,9 +381,14 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             fortran_mod = fortran_mod[:fortran_mod.rfind(".")]
             fp.writelines([
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
-                f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
                 f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
             ])
+            if opts['computation_offloading'] == 'OpenACC':
+                fp.writelines([
+                    f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
+                ])
+            else:
+                pass
             if opts[nxyzb_mod]:
                 fp.write(
                     f'{self.INDENT}use or_gridData, ONLY : nxb, nyb, nzb\n'
@@ -393,6 +398,11 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                 f'{self._tf_spec.function_name}\n',
                 f'{self.INDENT}implicit none\n\n'
             ])
+
+            if opts['computation_offloading'] != 'OpenACC':
+                fp.writelines([
+                    f'{self.INDENT}integer,parameter :: acc_handle_kind=KIND(0)\n',
+                ])
 
             # write c declarations
             fp.writelines([
