@@ -132,7 +132,7 @@ FakeCudaMemoryManager::FakeCudaMemoryManager(void)
     if (pinnedBuffer_ == nullptr) {
         pthread_mutex_unlock(&mutex_);
         std::string  errMsg = "[FakeCudaMemoryManager::FakeCudaMemoryManager] ";
-        errMsg += "Unable to allocate 'pinned' memory\n";
+        errMsg += "Unable to allocate fake 'pinned' memory\n";
         errMsg += "FakeCuda error\n";
         perror(NULL);
         throw std::runtime_error(errMsg);
