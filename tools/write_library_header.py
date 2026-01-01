@@ -323,7 +323,7 @@ if __name__ == '__main__':
             fptr.write( '\n')
         if runtime_backend_macro == 'MILHOJA_OMPTARGET_RUNTIME_BACKEND' and offload_macro == 'MILHOJA_OPENMP_OFFLOADING':
             # Try this - we may need to make it more conditional:
-            fptr.write( '#define ORCHA_USE_OMP_REQ\n') #      Use 'omp requires unified_address', Openmp 5.0 or later ?
+            fptr.write( '#define ORCHA_USE_OMP_REQ 1\n') #      Use 'omp requires unified_address', Openmp 5.0 or later ?
             fptr.write( '\n')
             fptr.write( '#define perhaps_MILHOJA_USE_MEMCPY_ASYNC\n') # Openmp 5.1 or later
             fptr.write( '#define perhaps_MILHOJA_USE_TARGET_ASYNC\n') # OpenMP 4.5 or later
