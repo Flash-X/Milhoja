@@ -105,13 +105,19 @@ CudaGpuEnvironment::CudaGpuEnvironment(void)
                                  "GPU kernel concurrency is required");
     }
 
+    int clk_khz = 0;
+    cudaDeviceGetAttribute(&clk_khz, cudaDevAttrClockRate, 0);
+
+    int mem_clk_khz = 0;
+    cudaDeviceGetAttribute(&mem_clk_khz, cudaDevAttrMemoryClockRate, 0);
+
     gpuDeviceName_          = std::string(prop.name);
     gpuCompMajor_           = prop.major;
     gpuCompMinor_           = prop.minor;
     gpuMaxThreadsPerBlock_  = prop.maxThreadsPerBlock;
     gpuWarpSize_            = prop.warpSize;
-    gpuClockRateHz_         = prop.clockRate * 1000;
-    gpuMemClockRateHz_      = prop.memoryClockRate * 1000;
+    gpuClockRateHz_         = clk_khz * 1000;
+    gpuMemClockRateHz_      = mem_clk_khz * 1000;
     gpuMemBusWidthBytes_    = round(prop.memoryBusWidth * 0.125);
     gpuTotalGlobalMemBytes_ = prop.totalGlobalMem;
     gpuL2CacheSizeBytes_    = prop.l2CacheSize;
