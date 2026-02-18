@@ -1,7 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
 from copy import deepcopy
-from pkg_resources import resource_filename
 
 from .DataPacketMemberVars import DataPacketMemberVars
 from .AbcCodeGenerator import AbcCodeGenerator
@@ -44,17 +43,11 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
     @property
     def cpp2c_streams_template_path(self) -> Path:
         """Extra streams template for the cpp2c layer"""
-        template_path = resource_filename(
-            __package__, f'templates/{self._cpp2c_extra_streams_tpl}'
-        )
-        return Path(template_path).resolve()
+        return self._template_path(self._cpp2c_extra_streams_tpl)
 
     @property
     def cpp2c_template_path(self) -> Path:
-        template_path = resource_filename(
-            __package__, 'templates/cg-tpl.cpp2c.cpp'
-        )
-        return Path(template_path).resolve()
+        return self._template_path("cg-tpl.cpp2c.cpp")
 
     @property
     def cpp2c_outer_template_name(self) -> str:

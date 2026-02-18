@@ -1,7 +1,6 @@
 import pathlib
 
 from pathlib import Path
-from pkg_resources import resource_filename
 
 from . import AbcCodeGenerator
 from . import LogicError
@@ -43,11 +42,7 @@ class TaskFunctionCpp2CGenerator_cpu_F(AbcCodeGenerator):
         header = None
         source = tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         self.tf_cpp2c_name = source
-        self.tf_cpp2c_template = Path(
-            resource_filename(
-                __package__, 'templates/cg-tpl.tf_cpp2c.cpp'
-            )
-        ).resolve()
+        self.tf_cpp2c_template = self._template_path("cg-tpl.tf_cpp2c.cpp")
 
         self.stree_opts = {
             'codePath': pathlib.Path.cwd(),

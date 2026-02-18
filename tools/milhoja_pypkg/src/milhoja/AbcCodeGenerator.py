@@ -1,4 +1,6 @@
 import abc
+from importlib.resources import files
+from pathlib import Path
 
 from . import AbcLogger
 from . import TaskFunction
@@ -105,6 +107,10 @@ class AbcCodeGenerator(abc.ABC):
         """
         """
         return self.__src_filename
+
+    @staticmethod
+    def _template_path(template_name: str) -> Path:
+        return Path(str(files("milhoja").joinpath("templates", template_name))).resolve()
 
     @abc.abstractmethod
     def generate_header_code(self, destination, overwrite):

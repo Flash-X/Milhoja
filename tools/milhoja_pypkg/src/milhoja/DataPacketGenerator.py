@@ -1,6 +1,5 @@
 import functools
 
-from pkg_resources import resource_filename
 from copy import deepcopy
 from collections import defaultdict, OrderedDict
 from pathlib import Path
@@ -195,7 +194,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             header,
             [
                 self._outer_template,
-                self.header_template_path,  # static path to pkg resource.
+                self.header_template_path,
                 self._helper_template
             ],
             overwrite, self._logger
@@ -217,7 +216,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             source,
             [
                 self._outer_template,
-                self.source_template_path,  # static path to pkg resource.
+                self.source_template_path,
                 self._helper_template
             ],
             overwrite, self._logger
@@ -248,19 +247,11 @@ class DataPacketGenerator(AbcCodeGenerator):
 
     @property
     def header_template_path(self) -> Path:
-        template_path = resource_filename(
-            __package__,
-            'templates/cg-tpl.datapacket_header.cpp'
-        )
-        return Path(template_path).resolve()
+        return self._template_path("cg-tpl.datapacket_header.cpp")
 
     @property
     def source_template_path(self) -> Path:
-        template_path = resource_filename(
-            __package__,
-            'templates/cg-tpl.datapacket.cpp'
-        )
-        return Path(template_path).resolve()
+        return self._template_path("cg-tpl.datapacket.cpp")
 
     @property
     def n_extra_streams(self) -> int:
