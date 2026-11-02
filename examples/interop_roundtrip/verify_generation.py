@@ -136,6 +136,9 @@ def main():
     parser.add_argument("milhoja_prefix", type=Path)
     args = parser.parse_args()
 
+    makefile = (HERE / "Makefile").read_text(encoding="utf-8")
+    assert "-i4 -r8" in makefile
+
     for execution in EXECUTIONS:
         for layout in LAYOUTS:
             with tempfile.TemporaryDirectory() as first_name, \

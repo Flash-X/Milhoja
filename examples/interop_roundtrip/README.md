@@ -106,6 +106,11 @@ toolkit:
 -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
 ```
 
+The Fortran compilation also uses `-i4 -r8`. Milhoja's OpenACC generators
+intentionally emit default `integer` and `real` declarations in their device
+wrappers, so these flags bind those declarations to the configured Milhoja
+32-bit integer and 64-bit real types.
+
 They can be replaced without editing the Makefile, for example:
 
 ```sh

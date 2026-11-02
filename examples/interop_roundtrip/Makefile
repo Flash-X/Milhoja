@@ -31,7 +31,7 @@ MPICXX = mpicxx
 LINKER = mpifort
 CXX_RUNTIME ?= -lstdc++
 OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
-FFLAGS := -Mpreprocess -Mrecursive -Mbounds -traceback \
+FFLAGS := -Mpreprocess -Mrecursive -i4 -r8 -traceback \
           $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
           -I$(MILHOJA_PREFIX)/include -I$(BUILD) -module $(BUILD)
 else
