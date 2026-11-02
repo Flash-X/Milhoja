@@ -20,9 +20,9 @@ Generate persistent source sets for both layouts with:
 make generate-both MILHOJA_PREFIX=/path/to/Milhoja/2D-hostmem
 ```
 
-This writes independent sources beneath `generated/variable-last` and
-`generated/variable-first`. To force regeneration after a generator change,
-run `make regenerate-both` with the same prefix.
+This writes independent sources beneath `generated/hostmem/variable-last` and
+`generated/hostmem/variable-first`. To force regeneration after a generator
+change, run `make regenerate-both` with the same prefix.
 
 Generate and inspect both layouts without compiling:
 
@@ -67,9 +67,60 @@ make run LAYOUT=variable-first \
 The combined run must end with both messages:
 
 ```text
-Milhoja Step 5D HOSTMEM variable-last round trip passed
-Milhoja Step 5D HOSTMEM variable-first round trip passed
+Milhoja interoperability HOSTMEM variable-last round trip passed
+Milhoja interoperability HOSTMEM variable-first round trip passed
 ```
 
 The generated and object files are isolated under layout-specific directories.
 On GNU/Linux, add `CXX_RUNTIME=-lstdc++` to the `make` commands.
+
+## Step 5E NVIDIA CUDA/OpenACC execution
+
+Step 5E uses the same kernel and lifecycle driver with a CUDA-runtime Milhoja
+installation. The generator emits a GPU TaskFunction using OpenACC, including
+device pointers, an asynchronous queue, a gang loop over tiles, and the
+generated C++/Fortran interface. The kernel runs its field transformation and
+checksum reduction on the GPU. The checksum is also written to the logical
+first field element so the driver can validate it after the normal device-to-
+host transfer without dereferencing device scratch memory.
+
+On the NVIDIA platform, first activate the NVHPC and HPC-X environment used to
+configure Milhoja. Then, from this directory, run the source-only checks:
+
+```sh
+make verify-generation \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-cuda
+```
+
+Generate, compile, and run both data layouts on the GPU with:
+
+```sh
+make run-both EXECUTION=cuda-openacc \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-cuda
+```
+
+The default GPU flags target the visible GPU with NVHPC 26.3 and its CUDA 13.1
+toolkit:
+
+```text
+-acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
+```
+
+They can be replaced without editing the Makefile, for example:
+
+```sh
+make run-both EXECUTION=cuda-openacc \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-cuda \
+  OFFLOAD_FLAGS='-acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel'
+```
+
+A successful combined run ends with:
+
+```text
+Milhoja interoperability CUDA/OpenACC variable-last round trip passed
+Milhoja interoperability CUDA/OpenACC variable-first round trip passed
+```
+
+Generated and compiled CUDA/OpenACC artifacts are kept under
+`generated/cuda-openacc/<layout>` and `build/cuda-openacc/<layout>`, separate
+from the HOSTMEM artifacts.

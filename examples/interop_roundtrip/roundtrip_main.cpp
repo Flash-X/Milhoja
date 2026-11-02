@@ -1,12 +1,15 @@
 #include <cmath>
+#include <condition_variable>
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include <mpi.h>
 
+#include <Milhoja.h>
 #include <Milhoja_FlashxrTileRaw.h>
 #include <Milhoja_Logger.h>
 #include <Milhoja_RuntimeBackend.h>
@@ -28,6 +31,11 @@ constexpr milhoja::Real SCALE = 2.5;
 constexpr const char* LAYOUT_NAME = "variable-first";
 #else
 constexpr const char* LAYOUT_NAME = "variable-last";
+#endif
+#ifdef MILHOJA_CUDA_RUNTIME_BACKEND
+constexpr const char* EXECUTION_NAME = "CUDA/OpenACC";
+#else
+constexpr const char* EXECUTION_NAME = "HOSTMEM";
 #endif
 
 std::size_t offset(const int i, const int j, const int k, const int variable) {
@@ -54,15 +62,42 @@ milhoja::Real expectedValue(
     return SCALE * initialValue(tile, i, j, variable) + increment;
 }
 
+milhoja::Real expectedChecksum(const int tile) {
+    milhoja::Real checksum = 0.0;
+    for (int variable = 0; variable < NVARS; ++variable) {
+        for (int j = 0; j < NY; ++j) {
+            for (int i = 0; i < NX; ++i) {
+                checksum += expectedValue(tile, i, j, variable);
+            }
+        }
+    }
+    return checksum;
+}
+
+milhoja::Real expectedReturnedValue(
+    const int tile, const int i, const int j, const int variable
+) {
+    if (i == 0 && j == 0 && variable == 0) {
+        return expectedChecksum(tile);
+    }
+    return expectedValue(tile, i, j, variable);
+}
+
 struct CallbackContext {
     DataPacket_roundtrip_tf* packet;
-    bool completed;
+    std::mutex mutex;
+    std::condition_variable ready;
+    bool completed = false;
 };
 
 void unpackPacket(void* data) {
     auto* context = static_cast<CallbackContext*>(data);
     context->packet->unpack();
-    context->completed = true;
+    {
+        std::lock_guard<std::mutex> lock(context->mutex);
+        context->completed = true;
+    }
+    context->ready.notify_one();
 }
 
 void require(const bool condition, const std::string& message) {
@@ -134,25 +169,19 @@ int main() {
             backend.initiateHostToGpuTransfer(packet);
             roundtrip_tf_Cpp2C(0, &packet);
 
-            std::vector<milhoja::Real> expectedChecksums(NTILES, 0.0);
+#ifdef MILHOJA_HOSTMEM_RUNTIME_BACKEND
             for (int tile = 0; tile < NTILES; ++tile) {
-                for (int variable = 0; variable < NVARS; ++variable) {
-                    for (int j = 0; j < NY; ++j) {
-                        for (int i = 0; i < NX; ++i) {
-                            expectedChecksums[tile] +=
-                                expectedValue(tile, i, j, variable);
-                        }
-                    }
-                }
+                const milhoja::Real expected = expectedChecksum(tile);
                 const milhoja::Real actual =
                     packet._scratch_checksum_d[tile];
                 require(
-                    std::abs(actual - expectedChecksums[tile]) <= 1.0e-12 *
-                        (1.0 + std::abs(expectedChecksums[tile])),
+                    std::abs(actual - expected) <= 1.0e-12 *
+                        (1.0 + std::abs(expected)),
                     "scratch checksum mismatch for tile " +
                         std::to_string(tile)
                 );
             }
+#endif
 
             // Tile storage must not change until the return transfer invokes
             // unpack. HOSTMEM still uses distinct packet memory.
@@ -170,17 +199,20 @@ int main() {
                 }
             }
 
-            CallbackContext callback{&packet, false};
+            CallbackContext callback;
+            callback.packet = &packet;
             backend.initiateGpuToHostTransfer(
                 packet, unpackPacket, static_cast<void*>(&callback)
             );
-            require(
-                callback.completed,
-                "HOSTMEM return callback did not complete synchronously"
-            );
+            {
+                std::unique_lock<std::mutex> lock(callback.mutex);
+                callback.ready.wait(lock, [&callback]() {
+                    return callback.completed;
+                });
+            }
             require(
                 backend.numberFreeStreams() == 1,
-                "unpack did not release the HOSTMEM stream"
+                "unpack did not release the runtime stream"
             );
 
             for (int tile = 0; tile < NTILES; ++tile) {
@@ -190,7 +222,9 @@ int main() {
                             const milhoja::Real actual =
                                 fields[tile][offset(i, j, 0, variable)];
                             const milhoja::Real expected =
-                                expectedValue(tile, i, j, variable);
+                                expectedReturnedValue(
+                                    tile, i, j, variable
+                                );
                             require(
                                 actual == expected,
                                 "field mismatch at tile=" +
@@ -210,7 +244,8 @@ int main() {
         if (ownsMpi) {
             MPI_Finalize();
         }
-        std::cout << "Milhoja Step 5D HOSTMEM " << LAYOUT_NAME
+        std::cout << "Milhoja interoperability " << EXECUTION_NAME << " "
+                  << LAYOUT_NAME
                   << " round trip passed" << std::endl;
         return 0;
     } catch (const std::exception& error) {

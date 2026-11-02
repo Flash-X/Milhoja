@@ -1,12 +1,7 @@
 MILHOJA_PREFIX ?= ../../2D-hostmem
 PYTHON ?= python3
 LAYOUT ?= variable-last
-FC = gfortran
-CXX = c++
-MPICXX = mpicxx
-LINKER = mpifort
-CXX_RUNTIME ?= -lc++
-MPI_CXXFLAGS = $(shell $(MPICXX) --showme:compile)
+EXECUTION ?= hostmem
 
 ifeq ($(LAYOUT),variable-last)
 LAYOUT_FLAGS :=
@@ -16,8 +11,34 @@ else
 $(error Unsupported LAYOUT '$(LAYOUT)'; use variable-last or variable-first)
 endif
 
-GENERATED := generated/$(LAYOUT)
-BUILD := build/$(LAYOUT)
+GENERATED := generated/$(EXECUTION)/$(LAYOUT)
+BUILD := build/$(EXECUTION)/$(LAYOUT)
+
+ifeq ($(EXECUTION),hostmem)
+FC = gfortran
+CXX = c++
+MPICXX = mpicxx
+LINKER = mpifort
+CXX_RUNTIME ?= -lc++
+OFFLOAD_FLAGS :=
+FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
+          $(LAYOUT_FLAGS) \
+          -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
+else ifeq ($(EXECUTION),cuda-openacc)
+FC = mpifort
+CXX = mpicxx
+MPICXX = mpicxx
+LINKER = mpifort
+CXX_RUNTIME ?= -lstdc++
+OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
+FFLAGS := -Mpreprocess -Mrecursive -Mbounds -traceback \
+          $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
+          -I$(MILHOJA_PREFIX)/include -I$(BUILD) -module $(BUILD)
+else
+$(error Unsupported EXECUTION '$(EXECUTION)'; use hostmem or cuda-openacc)
+endif
+
+MPI_CXXFLAGS = $(shell $(MPICXX) --showme:compile)
 TARGET := $(BUILD)/interop_roundtrip
 STAMP := $(GENERATED)/.generated
 GENERATED_FILES := \
@@ -27,10 +48,7 @@ GENERATED_FILES := \
   $(GENERATED)/roundtrip_tf_C2F.F90 \
   $(GENERATED)/roundtrip_tf_mod.F90
 
-FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
-          $(LAYOUT_FLAGS) \
-          -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
-CXXFLAGS := -std=c++17 -Wall -Wextra $(LAYOUT_FLAGS) \
+CXXFLAGS := -std=c++17 -Wall -Wextra $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
             -I$(MILHOJA_PREFIX)/include -I$(GENERATED)
 
 OBJECTS := \
@@ -49,22 +67,22 @@ all: generate $(TARGET)
 generate: $(STAMP)
 
 generate-both:
-	$(MAKE) generate LAYOUT=variable-last
-	$(MAKE) generate LAYOUT=variable-first
+	$(MAKE) generate EXECUTION=$(EXECUTION) LAYOUT=variable-last
+	$(MAKE) generate EXECUTION=$(EXECUTION) LAYOUT=variable-first
 
 $(STAMP): generate_roundtrip.py
 	$(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
-	  --layout $(LAYOUT) --overwrite
+	  --execution $(EXECUTION) --layout $(LAYOUT) --overwrite
 	touch $(STAMP)
 
 regenerate:
 	$(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
-	  --layout $(LAYOUT) --overwrite
+	  --execution $(EXECUTION) --layout $(LAYOUT) --overwrite
 	touch $(STAMP)
 
 regenerate-both:
-	$(MAKE) regenerate LAYOUT=variable-last
-	$(MAKE) regenerate LAYOUT=variable-first
+	$(MAKE) regenerate EXECUTION=$(EXECUTION) LAYOUT=variable-last
+	$(MAKE) regenerate EXECUTION=$(EXECUTION) LAYOUT=variable-first
 
 verify-generation:
 	$(PYTHON) verify_generation.py $(MILHOJA_PREFIX)
@@ -75,8 +93,8 @@ run: all
 	$(TARGET)
 
 run-both:
-	$(MAKE) run LAYOUT=variable-last
-	$(MAKE) run LAYOUT=variable-first
+	$(MAKE) run EXECUTION=$(EXECUTION) LAYOUT=variable-last
+	$(MAKE) run EXECUTION=$(EXECUTION) LAYOUT=variable-first
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -101,7 +119,7 @@ $(BUILD)/roundtrip_main.o: roundtrip_main.cpp $(GENERATED)/DataPacket_roundtrip_
 
 $(TARGET): $(OBJECTS)
 	$(LINKER) $(OBJECTS) $(MILHOJA_PREFIX)/lib/libmilhoja.a \
-	  $(CXX_RUNTIME) -lpthread -o $@
+	  $(OFFLOAD_FLAGS) $(CXX_RUNTIME) -lpthread -o $@
 
 clean:
 	rm -f $(BUILD)/*.o $(BUILD)/*.mod $(TARGET)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify deterministic Step 5B source generation for both layouts."""
+"""Verify deterministic HOSTMEM and CUDA/OpenACC source generation."""
 
 import argparse
 import filecmp
@@ -14,6 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 GENERATOR = HERE / "generate_roundtrip.py"
 LAYOUTS = ("variable-last", "variable-first")
+EXECUTIONS = ("hostmem", "cuda-openacc")
 EXPECTED = {
     "DataPacket_roundtrip_tf.cxx",
     "DataPacket_roundtrip_tf.h",
@@ -29,7 +30,7 @@ EXPECTED = {
 }
 
 
-def generate(prefix, output, layout):
+def generate(prefix, output, execution, layout):
     subprocess.run(
         [
             sys.executable,
@@ -38,6 +39,8 @@ def generate(prefix, output, layout):
             str(output),
             "--layout",
             layout,
+            "--execution",
+            execution,
         ],
         check=True,
     )
@@ -52,7 +55,7 @@ def compare(first, second):
         assert filecmp.cmp(first / name, second / name, shallow=False), name
 
 
-def verify_sources(output, layout):
+def verify_sources(output, execution, layout):
     assert {path.name for path in output.iterdir() if path.is_file()} == EXPECTED
     spec = json.loads((output / "roundtrip.taskfunction.json").read_text())
     assert spec["grid"] == {
@@ -64,8 +67,12 @@ def verify_sources(output, layout):
     }
     assert spec["data_item"]["data_layout"] == layout
     assert spec["data_item"]["type"] == "DataPacket"
-    assert spec["task_function"]["processor"] == "CPU"
-    assert spec["task_function"]["computation_offloading"] == ""
+    if execution == "cuda-openacc":
+        assert spec["task_function"]["processor"] == "GPU"
+        assert spec["task_function"]["computation_offloading"] == "OpenACC"
+    else:
+        assert spec["task_function"]["processor"] == "CPU"
+        assert spec["task_function"]["computation_offloading"] == ""
     assert spec["task_function"]["subroutine_call_graph"] == [
         "roundtrip_kernel"
     ]
@@ -91,10 +98,17 @@ def verify_sources(output, layout):
     wrapper = (output / "roundtrip_tf.cxx").read_text()
     fortran = (output / "roundtrip_tf_mod.F90").read_text()
     combined = (c2f + packet + wrapper).lower()
-    assert "!$acc" not in combined
-    assert "use openacc" not in combined
-    assert "milhoja_openacc_offloading" not in combined
-    assert "milhoja_hostmem_runtime_backend" in combined
+    if execution == "cuda-openacc":
+        assert "!$acc parallel loop gang" in fortran.lower()
+        assert "use openacc" in combined
+        assert "milhoja_openacc_offloading" in combined
+        assert "asynchronousqueue()" in wrapper.lower()
+        assert "milhoja_hostmem_runtime_backend" not in combined
+    else:
+        assert "!$acc" not in combined
+        assert "use openacc" not in combined
+        assert "milhoja_openacc_offloading" not in combined
+        assert "milhoja_hostmem_runtime_backend" in combined
     assert "CALL roundtrip_kernel" in fortran
     assert "intent(INOUT) :: CC_1_d" in fortran
     assert "shape=[1, F_nTiles_h]" in c2f
@@ -122,17 +136,18 @@ def main():
     parser.add_argument("milhoja_prefix", type=Path)
     args = parser.parse_args()
 
-    for layout in LAYOUTS:
-        with tempfile.TemporaryDirectory() as first_name, \
-                tempfile.TemporaryDirectory() as second_name:
-            first = Path(first_name)
-            second = Path(second_name)
-            generate(args.milhoja_prefix, first, layout)
-            generate(args.milhoja_prefix, second, layout)
-            verify_sources(first, layout)
-            compare(first, second)
+    for execution in EXECUTIONS:
+        for layout in LAYOUTS:
+            with tempfile.TemporaryDirectory() as first_name, \
+                    tempfile.TemporaryDirectory() as second_name:
+                first = Path(first_name)
+                second = Path(second_name)
+                generate(args.milhoja_prefix, first, execution, layout)
+                generate(args.milhoja_prefix, second, execution, layout)
+                verify_sources(first, execution, layout)
+                compare(first, second)
 
-    print("Milhoja Step 5C dual-layout generation verification passed")
+    print("Milhoja Step 5E HOSTMEM/CUDA-OpenACC generation verification passed")
 
 
 if __name__ == "__main__":

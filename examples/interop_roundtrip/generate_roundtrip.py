@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Step 5B HOSTMEM interoperability round trip."""
+"""Generate the Milhoja interoperability round trip."""
 
 import argparse
 import json
@@ -10,9 +10,11 @@ import milhoja
 
 
 LAYOUTS = ("variable-last", "variable-first")
+EXECUTIONS = ("hostmem", "cuda-openacc")
 
 
-def specification(layout):
+def specification(layout, execution):
+    use_openacc = execution == "cuda-openacc"
     return {
         "format": ["Milhoja-JSON", "1.0.0"],
         "grid": {
@@ -24,8 +26,8 @@ def specification(layout):
         },
         "task_function": {
             "language": "Fortran",
-            "processor": "CPU",
-            "computation_offloading": "",
+            "processor": "GPU" if use_openacc else "CPU",
+            "computation_offloading": "OpenACC" if use_openacc else "",
             "variable_index_base": 1,
             "cpp_header": "roundtrip_tf.h",
             "cpp_source": "roundtrip_tf.cxx",
@@ -90,6 +92,9 @@ def main():
     parser.add_argument("milhoja_prefix", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--layout", choices=LAYOUTS, required=True)
+    parser.add_argument(
+        "--execution", choices=EXECUTIONS, default="hostmem"
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -99,7 +104,7 @@ def main():
     if spec_path.exists() and not args.overwrite:
         raise FileExistsError("Output already exists: {!s}".format(spec_path))
     spec_path.write_text(
-        json.dumps(specification(args.layout), indent=2) + "\n",
+        json.dumps(specification(args.layout, args.execution), indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -111,7 +116,9 @@ def main():
     milhoja.generate_task_function(
         task_function, output, args.overwrite, 4, logger
     )
-    print("Generated {} HOSTMEM round trip in {}".format(args.layout, output))
+    print("Generated {} {} round trip in {}".format(
+        args.execution, args.layout, output
+    ))
 
 
 if __name__ == "__main__":
