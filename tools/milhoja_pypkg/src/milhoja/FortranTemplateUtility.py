@@ -13,7 +13,7 @@ from . import (
     TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, TILE_LBOUND_ARGUMENT, LBOUND_ARGUMENT,
     GRID_DATA_LBOUNDS, SCRATCH_ARGUMENT, F2C_TYPE_MAPPING,
-    TILE_LEVEL_ARGUMENT, SOURCE_DATATYPES
+    TILE_LEVEL_ARGUMENT, SOURCE_DATATYPES, VARIABLE_FIRST
 )
 
 
@@ -135,7 +135,12 @@ class FortranTemplateUtility(TemplateUtility):
                     vars_in = array_spec.get('variables_in', None)
                     vars_out = array_spec.get('variables_out', None)
                     init = get_initial_index(vars_in, vars_out)
-                    lbound = GRID_DATA_LBOUNDS[struct].format(init)
+                    if self.tf_spec.data_layout == VARIABLE_FIRST:
+                        spatial_lbound = "tile_lbound" \
+                            if struct == "CENTER" else "tile_lo"
+                        lbound = "({}, {})".format(init, spatial_lbound)
+                    else:
+                        lbound = GRID_DATA_LBOUNDS[struct].format(init)
                     lbound, _ = parse_lbound_f(lbound)
                     lbound = [item.replace("tile_", "") for item in lbound]
                     one_time_mdata[TILE_LBOUND_ARGUMENT] = \
@@ -275,13 +280,11 @@ class FortranTemplateUtility(TemplateUtility):
         """
         self.section_creation(self._T_IN, tilein, connectors, size_connectors)
         for item, data in tilein.items():
-            raise NotImplementedError("No test cases for fortran tile_in.")
-            # gather all information from tile_in section.
             extents = data['extents']
             mask_in = data['variables_in']
             dtype = data['type']
             index_space = self.DEFAULT_INDEX_SPACE
-            array_size = self.get_array_size(mask_in, None)
+            array_size = get_array_size(mask_in, None)
 
             extents = ' * '.join(f'({item})' for item in extents)
             unks = f'{str(array_size)} + 1 - {str(index_space)}'
@@ -360,10 +363,8 @@ class FortranTemplateUtility(TemplateUtility):
         )
         connectors[f'unpack_{self._T_OUT}'] = []
         for item, data in tileout.items():
-            raise NotImplementedError("No test cases for fortran tile_out.")
-            # get tile_out information
             out_mask = data['variables_out']
-            array_size = self.get_array_size(None, out_mask)
+            array_size = get_array_size(None, out_mask)
             index_space = self.DEFAULT_INDEX_SPACE
             extents = ' * '.join(f'({item})' for item in data[self._EXTENTS])
             dtype = data['type']
@@ -376,7 +377,7 @@ class FortranTemplateUtility(TemplateUtility):
                 per_tile=True
             )
             self._common_iterate_tile_data(
-                data, connectors, info, extents, out_mask, self._T_OUT
+                data, connectors, info, extents, None, out_mask, self._T_OUT
             )
 
     def iterate_tile_scratch(

@@ -11,7 +11,7 @@ from .constants import (
     GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, TILE_ARGUMENTS_ALL,
     GRID_DATA_EXTENTS, LBOUND_ARGUMENT, LOG_LEVEL_BASIC,
     LOG_LEVEL_BASIC_DEBUG, VECTOR_ARRAY_EQUIVALENT, SOURCE_DATATYPES,
-    C2F_TYPE_MAPPING
+    C2F_TYPE_MAPPING, VARIABLE_FIRST
 )
 
 
@@ -75,6 +75,10 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         """
         # Uses number of *extra* streams, same as the DataPacketGenerator.
         self._n_extra_streams = tf_spec.n_streams - 1
+        self._use_openacc = \
+            tf_spec.computation_offloading.lower() == "openacc"
+        self._real_type = "real" if self._use_openacc \
+            else "real(MILHOJA_REAL)"
 
         # pass in an empty file for the header name since there is no header.
         super().__init__(
@@ -84,6 +88,11 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         )
 
         self.INDENT = " " * indent
+
+    def _fortran_type(self, dtype):
+        """Map a packet type to the Fortran type used by this backend."""
+        result = C2F_TYPE_MAPPING.get(dtype, dtype)
+        return self._real_type if result == "real" else result
 
     def generate_header_code(self, destination, overwrite):
         """No implementation for generating header code for c2f layer."""
@@ -165,7 +174,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
 
         info = C2FInfo(
             name=f'{arg}_d', ctype='type(C_PTR)',
-            ftype=C2F_TYPE_MAPPING.get(dtype, dtype) + ", pointer",
+            ftype=self._fortran_type(dtype) + ", pointer",
             shape=extents,
             conversion_eq='CALL C_F_POINTER({0}, {1}{2})'
         )
@@ -185,7 +194,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         """
         original_dtype = SOURCE_DATATYPES[spec["source"]]
         dtype = VECTOR_ARRAY_EQUIVALENT.get(original_dtype, original_dtype)
-        dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
+        dtype = self._fortran_type(dtype)
         shape = []
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
@@ -230,16 +239,20 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         :param spec: The arg specification of the variable
         """
         # grid dtype is always real.
-        dtype = "real"
+        dtype = self._real_type
         extents = self.__get_array_extents(spec)
 
         largest = get_array_size(
             spec.get('variables_in', None),
             spec.get('variables_out', None)
         )
+        if self._tf_spec.data_layout == VARIABLE_FIRST:
+            shape = [str(largest)] + extents + ['F_nTiles_h']
+        else:
+            shape = extents + [str(largest), 'F_nTiles_h']
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
-            shape=extents + [str(largest), 'F_nTiles_h'],
+            shape=shape,
             conversion_eq="CALL C_F_POINTER({0}, {1}, shape=[{2}])"
         )
         info.conversion_eq = info.conversion_eq.format(
@@ -255,7 +268,7 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         :param spec: The argument specification for the variable.
         """
         dtype = spec['type']
-        dtype = C2F_TYPE_MAPPING.get(dtype, dtype)
+        dtype = self._fortran_type(dtype)
         extents = self.__get_array_extents(spec)
         info = C2FInfo(
             name=arg + "_d", ctype="type(C_PTR)", ftype=dtype + ", pointer",
@@ -286,11 +299,15 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                 name='packet_h', ctype='type(C_PTR)', ftype='',
                 shape=[], conversion_eq=''
             )
+            queue_ftype = 'integer(kind=acc_handle_kind)' \
+                if self._use_openacc else 'integer(MILHOJA_INT)'
+            queue_conversion = '{0} = INT({1}, kind=acc_handle_kind)' \
+                if self._use_openacc else '{0} = {1}'
             queue_info = [
                 C2FInfo(
                     name=f'queue{i}_h', ctype='integer(MILHOJA_INT)',
-                    ftype='integer(kind=acc_handle_kind)', shape=[],
-                    conversion_eq='{0} = INT({1}, kind=acc_handle_kind)'
+                    ftype=queue_ftype, shape=[],
+                    conversion_eq=queue_conversion
                 )
                 for i in range(1, self._n_extra_streams+2)
             ]
@@ -347,11 +364,16 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                     real_args.append(info)
 
             # # WRITE BOILERPLATE
+            required_macro = 'MILHOJA_OPENACC_OFFLOADING' \
+                if self._use_openacc \
+                else 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
+            required_mode = 'OpenACC offloading' \
+                if self._use_openacc else 'the HOSTMEM runtime backend'
             fp.writelines([
                 '#include "Milhoja.h"\n',
-                '#ifndef MILHOJA_OPENACC_OFFLOADING\n',
+                f'#ifndef {required_macro}\n',
                 '#error "This file should only be compiled '
-                'if using OpenACC offloading"\n',
+                f'if using {required_mode}"\n',
                 '#endif\n\n',
                 f'subroutine {self._tf_spec.c2f_layer_name}( &\n'
             ])
@@ -367,10 +389,16 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             ]
             fortran_mod = fortran_mod["source"]
             fortran_mod = fortran_mod[:fortran_mod.rfind(".")]
-            fp.writelines([
+            fp.write(
                 f'{self.INDENT}use iso_c_binding, ONLY : C_PTR, C_F_POINTER\n'
-                f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n',
-                f'{self.INDENT}use milhoja_types_mod, ONLY : MILHOJA_INT\n',
+            )
+            if self._use_openacc:
+                fp.write(
+                    f'{self.INDENT}use openacc, ONLY : acc_handle_kind\n'
+                )
+            fp.writelines([
+                f'{self.INDENT}use milhoja_types_mod, ONLY : '
+                'MILHOJA_INT, MILHOJA_REAL\n',
                 f'{self.INDENT}use {fortran_mod}, ONLY : '
                 f'{self._tf_spec.function_name}\n',
                 f'{self.INDENT}implicit none\n\n'
@@ -390,11 +418,21 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                 for info in c2f_arg_info if info.ftype
             ])
 
-            # write c to f conversions
-            fp.writelines([
-                f'{self.INDENT}{info.conversion_eq}\n'
-                for info in c2f_arg_info
-            ])
+            # Write C-to-Fortran conversions.  Host-side packet names can be
+            # long, so use continuations to stay within free-form line limits.
+            for info in c2f_arg_info:
+                if (not self._use_openacc) and \
+                        info.conversion_eq.startswith("CALL C_F_POINTER"):
+                    fp.write(f'{self.INDENT}CALL C_F_POINTER( &\n')
+                    fp.write(f'{self.INDENT*2}{info.cname}, &\n')
+                    if info.shape:
+                        fp.write(f'{self.INDENT*2}{info.fname}, &\n')
+                        shape = ", ".join(info.shape)
+                        fp.write(f'{self.INDENT*2}shape=[{shape}])\n')
+                    else:
+                        fp.write(f'{self.INDENT*2}{info.fname})\n')
+                else:
+                    fp.write(f'{self.INDENT}{info.conversion_eq}\n')
             fp.write('\n')
 
             fp.write(f'{self.INDENT}CALL {self._tf_spec.function_name} ( &\n')

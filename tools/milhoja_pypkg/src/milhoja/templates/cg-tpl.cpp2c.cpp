@@ -6,8 +6,8 @@
 
 #include "_param:file_name"
 
-#ifndef MILHOJA_OPENACC_OFFLOADING
-#error "This file should only be compiled if using OpenACC offloading"
+#ifndef _param:runtime_macro
+#error "This file should only be compiled if using _param:runtime_mode"
 #endif
 
 using milhoja::Real;

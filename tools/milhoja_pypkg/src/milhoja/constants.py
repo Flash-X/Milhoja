@@ -19,6 +19,12 @@ SUPPORTED_LANGUAGES = ["c++", "fortran"]
 # If we ever want to support TPUs or NPUs :) (kidding, just a formality)
 SUPPORTED_PROCESSORS = ["cpu", "gpu"]
 
+# DataPacket grid-data layouts.  These names describe the component axis
+# relative to the spatial axes; the batched tile axis is always last.
+VARIABLE_LAST = "variable-last"
+VARIABLE_FIRST = "variable-first"
+SUPPORTED_DATA_LAYOUTS = [VARIABLE_LAST, VARIABLE_FIRST]
+
 # All code in the package that exists specifically to check for errors (e.g.,
 # check_*_specification) should use this as its log tag
 #

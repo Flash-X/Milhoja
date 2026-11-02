@@ -7,7 +7,7 @@ from . import (
     EXTERNAL_ARGUMENT, SCRATCH_ARGUMENT, TILE_INTERIOR_ARGUMENT,
     TILE_ARRAY_BOUNDS_ARGUMENT, GRID_DATA_ARGUMENT, MILHOJA_JSON_FORMAT,
     CURRENT_MILHOJA_JSON_VERSION, LBOUND_ARGUMENT, TILE_ARGUMENTS_ALL,
-    SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS
+    SUPPORTED_LANGUAGES, SUPPORTED_PROCESSORS, SUPPORTED_DATA_LAYOUTS
 )
 
 
@@ -183,6 +183,19 @@ class TaskFunction(object):
         raise NotImplementedError(
             f"{self.data_item} does not use byte_alignment."
         )
+
+    @property
+    def data_layout(self):
+        """Grid-data component ordering used inside a DataPacket."""
+        if self.data_item.lower() != "datapacket":
+            raise NotImplementedError(
+                f"{self.data_item} does not use a packet data layout."
+            )
+        layout = self.__data_spec.get("data_layout", "variable-last")
+        layout = layout.lower()
+        if layout not in SUPPORTED_DATA_LAYOUTS:
+            raise ValueError(f"Unsupported data layout ({layout})")
+        return layout
 
     # todo:: Name should use "data_item" instead of "packet"
     @property

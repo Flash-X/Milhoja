@@ -45,6 +45,12 @@ struct Stream {
 #if defined(MILHOJA_OPENACC_OFFLOADING)
     int            accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
 #endif
+#if defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_OFFLOADING) && \
+    !defined(MILHOJA_OPENACC_OFFLOADING)
+    bool           hostmemStreamValid = false;
+#endif
 
     Stream(void) = default;
     ~Stream(void)  { };
@@ -58,6 +64,13 @@ struct Stream {
         accAsyncQueue = stream.accAsyncQueue;
         stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
 #endif
+#if defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_OFFLOADING) && \
+    !defined(MILHOJA_OPENACC_OFFLOADING)
+        hostmemStreamValid = stream.hostmemStreamValid;
+        stream.hostmemStreamValid = false;
+#endif
     }
 
     Stream& operator=(Stream&& rhs) {
@@ -68,6 +81,13 @@ struct Stream {
 #if defined(MILHOJA_OPENACC_OFFLOADING)
         accAsyncQueue = rhs.accAsyncQueue;
         rhs.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
+#endif
+#if defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_OFFLOADING) && \
+    !defined(MILHOJA_OPENACC_OFFLOADING)
+        hostmemStreamValid = rhs.hostmemStreamValid;
+        rhs.hostmemStreamValid = false;
 #endif
 
         return *this;
@@ -89,9 +109,16 @@ struct Stream {
             return false;
         }
 #endif
-        // This specifies that a Stream object used in a simulation that does
-        // not use Streams will alway be valid.  This might be incorrect in the
-        // future.
+#if defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_OFFLOADING) && \
+    !defined(MILHOJA_OPENACC_OFFLOADING)
+        if (!hostmemStreamValid) {
+            return false;
+        }
+#endif
+        // Backends without a concrete stream representation do not need to
+        // distinguish acquired and unacquired Stream objects.
         return true;
     }
 };

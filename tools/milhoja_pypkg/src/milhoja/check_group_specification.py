@@ -27,7 +27,9 @@ def check_group_specification(group_spec, logger):
 
     # These must all be lowercase
     VALID_EXTERNAL_TYPES = ["real", "integer", "logical"]
-    VALID_SCRATCH_TYPES = ["real"]
+    # DataPacket scratch storage is byte-sized from its declared type, so host
+    # packets can carry integer diagnostics/results as well as real work arrays.
+    VALID_SCRATCH_TYPES = ["real", "integer"]
 
     # ----- ERROR CHECK ARGUMENTS
     if not isinstance(group_spec, dict):

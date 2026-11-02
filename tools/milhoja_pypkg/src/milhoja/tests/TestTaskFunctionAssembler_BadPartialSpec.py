@@ -167,6 +167,36 @@ class TestTaskFunctionAssembler_BadPartialSpec(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.__Sedov.to_milhoja_json(FILENAME, TF_PARTIAL_JSON, False)
 
+    def testDataLayout(self):
+        FILENAME = self.__dst.joinpath("cpu_tf_test.json")
+        TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")
+
+        for layout in ["variable-last", "variable-first"]:
+            specification = copy.deepcopy(self.__partial)
+            specification["data_item"]["data_layout"] = layout
+            with open(TF_PARTIAL_JSON, "w") as fptr:
+                json.dump(specification, fptr)
+            self.__Sedov.to_milhoja_json(
+                FILENAME, TF_PARTIAL_JSON, False
+            )
+            with open(FILENAME, "r") as fptr:
+                assembled = json.load(fptr)
+            self.assertEqual(layout, assembled["data_item"]["data_layout"])
+            os.remove(FILENAME)
+
+        for layout, exception in [
+            ("component-middle", ValueError),
+            (3, TypeError),
+        ]:
+            specification = copy.deepcopy(self.__partial)
+            specification["data_item"]["data_layout"] = layout
+            with open(TF_PARTIAL_JSON, "w") as fptr:
+                json.dump(specification, fptr)
+            with self.assertRaises(exception):
+                self.__Sedov.to_milhoja_json(
+                    FILENAME, TF_PARTIAL_JSON, False
+                )
+
     def testLanguage(self):
         FILENAME = self.__dst.joinpath("cpu_tf_test.json")
         TF_PARTIAL_JSON = self.__dst.joinpath("cpu_tf_test_partial.json")

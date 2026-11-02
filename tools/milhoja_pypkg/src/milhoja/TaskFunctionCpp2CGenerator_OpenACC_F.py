@@ -24,6 +24,12 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
 
     def __init__(self, tf_spec: TaskFunction, indent, logger):
         self.__TOOL_NAME = "Milhoja Cpp2C"
+        self._use_openacc = \
+            tf_spec.computation_offloading.lower() == "openacc"
+        self._runtime_macro = "MILHOJA_OPENACC_OFFLOADING" \
+            if self._use_openacc else "MILHOJA_HOSTMEM_RUNTIME_BACKEND"
+        self._runtime_mode = "OpenACC offloading" \
+            if self._use_openacc else "the HOSTMEM runtime backend"
         source_name = \
             tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         super().__init__(
@@ -148,6 +154,10 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
                 f'{self._tf_spec.delete_packet_C_function} */\n',
                 f'/* _param:release = '
                 f'{self._tf_spec.release_stream_C_function} */\n',
+                f'/* _param:runtime_macro = '
+                f'{self._runtime_macro} */\n',
+                f'/* _param:runtime_mode = '
+                f'{self._runtime_mode} */\n',
                 f'/* _param:thread_id = {THREAD_INDEX_VAR_NAME} */\n\n',
                 '/* _link:cpp2c */'
             ])
@@ -186,6 +196,8 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
         with open(helper, 'w') as helper:
             spec_func = self._tf_spec.argument_specification
             n_ex_streams = self._n_extra_streams
+            primary_queue = 'packet_h->asynchronousQueue()' \
+                if self._use_openacc else '0'
             # write c2f dummy arg list:
             helper.writelines([
                 '\n/* _connector:c2f_argument_list */\n',
@@ -204,7 +216,7 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
 
             helper.writelines([
                 '/* _connector:get_host_members */\n',
-                'const int queue1_h = packet_h->asynchronousQueue();\n',
+                f'const int queue1_h = {primary_queue};\n',
                 'const int _nTiles_h = packet_h->_nTiles_h;\n'
             ])
             helper.writelines([

@@ -38,6 +38,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         if not isinstance(tf_spec, TaskFunction):
             raise TypeError("Given tf_spec not derived from TaskFunction")
 
+        self._use_openacc = \
+            tf_spec.computation_offloading.lower() == "openacc"
+        self._real_type = "real" if self._use_openacc \
+            else "real(MILHOJA_REAL)"
+
         outputs = tf_spec.output_filenames
         header_filename = None
         source_filename = outputs[TaskFunction.FORTRAN_TF_KEY]["source"]
@@ -134,9 +139,17 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             # Boilerplate use statements
             fptr.write(f"{INDENT*2}use iso_c_binding, ONLY : C_PTR\n")
-            fptr.write(f"{INDENT*2}use openacc\n\n")
-            if self._tf_spec.n_streams > 1:
-                fptr.write(f"{INDENT*2}use milhoja_types_mod, ONLY : MILHOJA_INT\n\n")
+            if self._use_openacc:
+                fptr.write(f"{INDENT*2}use openacc\n\n")
+            if not self._use_openacc:
+                fptr.write(
+                    f"{INDENT*2}use milhoja_types_mod, ONLY : "
+                    "MILHOJA_INT, MILHOJA_REAL\n\n"
+                )
+            elif self._tf_spec.n_streams > 1:
+                fptr.write(
+                    f"{INDENT*2}use milhoja_types_mod, ONLY : MILHOJA_INT\n\n"
+                )
 
             offloading = []
             # Use in internal subroutines & export for OpenACC
@@ -147,9 +160,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     assert interface.endswith(".F90")
                     interface = interface.rstrip(".F90")
                     fptr.write(f"{INDENT*2}use {interface}, ONLY : {subroutine}\n")
-                    offloading.append(
-                        f"{INDENT*2}!$acc routine ({self._get_wrapper_name(subroutine)}) vector\n"
-                    )
+                    if self._use_openacc:
+                        offloading.append(
+                            f"{INDENT*2}!$acc routine "
+                            f"({self._get_wrapper_name(subroutine)}) vector\n"
+                        )
             fptr.writelines(["\n", *offloading, "\n"])
             # No implicit variables
             fptr.write(f"{INDENT*2}implicit none\n\n")
@@ -160,10 +175,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             # TODO: Should this get fortran_host_dummy_arguments and only
             # write lines for arguments in the result?
             fptr.write(f"{INDENT*2}type(C_PTR), intent(IN) :: C_packet_h\n")
-            fptr.write(f"{INDENT*2}integer(kind=acc_handle_kind), intent(IN) :: dataQ_h\n")
+            queue_type = "integer(kind=acc_handle_kind)" \
+                if self._use_openacc else "integer(MILHOJA_INT)"
+            fptr.write(f"{INDENT*2}{queue_type}, intent(IN) :: dataQ_h\n")
             for i in range(2, self._tf_spec.n_streams+1):
                 queue = f"queue{i}_h"
-                fptr.write(f"{INDENT*2}integer(kind=acc_handle_kind), intent(IN) :: {queue}\n")
+                fptr.write(f"{INDENT*2}{queue_type}, intent(IN) :: {queue}\n")
             fptr.write(f"{INDENT*2}integer, intent(IN) :: nTiles_d\n")
 
             # Generation-time argument definitions
@@ -184,13 +201,18 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
                     # is this okay? Should we fail if there is no type mapping?
                     arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                    if arg_type == "real":
+                        arg_type = self._real_type
                     fptr.write(f"{INDENT*2}{arg_type}, intent(IN) :: {arg}_d\n")
 
                 elif src in points:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :)\n")
 
                 elif src == TILE_DELTAS_ARGUMENT:
-                    fptr.write(f"{INDENT*2}real, intent(IN) :: {arg}_d(:, :)\n")
+                    fptr.write(
+                        f"{INDENT*2}{self._real_type}, intent(IN) :: "
+                        f"{arg}_d(:, :)\n"
+                    )
 
                 elif src in bounds:
                     fptr.write(f"{INDENT*2}integer, intent(IN) :: {arg}_d(:, :, :)\n")
@@ -208,10 +230,15 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     else:
                         raise LogicError("Unknown grid data variable class")
 
-                    fptr.write(f"{INDENT*2}real, intent({intent}) :: {arg}_d(:, :, :, :, :)\n")
+                    fptr.write(
+                        f"{INDENT*2}{self._real_type}, intent({intent}) :: "
+                        f"{arg}_d(:, :, :, :, :)\n"
+                    )
 
                 elif src == SCRATCH_ARGUMENT:
-                    arg_type = spec["type"]
+                    arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                    if arg_type == "real":
+                        arg_type = self._real_type
                     dimension = len(parse_extents(spec["extents"]))
                     assert dimension > 0
                     tmp = [":" for _ in range(dimension + 1)]
@@ -229,17 +256,20 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 fptr.write(f"{INDENT*2}integer(MILHOJA_INT) :: MH_idx\n")
                 fptr.write(f"{INDENT*2}integer(MILHOJA_INT) :: MH_ierr\n\n")
 
-            # Begin OpenACC data region
-            device_args = self._tf_spec.fortran_device_dummy_arguments
-            if len(device_args) == 0:
-                raise NotImplementedError("No test case for no arguments")
+            if self._use_openacc:
+                # Begin OpenACC data region
+                device_args = self._tf_spec.fortran_device_dummy_arguments
+                if len(device_args) == 0:
+                    raise NotImplementedError("No test case for no arguments")
 
-            fptr.write(f"{INDENT*2}!$acc data &\n")
-            fptr.write(f"{INDENT*2}!$acc& deviceptr( &\n")
-            for arg in device_args[:-1]:
-                fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{arg}, &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{device_args[-1]} &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
+                fptr.write(f"{INDENT*2}!$acc data &\n")
+                fptr.write(f"{INDENT*2}!$acc& deviceptr( &\n")
+                for arg in device_args[:-1]:
+                    fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{arg}, &\n")
+                fptr.write(
+                    f"{INDENT*2}!$acc&{INDENT*2}{device_args[-1]} &\n"
+                )
+                fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
 
             # Implement internal subroutine call graph with OpenACC offloading.
             # Data packet sent on dataQ_h
@@ -250,11 +280,13 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 # Insert waits if needed before next round of kernel launches
                 extras = [f"queue{i}_h" for i in range(2, len(node) + 1)]
                 next_queues = ["dataQ_h"] + extras
-                if (current_queues == ["dataQ_h"]) and \
+                if self._use_openacc and \
+                        (current_queues == ["dataQ_h"]) and \
                         (len(next_queues) > 1):
                     fptr.write(f"{INDENT*2}!$acc wait(dataQ_h)\n")
                     fptr.write("\n")
-                elif (len(current_queues) > 1) and \
+                elif self._use_openacc and \
+                        (len(current_queues) > 1) and \
                         (next_queues == ["dataQ_h"]):
                     # We don't have to wait for the data Q explicitly because
                     # there is only one next kernel launch to be scheduled on
@@ -267,7 +299,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{wait_for[-1]} &\n")
                     fptr.write(f"{INDENT*2}!$acc& )\n")
                     fptr.write("\n")
-                elif len(current_queues) > 1:
+                elif self._use_openacc and len(current_queues) > 1:
                     # Insert a barrier on all queues.
                     #
                     # This is necessary even if current and next queues are the
@@ -281,7 +313,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}!$acc& {current_queues[-1]} &\n")
                     fptr.write(f"{INDENT*2}!$acc& )\n")
                     fptr.write("\n")
-                else:
+                elif self._use_openacc:
                     # Next kernel launch on same stream => no need to wait
                     assert current_queues == ["dataQ_h"]
                     assert current_queues == next_queues
@@ -295,8 +327,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     wrapper_name, wrapper_lines = self._generate_subroutine_wrapper(INDENT, subroutine)
                     subroutine_wrappers[wrapper_name] = wrapper_lines
 
-                    fptr.write(f"{INDENT*2}!$acc parallel loop gang default(none) &\n")
-                    fptr.write(f"{INDENT*2}!$acc& async({queue})\n")
+                    if self._use_openacc:
+                        fptr.write(
+                            f"{INDENT*2}!$acc parallel loop gang "
+                            "default(none) &\n"
+                        )
+                        fptr.write(f"{INDENT*2}!$acc& async({queue})\n")
                     fptr.write(f"{INDENT*2}do n = 1, nTiles_d\n")
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
                     actual_args = \
@@ -311,15 +347,19 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*5})\n")
                     fptr.write(f"{INDENT*2}end do\n")
-                    fptr.write(f"{INDENT*2}!$acc end parallel loop\n")
+                    if self._use_openacc:
+                        fptr.write(f"{INDENT*2}!$acc end parallel loop\n")
                     fptr.write("\n")
 
-            # Final wait for task function
-            fptr.write(f"{INDENT*2}!$acc wait( &\n")
-            for queue in current_queues[:-1]:
-                fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{queue}, &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{current_queues[-1]} &\n")
-            fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
+            if self._use_openacc:
+                # Final wait for task function
+                fptr.write(f"{INDENT*2}!$acc wait( &\n")
+                for queue in current_queues[:-1]:
+                    fptr.write(f"{INDENT*2}!$acc&{INDENT*2}{queue}, &\n")
+                fptr.write(
+                    f"{INDENT*2}!$acc&{INDENT*2}{current_queues[-1]} &\n"
+                )
+                fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
 
             # Release all extra asynchronous queues after final wait
             for idx in range(2, self._tf_spec.n_streams+1):
@@ -327,13 +367,19 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 fptr.write(f"{INDENT*2}MH_idx = INT({idx}, kind=MILHOJA_INT)\n")
                 fptr.write(f"{INDENT*2}MH_ierr = {release_function}(C_packet_h, MH_idx)\n")
                 fptr.write(f"{INDENT*2}if (MH_ierr /= MILHOJA_SUCCESS) then\n")
-                msg = f"Unable to release extra OpenACC async queue {idx}"
+                if self._use_openacc:
+                    msg = \
+                        f"Unable to release extra OpenACC async queue {idx}"
+                else:
+                    msg = \
+                        f"Unable to release extra asynchronous queue {idx}"
                 fptr.write(f'{INDENT*3}write(*,*) "[{self._tf_spec.name}] {msg}"\n')
                 fptr.write(f"{INDENT*3}STOP\n")
                 fptr.write(f"{INDENT*2}end if\n\n")
 
-            # End OpenACC data region
-            fptr.write(f"{INDENT*2}!$acc end data\n")
+            if self._use_openacc:
+                # End OpenACC data region
+                fptr.write(f"{INDENT*2}!$acc end data\n")
             # End subroutine declaration
             fptr.write(f"{INDENT}end subroutine {self._tf_spec.function_name}\n")
             fptr.write("\n")
@@ -370,11 +416,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         interface = self._tf_spec.subroutine_interface_file(subroutine).strip()
         interface = interface.rstrip(".F90")
         lines.append(f"{indent*2}use {interface}, ONLY: {subroutine}")
+        if not self._use_openacc:
+            lines.append(
+                f"{indent*2}use milhoja_types_mod, ONLY: MILHOJA_REAL"
+            )
         lines.append("")
 
-        lines.append(f"{indent*2}!$acc routine vector")
-        lines.append(f"{indent*2}!$acc routine ({subroutine}) vector")
-        lines.append("")
+        if self._use_openacc:
+            lines.append(f"{indent*2}!$acc routine vector")
+            lines.append(f"{indent*2}!$acc routine ({subroutine}) vector")
+            lines.append("")
 
         lines.append(f"{indent*2}implicit none")
         lines.append("")
@@ -400,6 +451,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
                 # is this okay? Should we fail if there is no type mapping?
                 arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                if arg_type == "real":
+                    arg_type = self._real_type
                 pointer_extents[arg] = 0
                 pointer_types[arg] = arg_type
                 lines.append(f"{indent*2}{arg_type}, target, intent(IN) :: {arg}_d")
@@ -411,8 +464,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             elif src == TILE_DELTAS_ARGUMENT:
                 pointer_extents[arg] = 1
-                pointer_types[arg] = "real"
-                lines.append(f"{indent*2}real, target, intent(IN) :: {arg}_d(:, :)")
+                pointer_types[arg] = self._real_type
+                lines.append(
+                    f"{indent*2}{self._real_type}, target, intent(IN) :: "
+                    f"{arg}_d(:, :)"
+                )
 
             elif src in bounds:
                 pointer_extents[arg] = 2
@@ -435,11 +491,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     raise LogicError("Unknown grid data variable class")
 
                 pointer_extents[arg] = 4
-                pointer_types[arg] = "real"
-                lines.append(f"{indent*2}real, target, intent({intent}) :: {arg}_d(:, :, :, :, :)")
+                pointer_types[arg] = self._real_type
+                lines.append(
+                    f"{indent*2}{self._real_type}, target, "
+                    f"intent({intent}) :: {arg}_d(:, :, :, :, :)"
+                )
 
             elif src == SCRATCH_ARGUMENT:
-                arg_type = spec["type"]
+                arg_type = C2F_TYPE_MAPPING.get(spec["type"], spec["type"])
+                if arg_type == "real":
+                    arg_type = self._real_type
                 dimension = len(parse_extents(spec["extents"]))
                 assert dimension > 0
                 tmp = [":" for _ in range(dimension + 1)]

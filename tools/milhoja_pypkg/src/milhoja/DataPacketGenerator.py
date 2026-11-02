@@ -415,6 +415,7 @@ class DataPacketGenerator(AbcCodeGenerator):
             for idx, size in enumerate(block_extents):
                 extents[idx] = extents[idx].format(size, nguard)
             arg_dictionary[arg]['extents'] = extents
+            arg_dictionary[arg]['data_layout'] = self._tf_spec.data_layout
 
             # adjust masking.
             # ..todo::
@@ -445,8 +446,11 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
-            True
+            lambda x: (
+                -sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
+                x[0]
+            ),
+            False
         )
 
     @property
@@ -463,8 +467,11 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
-            True
+            lambda x: (
+                -sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
+                x[0]
+            ),
+            False
         )
 
     @property
@@ -481,8 +488,11 @@ class DataPacketGenerator(AbcCodeGenerator):
         arg_dictionary = self.__adjust_tile_data(args)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
-            True
+            lambda x: (
+                -sizes.get(SOURCE_DATATYPES[x[1]["source"]], 0),
+                x[0]
+            ),
+            False
         )
 
     @property

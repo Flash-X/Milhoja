@@ -181,12 +181,15 @@ class TemplateUtility():
         cls.set_pointer_determination(
             connectors, arg_type, info, True
         )
+        data_layout = data.get("data_layout", "variable-last")
+        masks = [mask for mask in (mask_in, mask_out) if mask]
+        packet_nvars = max(mask[1] for mask in masks) + 1
         if mask_in:
             cls.add_memcpy_connector(
                 connectors, arg_type,
                 extents, info.ITEM, mask_in[0],
                 mask_in[1], info.size, info.dtype,
-                data['structure_index'][0]
+                data['structure_index'][0], data_layout, packet_nvars
             )
         # here we pass in item twice because tile_in_out pointers get
         # packed and unpacked from the same location.
@@ -195,7 +198,7 @@ class TemplateUtility():
                 connectors, arg_type,
                 extents, mask_out[0], mask_out[1],
                 info.dtype, info.ITEM,
-                data['structure_index'][0]
+                data['structure_index'][0], data_layout, packet_nvars
             )
 
     @classmethod
@@ -419,7 +422,8 @@ class TemplateUtility():
     @classmethod
     def add_memcpy_connector(
         cls, connectors: dict, section: str, extents: str, item: str,
-        start: int, end: int, size_item: str, raw_type: str, source: str
+        start: int, end: int, size_item: str, raw_type: str, source: str,
+        data_layout: str = "variable-last", packet_nvars: int = None
     ):
         """
         Adds a memcpy connector based on the information passed in.
@@ -445,6 +449,26 @@ class TemplateUtility():
         desc = cls._TILE_DESC
         data_pointer_string = GRID_DATA_PTRS[source.upper()].format(desc)
 
+        if data_layout == "variable-first":
+            if packet_nvars is None:
+                raise ValueError("Variable-first packing needs component size")
+            connectors[f'memcpy_{section}'].extend([
+                f'{raw_type}* {item}_d = {data_pointer_string};\n',
+                f'{raw_type}* {item}_p = reinterpret_cast<{raw_type}*>(\n'
+                f'    reinterpret_cast<char*>(_{item}_p) + '
+                f'n * {size_item});\n',
+                f'constexpr std::size_t nCells_{item} = {extents};\n',
+                f'constexpr std::size_t nVars_{item} = {packet_nvars};\n',
+                f'for (std::size_t cell = 0; cell < nCells_{item}; ++cell) {{\n'
+                f'    for (std::size_t variable = {start}; '
+                f'variable <= {end}; ++variable) {{\n'
+                f'        {item}_p[variable + nVars_{item} * cell] =\n'
+                f'            {item}_d[cell + nCells_{item} * variable];\n'
+                f'    }}\n'
+                f'}}\n\n'
+            ])
+            return
+
         # TODO: Use grid data to get data pointer information.
         connectors[f'memcpy_{section}'].extend([
             f'{raw_type}* {item}_d = {data_pointer_string};\n'
@@ -460,7 +484,8 @@ class TemplateUtility():
     @classmethod
     def add_unpack_connector(
         cls, connectors: dict, section: str, extents, start: int, end: int,
-        raw_type: str, out_ptr: str, source: str
+        raw_type: str, out_ptr: str, source: str,
+        data_layout: str = "variable-last", packet_nvars: int = None
     ):
         """
         Adds an unpack connector to the connectors dictionary
@@ -485,6 +510,30 @@ class TemplateUtility():
         connectors[cls._IN_PTRS].append(
             f'{raw_type}* {out_ptr}_data_h = {data_pointer_string};\n'
         )
+        if data_layout == "variable-first":
+            if packet_nvars is None:
+                raise ValueError("Variable-first unpacking needs component size")
+            connectors[f'unpack_{section}'].extend([
+                f'constexpr std::size_t nCells_{out_ptr} = {extents};\n',
+                f'constexpr std::size_t nVars_{out_ptr} = {packet_nvars};\n',
+                f'for (std::size_t cell = 0; cell < nCells_{out_ptr}; '
+                f'++cell) {{\n'
+                f'    for (std::size_t variable = {start}; '
+                f'variable <= {end}; ++variable) {{\n'
+                f'        {out_ptr}_data_h[cell + nCells_{out_ptr} * '
+                f'variable] =\n'
+                f'            {out_ptr}_data_p[variable + nVars_{out_ptr} * '
+                f'cell];\n'
+                f'    }}\n'
+                f'}}\n\n'
+            ])
+            connectors[cls._OUT_PTRS].append(
+                f'{raw_type}* {out_ptr}_data_p = '
+                f'reinterpret_cast<{raw_type}*>(\n'
+                f'    reinterpret_cast<char*>(_{out_ptr}_p) + '
+                f'n * SIZE_{out_ptr.upper()});\n'
+            )
+            return
         connectors[f'unpack_{section}'].extend([
             f'constexpr std::size_t offset_{out_ptr} = {offset}\n',
             f'{raw_type}*        '

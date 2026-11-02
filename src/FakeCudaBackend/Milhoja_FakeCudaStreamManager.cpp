@@ -159,6 +159,10 @@ FakeCudaStreamManager::FakeCudaStreamManager(void)
          //    throw std::runtime_error(errMsg);
          // }
 
+#if !defined(MILHOJA_CUDA_RUNTIME_BACKEND) && \
+    !defined(MILHOJA_CUDA_OFFLOADING)
+         stream.hostmemStreamValid = true;
+#endif
          streams_.push_back( std::move(stream) );
     }
     Logger::instance().log(  "[FakeCudaStreamManager] Fake-created "

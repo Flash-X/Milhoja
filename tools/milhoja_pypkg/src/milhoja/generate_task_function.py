@@ -34,6 +34,29 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
         assert destination.joinpath(generator.header_filename).is_file()
         assert destination.joinpath(generator.source_filename).is_file()
 
+    elif (language.lower() == "fortran") and (processor == "cpu") and \
+            (data_item == "datapacket"):
+        # HOSTMEM uses the DataPacket path without computation offloading.
+        # The DataPacket Fortran generators select their host code paths from
+        # the empty computation_offloading value.
+        generator = TaskFunctionGenerator_OpenACC_F(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = \
+            TaskFunctionC2FGenerator_OpenACC_F(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = \
+            TaskFunctionCpp2CGenerator_OpenACC_F(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
+        generator = DataPacketModGenerator(tf_spec, indent, logger)
+        generator.generate_source_code(destination, overwrite)
+        assert destination.joinpath(generator.source_filename).is_file()
+
     elif (language.lower() == "fortran") and (processor == "cpu"):
         generator = TaskFunctionGenerator_cpu_F(tf_spec, indent, logger)
         generator.generate_source_code(destination, overwrite)
@@ -69,7 +92,7 @@ def generate_task_function(tf_spec, destination, overwrite, indent, logger):
         assert destination.joinpath(generator.source_filename).is_file()
 
         generator = DataPacketModGenerator(tf_spec, indent, logger)
-        generator.generate_source_code(destination, indent)
+        generator.generate_source_code(destination, overwrite)
         assert destination.joinpath(generator.source_filename).is_file()
 
     elif (language.lower() in ["c++", "fortran"]) and \

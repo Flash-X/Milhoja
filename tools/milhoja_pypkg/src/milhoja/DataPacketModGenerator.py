@@ -16,8 +16,10 @@ class DataPacketModGenerator(AbcCodeGenerator):
     # C2F Module generator uses its own specific type mapping for the
     # fortran interface.
     _TYPE_MAPPING = {
+        "milhoja::Real": "real(MILHOJA_REAL)",
         "real": "real(MILHOJA_REAL)",
         "int": "integer(MILHOJA_INT)",
+        "integer": "integer(MILHOJA_INT)",
         "bool": "logical"
     }
 

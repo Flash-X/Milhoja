@@ -1,5 +1,7 @@
 import numbers
 
+from .constants import SUPPORTED_DATA_LAYOUTS
+
 
 def check_partial_tf_specification(spec):
     """
@@ -10,10 +12,8 @@ def check_partial_tf_specification(spec):
     example, a C++ TF can specify any value for the fortran_source value
     without this function raising an error.
 
-    .. todo::
-        * Eventually we might have DataPackets sent to CPUs, in which case
-          we would want the specification to give the byte alignment as
-          well.
+    CPU task functions may use DataPackets with HOSTMEM.  DataPacket byte
+    alignment is therefore validated independently of the target processor.
     """
     # ----- ROOT
     expected = {"task_function", "data_item"}
@@ -72,8 +72,9 @@ def check_partial_tf_specification(spec):
     # ----- DATA ITEM
     data_item = spec["data_item"]
     expected = {"type", "byte_alignment", "header", "source", "module"}
+    optional = {"data_layout"}
     actual = set(data_item)
-    if actual != expected:
+    if not expected.issubset(actual) or actual.difference(expected | optional):
         msg = f"Invalid data item specification keys ({actual})"
         raise ValueError(msg)
 
@@ -91,6 +92,14 @@ def check_partial_tf_specification(spec):
             raise TypeError(msg)
         elif byte_align <= 0:
             raise ValueError(f"Non-positive byte alignment ({byte_align})")
+
+        data_layout = data_item.get("data_layout", "variable-last")
+        if not isinstance(data_layout, str):
+            raise TypeError(f"Data layout not string ({data_layout})")
+        elif data_layout.lower() not in SUPPORTED_DATA_LAYOUTS:
+            raise ValueError(f"Unsupported data layout ({data_layout})")
+    elif "data_layout" in data_item:
+        raise ValueError("TileWrapper does not use a packet data layout")
 
     for each in ["header", "source"]:
         fname = data_item[each]

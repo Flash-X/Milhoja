@@ -1,4 +1,7 @@
+import copy
+import json
 import os
+import tempfile
 import milhoja.tests
 
 from pathlib import Path
@@ -283,14 +286,56 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
                 except FileNotFoundError:
                     print("Could not find files. Continue.")
 
+    def testTileDataOrderingIsDeterministic(self):
+        json_path = _RUNTIME_PATH.joinpath("gpu_tf_fused_actions.json")
+        with open(json_path, "r") as fptr:
+            specification = copy.deepcopy(json.load(fptr))
+
+        task_function = specification["task_function"]
+        task_function["argument_list"].append("Aout")
+        task_function["argument_specifications"]["Aout"] = copy.deepcopy(
+            task_function["argument_specifications"]["Uout"]
+        )
+
+        tf_spec = TaskFunction(json_path, specification)
+        logger = BasicLogger(LOG_LEVEL_NONE)
+        generator = DataPacketGenerator(
+            tf_spec, 4, logger, self.SUMMIT_SIZES_2D
+        )
+
+        self.assertEqual(["Aout", "Uout"], list(generator.tile_out_args))
+
+    def testVariableFirstPackingAndUnpacking(self):
+        json_path = _RUNTIME_PATH.joinpath("gpu_tf_dens.json")
+        with open(json_path, "r") as fptr:
+            specification = copy.deepcopy(json.load(fptr))
+        specification["data_item"]["data_layout"] = "variable-first"
+
+        tf_spec = TaskFunction(json_path, specification)
+        self.assertEqual("variable-first", tf_spec.data_layout)
+        generator = DataPacketGenerator(
+            tf_spec, 4, BasicLogger(LOG_LEVEL_NONE), self.SUMMIT_SIZES_2D
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir)
+            generator.generate_templates(destination, overwrite=False)
+            generator.generate_source_code(destination, overwrite=False)
+            source = destination.joinpath(generator.source_filename).read_text()
+
+        self.assertIn("nCells_Uin", source)
+        self.assertIn("Uin_p[variable + nVars_Uin * cell]", source)
+        self.assertIn("Uout_data_h[cell + nCells_Uout * variable]", source)
+        self.assertNotIn("offset_Uin", source)
+
     def testTemplateUtility(self):
         """
         Function for testing the template utility classes. Primarily tests
         that the correct errors are raised given certain conditions. The
         output is checked by the data packet generation tests.
         """
-        connectors = {}
-        size_connectors = {}
+        connectors = defaultdict(list)
+        size_connectors = defaultdict(list)
 
         # load sample json to pass to constructor.
         tf_spec = TaskFunction.from_milhoja_json(self._runtime[0][self.JSON])
@@ -316,32 +361,39 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
         mock_tile_in = OrderedDict({
             "test1": {
                 "source": "tile_in",
+                "type": "real",
+                "structure_index": ["CENTER", 1],
                 "extents": ['16', '15', '14', '1'],
                 "variables_in": [1, 5]
             }
         })
-        with self.assertRaises(
-            NotImplementedError,
-            msg="No test case for fortran tile_in."
-        ):
-            util.iterate_tile_in(
-                connectors, size_connectors, mock_tile_in
-            )
+        util.iterate_tile_in(connectors, size_connectors, mock_tile_in)
+        self.assertTrue(any(
+            "test1" in line for line in connectors["public_members"]
+        ))
+        self.assertTrue(any(
+            "SIZE_TEST1" in line
+            for line in connectors["size_determination"]
+        ))
 
         mock_tile_out = OrderedDict({
             "test2": {
                 "source": "tile_out",
+                "type": "real",
+                "structure_index": ["FLUXX", 1],
                 "extents": ['16', '15', '14', '1'],
                 "variables_out": [1, 5]
             }
         })
-        with self.assertRaises(
-            NotImplementedError,
-            msg="No test cases for fortran tile_out."
-        ):
-            util.iterate_tile_out(
-                connectors, size_connectors, mock_tile_out
-            )
+        util.iterate_tile_out(connectors, size_connectors, mock_tile_out)
+        self.assertTrue(any(
+            "test2" in line for line in connectors["public_members"]
+        ))
+        self.assertTrue(any(
+            "SIZE_TEST2" in line
+            for line in connectors["size_determination"]
+        ))
+        self.assertTrue(connectors["unpack_tile_out"])
 
         # test proper ordering
         mock_externals = OrderedDict({
