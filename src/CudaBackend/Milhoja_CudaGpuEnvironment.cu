@@ -128,12 +128,18 @@ CudaGpuEnvironment::CudaGpuEnvironment(void)
         gpuMaxThreadDim_[i] = prop.maxThreadsDim[i];
     }
 
-    if (gpuCompMajor_ != 7 && gpuCompMajor_ != 8) {
-        throw std::runtime_error("[CudaGpuEnvironment::CudaGpuEnvironment] "
-                                 "We assume GPU compute capability 7.X or 8.X");
+    // The CUDA technical specifications list 128 resident grids per device
+    // for compute capabilities 7.x through 12.x.  Reject architectures
+    // outside that documented range instead of silently applying the value.
+    if (gpuCompMajor_ < 7 || gpuCompMajor_ > 12) {
+        throw std::runtime_error(
+            "[CudaGpuEnvironment::CudaGpuEnvironment] Unsupported GPU "
+            "compute capability " + std::to_string(gpuCompMajor_) + "." +
+            std::to_string(gpuCompMinor_) + "; expected 7.x through 12.x"
+        );
     }
 
-    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability
+    // https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/compute-capabilities.html
     gpuMaxConcurrentKernels_ = 128;
 }
 

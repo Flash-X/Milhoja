@@ -21,6 +21,7 @@ MPICXX = mpicxx
 LINKER = mpifort
 CXX_RUNTIME ?= -lc++
 MIXED_LINK_FLAGS :=
+RUNNER ?=
 OFFLOAD_FLAGS :=
 FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
           $(LAYOUT_FLAGS) \
@@ -32,6 +33,8 @@ MPICXX = mpicxx
 LINKER = mpicxx
 CXX_RUNTIME ?=
 MIXED_LINK_FLAGS := -fortranlibs -cudalib
+RUNNER ?= env OMPI_MCA_coll_ucc_enable=0 OMPI_MCA_pml=ob1 \
+          OMPI_MCA_btl=self UCX_MODULES=^cuda mpirun -np 1
 OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
 FFLAGS := -Mpreprocess -Mrecursive -i4 -r8 -traceback \
           $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
@@ -92,7 +95,7 @@ verify-generation:
 $(GENERATED_FILES): $(STAMP)
 
 run: all
-	$(TARGET)
+	$(RUNNER) $(TARGET)
 
 run-both:
 	$(MAKE) run EXECUTION=$(EXECUTION) LAYOUT=variable-last

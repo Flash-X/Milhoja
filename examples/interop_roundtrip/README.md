@@ -84,6 +84,11 @@ checksum reduction on the GPU. The checksum is also written to the logical
 first field element so the driver can validate it after the normal device-to-
 host transfer without dereferencing device scratch memory.
 
+Milhoja's CUDA environment accepts the CUDA-documented compute-capability
+range 7.x through 12.x. This includes the RTX 5080 at compute capability 12.0;
+after updating this source, rebuild and reinstall the CUDA Milhoja library
+before rebuilding this example.
+
 On the NVIDIA platform, first activate the NVHPC and HPC-X environment used to
 configure Milhoja. Then, from this directory, run the source-only checks:
 
@@ -115,6 +120,12 @@ The CUDA executable is linked with the MPI C++ wrapper because the driver owns
 the program's C++ `main`. The `-fortranlibs` option supplies the NVFORTRAN
 runtime used by the generated Fortran objects, and `-cudalib` supplies the CUDA
 runtime required by Milhoja's CUDA backend.
+
+The CUDA run target launches one MPI process and disables UCC and GPU-aware
+UCX transports. This test uses MPI only for Milhoja logging and performs no MPI
+communication with GPU buffers; bypassing those transports also avoids HPC-X
+singleton-initialization hangs on this platform. `RUNNER` can be overridden on
+the make command line when a site's MPI launcher requires different options.
 
 They can be replaced without editing the Makefile, for example:
 

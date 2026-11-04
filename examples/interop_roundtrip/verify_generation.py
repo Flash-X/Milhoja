@@ -140,6 +140,7 @@ def main():
     assert "-i4 -r8" in makefile
     assert "LINKER = mpicxx" in makefile
     assert "MIXED_LINK_FLAGS := -fortranlibs -cudalib" in makefile
+    assert "mpirun -np 1" in makefile
 
     for execution in EXECUTIONS:
         for layout in LAYOUTS:
