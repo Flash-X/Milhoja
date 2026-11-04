@@ -111,6 +111,11 @@ intentionally emit default `integer` and `real` declarations in their device
 wrappers, so these flags bind those declarations to the configured Milhoja
 32-bit integer and 64-bit real types.
 
+The CUDA executable is linked with the MPI C++ wrapper because the driver owns
+the program's C++ `main`. The `-fortranlibs` option supplies the NVFORTRAN
+runtime used by the generated Fortran objects, and `-cudalib` supplies the CUDA
+runtime required by Milhoja's CUDA backend.
+
 They can be replaced without editing the Makefile, for example:
 
 ```sh

@@ -20,6 +20,7 @@ CXX = c++
 MPICXX = mpicxx
 LINKER = mpifort
 CXX_RUNTIME ?= -lc++
+MIXED_LINK_FLAGS :=
 OFFLOAD_FLAGS :=
 FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
           $(LAYOUT_FLAGS) \
@@ -28,8 +29,9 @@ else ifeq ($(EXECUTION),cuda-openacc)
 FC = mpifort
 CXX = mpicxx
 MPICXX = mpicxx
-LINKER = mpifort
-CXX_RUNTIME ?= -lstdc++
+LINKER = mpicxx
+CXX_RUNTIME ?=
+MIXED_LINK_FLAGS := -fortranlibs -cudalib
 OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
 FFLAGS := -Mpreprocess -Mrecursive -i4 -r8 -traceback \
           $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
@@ -119,7 +121,7 @@ $(BUILD)/roundtrip_main.o: roundtrip_main.cpp $(GENERATED)/DataPacket_roundtrip_
 
 $(TARGET): $(OBJECTS)
 	$(LINKER) $(OBJECTS) $(MILHOJA_PREFIX)/lib/libmilhoja.a \
-	  $(OFFLOAD_FLAGS) $(CXX_RUNTIME) -lpthread -o $@
+	  $(OFFLOAD_FLAGS) $(MIXED_LINK_FLAGS) $(CXX_RUNTIME) -lpthread -o $@
 
 clean:
 	rm -f $(BUILD)/*.o $(BUILD)/*.mod $(TARGET)
