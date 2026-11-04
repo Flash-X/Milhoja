@@ -305,6 +305,54 @@ class TestDataPacketGenerator(milhoja.tests.TestCodeGenerators):
 
         self.assertEqual(["Aout", "Uout"], list(generator.tile_out_args))
 
+    def testMixedScratchIsNaturallyAligned(self):
+        json_path = _RUNTIME_PATH.joinpath("gpu_tf_dens.json")
+        with open(json_path, "r") as fptr:
+            specification = copy.deepcopy(json.load(fptr))
+
+        task_function = specification["task_function"]
+        subroutine = specification["subroutines"][
+            "StaticPhysicsRoutines::computeLaplacianDensity"
+        ]
+        scratch = {
+            "scratch_integer": {
+                "source": "scratch",
+                "type": "integer",
+                "extents": "(5)",
+                "lbound": "(1)",
+            },
+            "scratch_real": {
+                "source": "scratch",
+                "type": "real",
+                "extents": "(1)",
+                "lbound": "(1)",
+            },
+        }
+        for name, argument in scratch.items():
+            task_function["argument_list"].append(name)
+            task_function["argument_specifications"][name] = argument
+            subroutine["argument_list"].append(name)
+            subroutine["argument_mapping"][name] = name
+
+        tf_spec = TaskFunction(json_path, specification)
+        generator = DataPacketGenerator(
+            tf_spec, 4, BasicLogger(LOG_LEVEL_NONE), self.SUMMIT_SIZES_2D
+        )
+        self.assertEqual(
+            ["scratch_real", "scratch_integer"],
+            list(generator.scratch_args),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            destination = Path(tmpdir)
+            generator.generate_templates(destination, overwrite=False)
+            generator.generate_source_code(destination, overwrite=False)
+            source = destination.joinpath(generator.source_filename).read_text()
+
+        real_pointer = source.index("_scratch_real_d =")
+        integer_pointer = source.index("_scratch_integer_d =")
+        self.assertLess(real_pointer, integer_pointer)
+
     def testVariableFirstPackingAndUnpacking(self):
         json_path = _RUNTIME_PATH.joinpath("gpu_tf_dens.json")
         with open(json_path, "r") as fptr:

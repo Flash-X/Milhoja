@@ -520,7 +520,11 @@ class DataPacketGenerator(AbcCodeGenerator):
                 F2C_TYPE_MAPPING.get(dtype, dtype)
         return self._sort_dict(
             arg_dictionary.items(),
-            lambda x: (self._sizes.get(x[1]["type"], 0), x[0]),
+            # The scratch arena is one contiguous byte allocation.  Keep
+            # naturally wider types first so every member remains aligned
+            # without application-specific padding (for example, real after
+            # an odd number of integer values would otherwise be misaligned).
+            lambda x: (-self._sizes.get(x[1]["type"], 0), x[0]),
             False
         )
 
