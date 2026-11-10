@@ -63,12 +63,16 @@
                 real(MILHOJA_REAL) :: mh_checksum
                 real(MILHOJA_REAL) :: mh_increment
                 real(MILHOJA_REAL) :: mh_metadata
+                real(MILHOJA_REAL) :: mh_scale
 
                 mh_metadata = real( &
                     tile_lbound_d(1, n) + &
                     tile_lbound_d(2, n) + &
                     tile_lbound_d(3, n), &
                     MILHOJA_REAL)
+#ifdef MILHOJA_OPENMP_INLINE_CACHE_EXTERNALS
+                mh_scale = external_scale_d
+#endif
 #ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                 mh_checksum = 0.0_MILHOJA_REAL
 #endif
@@ -99,7 +103,11 @@
                                     1.0_MILHOJA_REAL
 #else
                                 CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) = &
+#ifdef MILHOJA_OPENMP_INLINE_CACHE_EXTERNALS
+                                    mh_scale * &
+#else
                                     external_scale_d * &
+#endif
                                     CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) + &
                                     mh_increment
 #endif
@@ -141,7 +149,11 @@
                                     1.0_MILHOJA_REAL
 #else
                                 CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) = &
+#ifdef MILHOJA_OPENMP_INLINE_CACHE_EXTERNALS
+                                    mh_scale * &
+#else
                                     external_scale_d * &
+#endif
                                     CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) + &
                                     mh_increment
 #endif

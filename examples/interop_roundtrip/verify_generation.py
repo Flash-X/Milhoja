@@ -129,6 +129,7 @@ def verify_sources(output, execution, layout):
         assert "MILHOJA_OPENMP_INLINE_CONSTANT_INCREMENT_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_LITERAL_FMA_LOOP_SMOKE" in inline_source
+        assert "MILHOJA_OPENMP_INLINE_CACHE_EXTERNALS" in inline_source
         assert "MILHOJA_OPENMP_INLINE_METADATA_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_SCRATCH_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_DIRECT_CALL_PROBE" in fortran
