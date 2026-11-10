@@ -7,6 +7,37 @@
             CC_1_d(1, 1, 1, 1, n) = &
                 external_scale_d * CC_1_d(1, 1, 1, 1, n) + &
                 1.0_MILHOJA_REAL
+#elif defined(MILHOJA_OPENMP_INLINE_LOOP_SMOKE)
+            block
+                integer :: mh_i, mh_j, mh_k, mh_variable
+#ifdef ROUNDTRIP_VARIABLE_FIRST
+                do mh_variable = 1, 4
+                    do mh_k = 1, 1 + 2 * MILHOJA_K3D
+                        do mh_j = 1, 2 + 2 * MILHOJA_K2D
+                            do mh_i = 1, 3 + 2 * MILHOJA_K1D
+                                CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) = &
+                                    CC_1_d( &
+                                        mh_variable, mh_i, mh_j, mh_k, n) + &
+                                    1.0_MILHOJA_REAL
+                            end do
+                        end do
+                    end do
+                end do
+#else
+                do mh_variable = 1, 4
+                    do mh_k = 1, 1 + 2 * MILHOJA_K3D
+                        do mh_j = 1, 2 + 2 * MILHOJA_K2D
+                            do mh_i = 1, 3 + 2 * MILHOJA_K1D
+                                CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) = &
+                                    CC_1_d( &
+                                        mh_i, mh_j, mh_k, mh_variable, n) + &
+                                    1.0_MILHOJA_REAL
+                            end do
+                        end do
+                    end do
+                end do
+#endif
+            end block
 #elif defined(MILHOJA_OPENMP_INLINE_METADATA_SMOKE)
             CC_1_d(1, 1, 1, 1, n) = real( &
                 tile_lbound_d(1, n), MILHOJA_REAL)
