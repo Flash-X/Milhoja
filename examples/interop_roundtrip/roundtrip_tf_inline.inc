@@ -69,7 +69,9 @@
                     tile_lbound_d(2, n) + &
                     tile_lbound_d(3, n), &
                     MILHOJA_REAL)
+#ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                 mh_checksum = 0.0_MILHOJA_REAL
+#endif
 
 #ifdef ROUNDTRIP_VARIABLE_FIRST
                 do mh_variable = 1, 4
@@ -83,14 +85,18 @@
                                     external_scale_d * &
                                     CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) + &
                                     mh_increment
+#ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                                 mh_checksum = mh_checksum + &
                                     CC_1_d(mh_variable, mh_i, mh_j, mh_k, n)
+#endif
                             end do
                         end do
                     end do
                 end do
+#ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                 scratch_checksum_d(1, n) = mh_checksum
                 CC_1_d(1, 1, 1, 1, n) = mh_checksum
+#endif
 #else
                 do mh_variable = 1, 4
                     do mh_k = 1, 1 + 2 * MILHOJA_K3D
@@ -103,14 +109,18 @@
                                     external_scale_d * &
                                     CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) + &
                                     mh_increment
+#ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                                 mh_checksum = mh_checksum + &
                                     CC_1_d(mh_i, mh_j, mh_k, mh_variable, n)
+#endif
                             end do
                         end do
                     end do
                 end do
+#ifndef MILHOJA_OPENMP_INLINE_NO_CHECKSUM_SMOKE
                 scratch_checksum_d(1, n) = mh_checksum
                 CC_1_d(1, 1, 1, 1, n) = mh_checksum
+#endif
 #endif
             end block
 #endif
