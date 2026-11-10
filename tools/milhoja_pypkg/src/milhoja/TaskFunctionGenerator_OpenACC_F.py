@@ -595,6 +595,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append("")
 
         lines.append(f"{indent*2}! Call subroutine")
+        if self._use_openmp:
+            lines.append("#ifndef MILHOJA_OPENMP_BYPASS_KERNEL_CALL")
         lines.append(f"{indent*2}CALL {subroutine}( &")
         arg_list = []
         for arg in actual_args:
@@ -602,6 +604,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             arg_list.append(_arg)
         lines.append(f"{indent*5}" + f", &\n{indent*5}".join(arg_list) + " &")
         lines.append(f"{indent*4})")
+        if self._use_openmp:
+            lines.append(
+                "#endif /* MILHOJA_OPENMP_BYPASS_KERNEL_CALL */"
+            )
 
         lines.append("")
         lines.append(f"{indent*1}end subroutine {subroutine_wrapper}")
