@@ -26,6 +26,7 @@ EXPECTED = {
     "roundtrip.taskfunction.json",
     "roundtrip_tf.cxx",
     "roundtrip_tf_C2F.F90",
+    "roundtrip_tf_inline.inc",
     "roundtrip_tf_mod.F90",
 }
 
@@ -114,6 +115,8 @@ def verify_sources(output, execution, layout):
         assert "collapse(" not in fortran.lower()
         assert "do n = 1, ntiles_h" in fortran.lower()
         assert "MILHOJA_OPENMP_BYPASS_DEVICE_CALL" in fortran
+        assert "MILHOJA_OPENMP_INLINE_COMPUTATION" in fortran
+        assert '#include "roundtrip_tf_inline.inc"' in fortran
         assert "MILHOJA_OPENMP_DIRECT_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_SCALAR_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_BYPASS_KERNEL_CALL" in fortran

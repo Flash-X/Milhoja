@@ -402,7 +402,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                                 self._openmp_direct_actual(argument, spec)
                             )
                         fptr.writelines([
-                            "#ifdef MILHOJA_OPENMP_DIRECT_CALL_PROBE\n",
+                            "#ifdef MILHOJA_OPENMP_INLINE_COMPUTATION\n",
+                            f'#include "{self._tf_spec.name}'
+                            '_inline.inc"\n',
+                            "#elif defined(MILHOJA_OPENMP_DIRECT_CALL_PROBE)\n",
                             f"{INDENT*3}CALL {subroutine}( &\n",
                             f"{INDENT*5}" + f", &\n{INDENT*5}".join(
                                 direct_args

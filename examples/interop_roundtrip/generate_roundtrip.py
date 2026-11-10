@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import shutil
 
 from pathlib import Path
 
@@ -118,6 +119,10 @@ def main():
     )
     milhoja.generate_task_function(
         task_function, output, args.overwrite, 4, logger
+    )
+    shutil.copyfile(
+        Path(__file__).with_name("roundtrip_tf_inline.inc"),
+        output / "roundtrip_tf_inline.inc",
     )
     print("Generated {} {} round trip in {}".format(
         args.execution, args.layout, output
