@@ -1,9 +1,12 @@
 HIPCC ?= hipcc
-FC ?= gfortran
+# GNU make defines FC=f77 as a built-in default. Use a normal assignment so
+# this example selects gfortran unless FC is explicitly set on the command
+# line or by a higher-priority make override.
+FC = gfortran
 
 GPU_ARCH ?= gfx1030
 OFFLOAD_TARGET ?= amdgcn-amdhsa
-HIP_LIB_DIR ?= /usr/lib64/rocm/gfx10/lib
+HIP_LIB_DIR ?=
 
 BUILD := build
 TARGET := $(BUILD)/hip_omp_interop
@@ -13,8 +16,12 @@ OFFLOAD_FLAGS := -fopenmp -foffload=$(OFFLOAD_TARGET) \
 FFLAGS := -O2 -std=f2018 -Wall -Wextra -J$(BUILD) -I$(BUILD) \
           $(OFFLOAD_FLAGS)
 CXXFLAGS := -O2 -std=c++17 -Wall -Wextra
-LINK_FLAGS := $(OFFLOAD_FLAGS) -L$(HIP_LIB_DIR) \
-              -Wl,-rpath,$(HIP_LIB_DIR) -lamdhip64 -lstdc++
+ifneq ($(strip $(HIP_LIB_DIR)),)
+HIP_LIBRARY_PATH_FLAGS := -L$(HIP_LIB_DIR) -Wl,-rpath,$(HIP_LIB_DIR)
+endif
+
+LINK_FLAGS := $(OFFLOAD_FLAGS) $(HIP_LIBRARY_PATH_FLAGS) \
+              -lamdhip64 -lstdc++
 
 OBJECTS := \
   $(BUILD)/hip_omp_kernel.o \
@@ -27,13 +34,11 @@ all: $(TARGET)
 check-environment:
 	@command -v $(HIPCC)
 	@command -v $(FC)
-	@test -r "$(HIP_LIB_DIR)/libamdhip64.so" || { \
-	  echo "Cannot read $(HIP_LIB_DIR)/libamdhip64.so" >&2; exit 1; }
 	@$(HIPCC) --version | head -n 1
 	@$(FC) --version | head -n 1
 	@echo "GPU_ARCH=$(GPU_ARCH)"
 	@echo "OFFLOAD_TARGET=$(OFFLOAD_TARGET)"
-	@echo "HIP_LIB_DIR=$(HIP_LIB_DIR)"
+	@echo "HIP_LIB_DIR=$(if $(HIP_LIB_DIR),$(HIP_LIB_DIR),<system linker search>)"
 
 $(BUILD):
 	mkdir -p $@

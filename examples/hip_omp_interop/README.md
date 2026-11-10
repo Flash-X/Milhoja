@@ -44,7 +44,10 @@ From `examples/hip_omp_interop`, inspect the selected tools and paths:
 make check-environment
 ```
 
-Build and run with mandatory GPU offload:
+Build and run with mandatory GPU offload. On the Rocky Linux installation the
+HIP runtime is normally in the system linker's standard search path, so do not
+pass the module's `ROCM_LIB`; that directory can contain architecture-specific
+support files rather than `libamdhip64`.
 
 ```sh
 make run
@@ -57,7 +60,7 @@ without editing the Makefile, for example:
 ```sh
 make run \
   GPU_ARCH=gfx1030 \
-  HIP_LIB_DIR="$ROCM_LIB"
+  HIP_LIB_DIR=/nonstandard/path/containing/libamdhip64
 ```
 
 A successful run ends with output similar to:
