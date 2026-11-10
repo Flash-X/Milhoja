@@ -77,6 +77,8 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         self._n_extra_streams = tf_spec.n_streams - 1
         self._use_openacc = \
             tf_spec.computation_offloading.lower() == "openacc"
+        self._use_openmp = \
+            tf_spec.computation_offloading.lower() == "openmp"
         self._real_type = "real" if self._use_openacc \
             else "real(MILHOJA_REAL)"
 
@@ -337,6 +339,8 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
             c2f_arg_info.extend(queue_info)
             real_args.extend(queue_info)
             c2f_arg_info.append(nTiles)
+            if self._use_openmp:
+                real_args.append(nTiles)
             c2f_arg_info.append(device_nTiles)
             real_args.append(device_nTiles)
 
@@ -364,11 +368,15 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
                     real_args.append(info)
 
             # # WRITE BOILERPLATE
-            required_macro = 'MILHOJA_OPENACC_OFFLOADING' \
-                if self._use_openacc \
-                else 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
-            required_mode = 'OpenACC offloading' \
-                if self._use_openacc else 'the HOSTMEM runtime backend'
+            if self._use_openacc:
+                required_macro = 'MILHOJA_OPENACC_OFFLOADING'
+                required_mode = 'OpenACC offloading'
+            elif self._use_openmp:
+                required_macro = 'MILHOJA_OPENMP_OFFLOADING'
+                required_mode = 'OpenMP offloading'
+            else:
+                required_macro = 'MILHOJA_HOSTMEM_RUNTIME_BACKEND'
+                required_mode = 'the HOSTMEM runtime backend'
             fp.writelines([
                 '#include "Milhoja.h"\n',
                 f'#ifndef {required_macro}\n',

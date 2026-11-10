@@ -10,11 +10,12 @@ import milhoja
 
 
 LAYOUTS = ("variable-last", "variable-first")
-EXECUTIONS = ("hostmem", "cuda-openacc")
+EXECUTIONS = ("hostmem", "cuda-openacc", "hip-openmp")
 
 
 def specification(layout, execution):
     use_openacc = execution == "cuda-openacc"
+    use_openmp = execution == "hip-openmp"
     return {
         "format": ["Milhoja-JSON", "1.0.0"],
         "grid": {
@@ -26,8 +27,10 @@ def specification(layout, execution):
         },
         "task_function": {
             "language": "Fortran",
-            "processor": "GPU" if use_openacc else "CPU",
-            "computation_offloading": "OpenACC" if use_openacc else "",
+            "processor": "GPU" if (use_openacc or use_openmp) else "CPU",
+            "computation_offloading": (
+                "OpenACC" if use_openacc else "OpenMP" if use_openmp else ""
+            ),
             "variable_index_base": 1,
             "cpp_header": "roundtrip_tf.h",
             "cpp_source": "roundtrip_tf.cxx",

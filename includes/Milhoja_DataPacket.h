@@ -140,6 +140,9 @@
 #if defined(MILHOJA_CUDA_OFFLOADING) || defined(MILHOJA_CUDA_RUNTIME_BACKEND)
 #include <cuda_runtime.h>
 #endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+#include <hip/hip_runtime.h>
+#endif
 
 namespace milhoja {
 
@@ -281,6 +284,12 @@ public:
      */
     cudaStream_t           stream(void)            { return stream_.cudaStream; };
 #endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+    hipStream_t            stream(void) { return stream_.hipStream; }
+#endif
+
+    /** Backend-neutral access used only for runtime ordering operations. */
+    const Stream&          runtimeStream(void) const { return stream_; }
 
 protected:
     DataPacket(void);

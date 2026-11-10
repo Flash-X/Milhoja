@@ -11,11 +11,16 @@
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 #include <cuda_runtime.h>
 #endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+#include <hip/hip_runtime.h>
+#endif
 
 namespace milhoja {
 
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 using GPU_TO_HOST_CALLBACK_FCN = cudaHostFn_t;
+#elif defined(MILHOJA_HIP_RUNTIME_BACKEND)
+using GPU_TO_HOST_CALLBACK_FCN = hipHostFn_t;
 #elif defined(MILHOJA_HOSTMEM_RUNTIME_BACKEND)
   using GPU_TO_HOST_CALLBACK_FCN = void  (*)(void*);
 #else
@@ -110,6 +115,9 @@ public:
      * @param stream - the Stream object to release
      */
     virtual void      releaseStream(Stream& stream) = 0;
+
+    /** Wait until all previously enqueued work on a stream has completed. */
+    virtual void      synchronizeStream(const Stream& stream) = 0;
 
     //----- DATA MOVEMENT
     /**

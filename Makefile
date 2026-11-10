@@ -23,6 +23,8 @@ CONFIG_MAKEFILE := ./Makefile.configure
 BACKEND_BUILDDIR :=
 ifeq ($(RUNTIME_BACKEND),CUDA)
 BACKEND_BUILDDIR := $(BUILDDIR)/CudaBackend
+else ifeq ($(RUNTIME_BACKEND),HIP)
+BACKEND_BUILDDIR := $(BUILDDIR)/HipBackend
 else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 BACKEND_BUILDDIR := $(BUILDDIR)/FakeCudaBackend
 endif
@@ -95,6 +97,12 @@ CUFLAGS  = -I$(INCDIR) -I$(INCDIR)/CudaBackend -I$(BUILDDIR) \
            $(CUFLAGS_STD) $(CUFLAGS_PROD) $(CUFLAGS_AMREX)
 CU_SRCS := $(wildcard $(SRCDIR)/CudaBackend/Milhoja_*.cu)
 CU_HDRS := $(wildcard $(INCDIR)/CudaBackend/Milhoja_*.h)
+else ifeq ($(RUNTIME_BACKEND),HIP)
+CXXFLAGS += -I$(INCDIR)/HipBackend
+HIPFLAGS = -I$(INCDIR) -I$(INCDIR)/HipBackend -I$(BUILDDIR) \
+           $(HIPFLAGS_STD) $(HIPFLAGS_PROD)
+HIP_SRCS := $(wildcard $(SRCDIR)/HipBackend/Milhoja_*.cpp)
+HIP_HDRS := $(wildcard $(INCDIR)/HipBackend/Milhoja_*.h)
 else ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 CXXFLAGS += -I$(INCDIR)/FakeCudaBackend
 CXXFLAGS += -I$(INCDIR) -I$(BUILDDIR)
@@ -111,12 +119,15 @@ CPP_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CPP_SRCS:.cpp=.o))
 INT_OBJS := $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(CINT_SRCS:.cpp=.o))
 INT_OBJS += $(patsubst $(INTERFACEDIR)/%,$(BUILDDIR)/%,$(FINT_SRCS:.F90=.o))
 CU_OBJS  := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(CU_SRCS:.cu=.o))
-OBJS     := $(CPP_OBJS) $(INT_OBJS) $(CU_OBJS)
-HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS)
+HIP_OBJS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(HIP_SRCS:.cpp=.o))
+OBJS     := $(CPP_OBJS) $(INT_OBJS) $(CU_OBJS) $(HIP_OBJS)
+HDRS     := $(CPP_HDRS) $(CINT_HDRS) $(CU_HDRS) $(HIP_HDRS)
 
 ifeq      ($(COMPUTATION_OFFLOADING),None)
 else ifeq ($(COMPUTATION_OFFLOADING),OpenACC)
 CXXFLAGS += $(OACC_FLAGS)
+else ifeq ($(COMPUTATION_OFFLOADING),OpenMP)
+CXXFLAGS += $(OMP_FLAGS)
 else
 $(error Unknown computation offload $(COMPUTATION_OFFLOADING))
 endif
@@ -171,6 +182,9 @@ $(BUILDDIR)/%.o: $(INTERFACEDIR)/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cu $(MILHOJA_H) $(HDRS) $(MAKEFILES)
 	$(CUCOMP) -MM $(CUFLAGS) -o $(@:.o=.d) $<
 	$(CUCOMP) -c $(CUFLAGS) -o $@ $<
+
+$(BUILDDIR)/HipBackend/%.o: $(SRCDIR)/HipBackend/%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)
+	$(HIPCOMP) -c $(HIPFLAGS) -o $@ $<
 
 ifeq ($(RUNTIME_BACKEND),HOSTMEM)
 $(BUILDDIR)/Milhoja_FakeCuda%.o: $(SRCDIR)/FakeCudaBackend/Milhoja_FakeCuda%.cpp $(MILHOJA_H) $(HDRS) $(MAKEFILES)

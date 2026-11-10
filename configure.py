@@ -54,6 +54,7 @@ _NC    = '\033[0m'      # No Color/Not bold
 _HOME_DIR = Path(__file__).resolve().parent
 _BUILD_DIR = _HOME_DIR.joinpath('build')
 _CUDA_BUILD_DIR = _BUILD_DIR.joinpath('CudaBackend')
+_HIP_BUILD_DIR = _BUILD_DIR.joinpath('HipBackend')
 _FAKE_CUDA_BUILD_DIR = _BUILD_DIR.joinpath('FakeCudaBackend')
 
 if __name__ == '__main__':
@@ -119,6 +120,8 @@ if __name__ == '__main__':
     _BUILD_DIR.mkdir()
     if runtime_backend.lower() == 'cuda':
         _CUDA_BUILD_DIR.mkdir()
+    elif runtime_backend.lower() == 'hip':
+        _HIP_BUILD_DIR.mkdir()
     elif runtime_backend.lower() == 'hostmem':
         _FAKE_CUDA_BUILD_DIR.mkdir()
 

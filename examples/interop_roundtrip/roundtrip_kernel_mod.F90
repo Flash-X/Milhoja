@@ -1,9 +1,14 @@
+#include "Milhoja.h"
+
 module roundtrip_kernel_mod
   use milhoja_types_mod, only: MILHOJA_REAL
   implicit none
   private
   public :: roundtrip_kernel
 
+#ifdef MILHOJA_OPENMP_OFFLOADING
+  !$omp declare target(roundtrip_kernel)
+#endif
 contains
 
   subroutine roundtrip_kernel(tile_lbound, field, scale, checksum)

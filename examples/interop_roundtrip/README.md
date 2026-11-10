@@ -145,3 +145,88 @@ Milhoja interoperability CUDA/OpenACC variable-first round trip passed
 Generated and compiled CUDA/OpenACC artifacts are kept under
 `generated/cuda-openacc/<layout>` and `build/cuda-openacc/<layout>`, separate
 from the HOSTMEM artifacts.
+
+## AMD HIP/OpenMP execution
+
+The HIP/OpenMP path deliberately separates data movement from computation:
+Milhoja allocates device and pinned memory and performs transfers with HIP,
+while GNU Fortran launches the generated TaskFunction with OpenMP target
+offloading. Before entering the OpenMP target region, the generated C++ layer
+synchronizes the packet's HIP stream so that the asynchronous host-to-device
+copy is visible to the OpenMP kernel. The target region is synchronous, after
+which the normal HIP device-to-host transfer and callback perform unpacking.
+
+Load the ROCm and MPI modules used for both the Milhoja library and the test:
+
+```sh
+module purge
+module load rocm/gfx10 mpi/openmpi-x86_64
+```
+
+Configure a two-dimensional Milhoja library from the repository root. Use a
+new, nonexistent install prefix because the current install target creates the
+prefix itself:
+
+```sh
+python3 configure.py \
+  --makefile "$PWD/sites/ghosha/Makefile.site.gnu_hip" \
+  --dim 2 \
+  --runtime HIP \
+  --grid None \
+  --offload OpenMP \
+  --support_push \
+  --support_packets \
+  --prefix "$PWD/2D-hip"
+
+make -j4 all
+make install
+```
+
+The installed `Milhoja.h` must contain both of these definitions:
+
+```c
+#define MILHOJA_HIP_RUNTIME_BACKEND
+#define MILHOJA_OPENMP_OFFLOADING
+```
+
+From `examples/interop_roundtrip`, verify deterministic generation for all
+supported execution modes and both layouts:
+
+```sh
+make verify-generation \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-hip
+```
+
+Then generate, build, and run both HIP/OpenMP layouts on the RX 6800 XT:
+
+```sh
+make run-both \
+  EXECUTION=hip-openmp \
+  GPU_ARCH=gfx1030 \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-hip
+```
+
+If `libamdhip64` is outside the system linker's default search path, add its
+actual directory (not a ROCm support-library directory that lacks the file):
+
+```sh
+make run-both \
+  EXECUTION=hip-openmp \
+  GPU_ARCH=gfx1030 \
+  HIP_LIB_DIR=/path/containing/libamdhip64 \
+  MILHOJA_PREFIX=/home/adubey/ORCHA/Milhoja/2D-hip
+```
+
+The default runner uses a 90-second timeout so a runtime failure cannot leave
+the verification indefinitely blocked. A successful combined run ends with:
+
+```text
+Milhoja interoperability HIP/OpenMP variable-last round trip passed
+Milhoja interoperability HIP/OpenMP variable-first round trip passed
+```
+
+The generated OpenMP code parallelizes the outer tile loop. It intentionally
+does not use a four-loop collapsed target region: on the tested GCC/ROCm
+`gfx1030` toolchain that form produced an invalid-ISA asynchronous queue
+failure, while the outer-loop form passed the HIP allocation, OpenMP target,
+and HIP copy-back interoperability tests for both packet layouts.

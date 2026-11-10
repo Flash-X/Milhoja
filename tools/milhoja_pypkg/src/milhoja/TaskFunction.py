@@ -270,6 +270,8 @@ class TaskFunction(object):
             raise LogicError("No Fortran host dummies for host-side TF")
 
         dummies = ["C_packet_h", "dataQ_h"]
+        if self.computation_offloading.lower() == "openmp":
+            dummies.append("nTiles_h")
         n_streams = self.n_streams
         if n_streams > 1:
             dummies += [f"queue{i}_h" for i in range(2, n_streams+1)]

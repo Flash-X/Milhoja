@@ -70,6 +70,16 @@ void      CudaBackend::releaseStream(Stream& stream) {
     CudaStreamManager::instance().releaseStream(stream);
 }
 
+void CudaBackend::synchronizeStream(const Stream& stream) {
+    const cudaError_t error = cudaStreamSynchronize(stream.cudaStream);
+    if (error != cudaSuccess) {
+        throw std::runtime_error(
+            "[CudaBackend::synchronizeStream] " +
+            std::string(cudaGetErrorString(error))
+        );
+    }
+}
+
 /**
  * Refer to the RuntimeBackend documentation for more information.
  */

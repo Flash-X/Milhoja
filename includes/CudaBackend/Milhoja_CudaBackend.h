@@ -34,6 +34,7 @@ public:
     int       numberFreeStreams(void) override;
     Stream    requestStream(const bool block) override;
     void      releaseStream(Stream& stream) override;
+    void      synchronizeStream(const Stream& stream) override;
 
     void      initiateHostToGpuTransfer(DataPacket& packet) override;
     void      initiateGpuToHostTransfer(DataPacket& packet,

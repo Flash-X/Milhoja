@@ -26,10 +26,17 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
         self.__TOOL_NAME = "Milhoja Cpp2C"
         self._use_openacc = \
             tf_spec.computation_offloading.lower() == "openacc"
-        self._runtime_macro = "MILHOJA_OPENACC_OFFLOADING" \
-            if self._use_openacc else "MILHOJA_HOSTMEM_RUNTIME_BACKEND"
-        self._runtime_mode = "OpenACC offloading" \
-            if self._use_openacc else "the HOSTMEM runtime backend"
+        self._use_openmp = \
+            tf_spec.computation_offloading.lower() == "openmp"
+        if self._use_openacc:
+            self._runtime_macro = "MILHOJA_OPENACC_OFFLOADING"
+            self._runtime_mode = "OpenACC offloading"
+        elif self._use_openmp:
+            self._runtime_macro = "MILHOJA_OPENMP_OFFLOADING"
+            self._runtime_mode = "OpenMP offloading"
+        else:
+            self._runtime_macro = "MILHOJA_HOSTMEM_RUNTIME_BACKEND"
+            self._runtime_mode = "the HOSTMEM runtime backend"
         source_name = \
             tf_spec.output_filenames[TaskFunction.CPP_TF_KEY]["source"]
         super().__init__(
@@ -219,6 +226,12 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
                 f'const int queue1_h = {primary_queue};\n',
                 'const int _nTiles_h = packet_h->_nTiles_h;\n'
             ])
+            if self._use_openmp:
+                helper.writelines([
+                    'milhoja::RuntimeBackend::instance().synchronizeStream(\n',
+                    '    packet_h->runtimeStream()\n',
+                    ');\n'
+                ])
             helper.writelines([
                 f'const int queue{i}_h = '
                 f'packet_h->extraAsynchronousQueue({i});\n'

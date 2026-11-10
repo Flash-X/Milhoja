@@ -72,6 +72,14 @@ void      FakeCudaBackend::releaseStream(Stream& stream) {
     FakeCudaStreamManager::instance().releaseStream(stream);
 }
 
+void FakeCudaBackend::synchronizeStream(const Stream& stream) {
+    if (!stream.isValid()) {
+        throw std::invalid_argument(
+            "[FakeCudaBackend::synchronizeStream] Invalid stream"
+        );
+    }
+}
+
 /**
  * Refer to the RuntimeBackend documentation for more information.
  */

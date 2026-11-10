@@ -1,7 +1,16 @@
 MILHOJA_PREFIX ?= ../../2D-hostmem
 PYTHON ?= python3
+MILHOJA_PYTHONPATH ?= ../../tools/milhoja_pypkg/src
 LAYOUT ?= variable-last
 EXECUTION ?= hostmem
+GPU_ARCH ?= gfx1030
+HIP_LIB_DIR ?=
+
+ifneq ($(strip $(HIP_LIB_DIR)),)
+HIP_LIBRARY_PATH_FLAGS := -L$(HIP_LIB_DIR) -Wl,-rpath,$(HIP_LIB_DIR)
+else
+HIP_LIBRARY_PATH_FLAGS :=
+endif
 
 ifeq ($(LAYOUT),variable-last)
 LAYOUT_FLAGS :=
@@ -23,6 +32,7 @@ CXX_RUNTIME ?= -lc++
 MIXED_LINK_FLAGS :=
 RUNNER ?=
 OFFLOAD_FLAGS :=
+CXX_OFFLOAD_FLAGS :=
 FFLAGS := -cpp -std=f2008 -Wall -Wextra -fcheck=all \
           $(LAYOUT_FLAGS) \
           -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
@@ -36,11 +46,26 @@ MIXED_LINK_FLAGS := -fortranlibs -cudalib
 RUNNER ?= env OMPI_MCA_coll_ucc_enable=0 OMPI_MCA_pml=ob1 \
           OMPI_MCA_btl=self UCX_MODULES=^cuda mpirun -np 1
 OFFLOAD_FLAGS ?= -acc=gpu -gpu=ccnative,cuda13.1,ptxinfo -Minfo=accel
+CXX_OFFLOAD_FLAGS := $(OFFLOAD_FLAGS)
 FFLAGS := -Mpreprocess -Mrecursive -i4 -r8 -traceback \
           $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
           -I$(MILHOJA_PREFIX)/include -I$(BUILD) -module $(BUILD)
+else ifeq ($(EXECUTION),hip-openmp)
+FC = mpifort
+CXX = mpicxx
+MPICXX = mpicxx
+LINKER = mpifort
+CXX_RUNTIME ?= -lstdc++
+MIXED_LINK_FLAGS := $(HIP_LIBRARY_PATH_FLAGS) -lamdhip64
+RUNNER ?= timeout 90s mpirun -np 1
+OFFLOAD_FLAGS ?= -fopenmp -foffload=amdgcn-amdhsa \
+                  -foffload-options=amdgcn-amdhsa=-march=$(GPU_ARCH)
+CXX_OFFLOAD_FLAGS :=
+FFLAGS := -cpp -std=f2008 -Wall -Wextra \
+          $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
+          -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
 else
-$(error Unsupported EXECUTION '$(EXECUTION)'; use hostmem or cuda-openacc)
+$(error Unsupported EXECUTION '$(EXECUTION)'; use hostmem, cuda-openacc, or hip-openmp)
 endif
 
 MPI_CXXFLAGS = $(shell $(MPICXX) --showme:compile)
@@ -53,7 +78,7 @@ GENERATED_FILES := \
   $(GENERATED)/roundtrip_tf_C2F.F90 \
   $(GENERATED)/roundtrip_tf_mod.F90
 
-CXXFLAGS := -std=c++17 -Wall -Wextra $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
+CXXFLAGS := -std=c++17 -Wall -Wextra $(CXX_OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
             -I$(MILHOJA_PREFIX)/include -I$(GENERATED)
 
 OBJECTS := \
@@ -76,12 +101,14 @@ generate-both:
 	$(MAKE) generate EXECUTION=$(EXECUTION) LAYOUT=variable-first
 
 $(STAMP): generate_roundtrip.py
-	$(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
+	PYTHONPATH=$(MILHOJA_PYTHONPATH):$$PYTHONPATH \
+	  $(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
 	  --execution $(EXECUTION) --layout $(LAYOUT) --overwrite
 	touch $(STAMP)
 
 regenerate:
-	$(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
+	PYTHONPATH=$(MILHOJA_PYTHONPATH):$$PYTHONPATH \
+	  $(PYTHON) generate_roundtrip.py $(MILHOJA_PREFIX) $(GENERATED) \
 	  --execution $(EXECUTION) --layout $(LAYOUT) --overwrite
 	touch $(STAMP)
 
@@ -90,7 +117,8 @@ regenerate-both:
 	$(MAKE) regenerate EXECUTION=$(EXECUTION) LAYOUT=variable-first
 
 verify-generation:
-	$(PYTHON) verify_generation.py $(MILHOJA_PREFIX)
+	PYTHONPATH=$(MILHOJA_PYTHONPATH):$$PYTHONPATH \
+	  $(PYTHON) verify_generation.py $(MILHOJA_PREFIX)
 
 $(GENERATED_FILES): $(STAMP)
 

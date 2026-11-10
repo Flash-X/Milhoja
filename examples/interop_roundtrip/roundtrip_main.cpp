@@ -34,6 +34,8 @@ constexpr const char* LAYOUT_NAME = "variable-last";
 #endif
 #ifdef MILHOJA_CUDA_RUNTIME_BACKEND
 constexpr const char* EXECUTION_NAME = "CUDA/OpenACC";
+#elif defined(MILHOJA_HIP_RUNTIME_BACKEND)
+constexpr const char* EXECUTION_NAME = "HIP/OpenMP";
 #else
 constexpr const char* EXECUTION_NAME = "HOSTMEM";
 #endif

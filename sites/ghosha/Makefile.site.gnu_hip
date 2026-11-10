@@ -1,0 +1,39 @@
+BASEDIR = $(MILHOJA_CODE_REPO)
+AMREXDIR =
+GTESTDIR =
+CUDADIR =
+
+CXXCOMPNAME = gnu
+CXXCOMP = mpicxx
+ROCM_INCLUDE_FLAG = $(if $(ROCM_INCLUDE),-I$(ROCM_INCLUDE))
+MPI_CXXFLAGS = $(shell $(CXXCOMP) --showme:compile)
+CXXFLAGS_PROD = -O3 $(ROCM_INCLUDE_FLAG)
+CXXFLAGS_DEBUG = -g3 -Og -DGRID_LOG -DRUNTIME_PERTILE_LOG \
+                 $(ROCM_INCLUDE_FLAG)
+
+CUCOMP =
+CUFLAGS_PROD =
+
+HIPCOMP = hipcc
+HIPFLAGS_PROD = -O3 $(MPI_CXXFLAGS) $(ROCM_INCLUDE_FLAG)
+
+F90COMP = mpifort
+F90FLAGS_PROD = -O3 -cpp -fbacktrace -fdefault-real-8 -fdefault-double-8
+F90FLAGS_DEBUG = -g3 -Og -cpp -fbacktrace -fbounds-check -Wall -Wextra
+
+LDFLAGS_STD = -g3 -lpthread -lstdc++ -lgfortran -lamdhip64
+
+CXXFLAGS_GTEST =
+CUFLAGS_AMREX =
+CUFLAGS_GTEST =
+LIB_AMREX =
+LIB_GTEST =
+
+LCOV = lcov
+GENHTML = genhtml
+CXXFLAGS_COV = -fprofile-arcs -ftest-coverage
+LDFLAGS_COV = --coverage
+
+OMP_FLAGS = -fopenmp
+CU_OMP_FLAGS =
+OACC_FLAGS =

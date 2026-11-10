@@ -24,6 +24,9 @@
 #if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
 #include <cuda_runtime.h>
 #endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+#include <hip/hip_runtime.h>
+#endif
 
 namespace milhoja {
 
@@ -41,6 +44,9 @@ struct Stream {
     // cudaStream_t is a typedef of a pointer.  Therefore, this
     // default value is valid and moves should be quick.
     cudaStream_t   cudaStream = nullptr;
+#endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+    hipStream_t    hipStream = nullptr;
 #endif
 #if defined(MILHOJA_OPENACC_OFFLOADING)
     int            accAsyncQueue = NULL_ACC_ASYNC_QUEUE;
@@ -60,6 +66,10 @@ struct Stream {
         cudaStream = stream.cudaStream;
         stream.cudaStream = nullptr;
 #endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+        hipStream = stream.hipStream;
+        stream.hipStream = nullptr;
+#endif
 #if defined(MILHOJA_OPENACC_OFFLOADING)
         accAsyncQueue = stream.accAsyncQueue;
         stream.accAsyncQueue = NULL_ACC_ASYNC_QUEUE; 
@@ -77,6 +87,10 @@ struct Stream {
 #if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
         cudaStream = rhs.cudaStream;
         rhs.cudaStream = nullptr;
+#endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+        hipStream = rhs.hipStream;
+        rhs.hipStream = nullptr;
 #endif
 #if defined(MILHOJA_OPENACC_OFFLOADING)
         accAsyncQueue = rhs.accAsyncQueue;
@@ -101,6 +115,11 @@ struct Stream {
     bool   isValid(void) const {
 #if defined(MILHOJA_CUDA_RUNTIME_BACKEND) || defined(MILHOJA_CUDA_OFFLOADING)
         if (cudaStream == nullptr) {
+            return false;
+        }
+#endif
+#ifdef MILHOJA_HIP_RUNTIME_BACKEND
+        if (hipStream == nullptr) {
             return false;
         }
 #endif

@@ -40,6 +40,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
         self._use_openacc = \
             tf_spec.computation_offloading.lower() == "openacc"
+        self._use_openmp = \
+            tf_spec.computation_offloading.lower() == "openmp"
+        if self._use_openmp and tf_spec.n_streams != 1:
+            raise NotImplementedError(
+                "OpenMP target generation currently supports one stream"
+            )
         self._real_type = "real" if self._use_openacc \
             else "real(MILHOJA_REAL)"
 
@@ -120,8 +126,17 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 f"{INDENT*3}integer(MILHOJA_INT), intent(IN), value :: C_tId\n",
                 f"{INDENT*3}type(C_PTR), intent(IN), value :: C_dataItemPtr\n",
                 f"{INDENT*2}end subroutine {self._tf_spec.cpp2c_layer_name}\n",
-                f"{INDENT}end interface\n\ncontains\n\n"
+                f"{INDENT}end interface\n\n"
             ])
+            if self._use_openmp:
+                for node in self._tf_spec.internal_subroutine_graph:
+                    for subroutine in node:
+                        wrapper = self._get_wrapper_name(subroutine)
+                        fptr.write(
+                            f"{INDENT}!$omp declare target({wrapper})\n"
+                        )
+                fptr.write("\n")
+            fptr.write("contains\n\n")
 
             # ----- DEFINE TASK FUNCTION SUBROUTINE
             # Begin Subroutine declaration
@@ -178,6 +193,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             queue_type = "integer(kind=acc_handle_kind)" \
                 if self._use_openacc else "integer(MILHOJA_INT)"
             fptr.write(f"{INDENT*2}{queue_type}, intent(IN) :: dataQ_h\n")
+            if self._use_openmp:
+                fptr.write(f"{INDENT*2}integer, intent(IN) :: nTiles_h\n")
             for i in range(2, self._tf_spec.n_streams+1):
                 queue = f"queue{i}_h"
                 fptr.write(f"{INDENT*2}{queue_type}, intent(IN) :: {queue}\n")
@@ -271,6 +288,18 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 )
                 fptr.write(f"{INDENT*2}!$acc&{INDENT})\n\n")
 
+            if self._use_openmp:
+                # OpenMP uses the host tile count as the loop bound.  Keep the
+                # unused device copy out of is_device_ptr so libgomp never has
+                # to interpret that scalar device allocation.
+                device_args = [
+                    argument for argument in
+                    self._tf_spec.fortran_device_dummy_arguments
+                    if argument != "nTiles_d"
+                ]
+                if len(device_args) == 0:
+                    raise NotImplementedError("No test case for no arguments")
+
             # Implement internal subroutine call graph with OpenACC offloading.
             # Data packet sent on dataQ_h
             current_queues = ["dataQ_h"]
@@ -333,7 +362,22 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             "default(none) &\n"
                         )
                         fptr.write(f"{INDENT*2}!$acc& async({queue})\n")
-                    fptr.write(f"{INDENT*2}do n = 1, nTiles_d\n")
+                    elif self._use_openmp:
+                        fptr.write(
+                            f"{INDENT*2}!$omp target teams distribute "
+                            "parallel do &\n"
+                        )
+                        fptr.write(f"{INDENT*2}!$omp& is_device_ptr( &\n")
+                        for argument in device_args[:-1]:
+                            fptr.write(
+                                f"{INDENT*2}!$omp&{INDENT*2}{argument}, &\n"
+                            )
+                        fptr.write(
+                            f"{INDENT*2}!$omp&{INDENT*2}{device_args[-1]} &\n"
+                        )
+                        fptr.write(f"{INDENT*2}!$omp&{INDENT})\n")
+                    loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"
+                    fptr.write(f"{INDENT*2}do n = 1, {loop_bound}\n")
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
@@ -349,6 +393,11 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*2}end do\n")
                     if self._use_openacc:
                         fptr.write(f"{INDENT*2}!$acc end parallel loop\n")
+                    elif self._use_openmp:
+                        fptr.write(
+                            f"{INDENT*2}!$omp end target teams distribute "
+                            "parallel do\n"
+                        )
                     fptr.write("\n")
 
             if self._use_openacc:

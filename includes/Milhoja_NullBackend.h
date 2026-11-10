@@ -32,6 +32,8 @@ public:
         { throw std::logic_error("[NullBackend::requestStream] Not implemented"); };
     void      releaseStream(Stream& stream) override
         { throw std::logic_error("[NullBackend::releaseStream] Not implemented"); };
+    void      synchronizeStream(const Stream& stream) override
+        { throw std::logic_error("[NullBackend::synchronizeStream] Not implemented"); };
 
     void      initiateHostToGpuTransfer(DataPacket& packet) override
         { throw std::logic_error("[NullBackend::initiateHostToGpuTransfer] Not implemented"); };

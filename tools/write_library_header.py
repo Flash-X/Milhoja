@@ -15,8 +15,8 @@ from pathlib import Path
 _VALID_DIM     = [1, 2, 3]
 _VALID_GRID    = ['none', 'amrex']
 _VALID_FPS     = ['double']
-_VALID_RUNTIME = ['none', 'cuda', 'hostmem']
-_VALID_OFFLOAD = ['none', 'openacc']
+_VALID_RUNTIME = ['none', 'cuda', 'hip', 'hostmem']
+_VALID_OFFLOAD = ['none', 'openacc', 'openmp']
 
 #####----- DEFAULT CONFIGURATION VALUES
 # No restriction on case for these variables
@@ -145,6 +145,9 @@ if __name__ == '__main__':
     elif runtime_backend.lower() == 'cuda':
         runtime_backend_macro = 'MILHOJA_CUDA_RUNTIME_BACKEND'
         gpu_support_included = True
+    elif runtime_backend.lower() == 'hip':
+        runtime_backend_macro = 'MILHOJA_HIP_RUNTIME_BACKEND'
+        gpu_support_included = True
     elif runtime_backend.lower() == 'gengpu': # generic non-CUDA GPU
         runtime_backend_macro = 'MILHOJA_GENGPU_RUNTIME_BACKEND'
         gpu_support_included = True
@@ -187,6 +190,8 @@ if __name__ == '__main__':
         offload_macro = 'MILHOJA_NO_OFFLOADING'
     elif computation_offloading.lower() == 'openacc':
         offload_macro = 'MILHOJA_OPENACC_OFFLOADING'
+    elif computation_offloading.lower() == 'openmp':
+        offload_macro = 'MILHOJA_OPENMP_OFFLOADING'
     else:
         print('PROGRAMMER LOGIC ERROR - computation_offloading')
         exit(100)

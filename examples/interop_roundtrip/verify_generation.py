@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify deterministic HOSTMEM and CUDA/OpenACC source generation."""
+"""Verify deterministic HOSTMEM, CUDA/OpenACC, and HIP/OpenMP generation."""
 
 import argparse
 import filecmp
@@ -14,7 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 GENERATOR = HERE / "generate_roundtrip.py"
 LAYOUTS = ("variable-last", "variable-first")
-EXECUTIONS = ("hostmem", "cuda-openacc")
+EXECUTIONS = ("hostmem", "cuda-openacc", "hip-openmp")
 EXPECTED = {
     "DataPacket_roundtrip_tf.cxx",
     "DataPacket_roundtrip_tf.h",
@@ -70,6 +70,9 @@ def verify_sources(output, execution, layout):
     if execution == "cuda-openacc":
         assert spec["task_function"]["processor"] == "GPU"
         assert spec["task_function"]["computation_offloading"] == "OpenACC"
+    elif execution == "hip-openmp":
+        assert spec["task_function"]["processor"] == "GPU"
+        assert spec["task_function"]["computation_offloading"] == "OpenMP"
     else:
         assert spec["task_function"]["processor"] == "CPU"
         assert spec["task_function"]["computation_offloading"] == ""
@@ -104,6 +107,16 @@ def verify_sources(output, execution, layout):
         assert "milhoja_openacc_offloading" in combined
         assert "asynchronousqueue()" in wrapper.lower()
         assert "milhoja_hostmem_runtime_backend" not in combined
+    elif execution == "hip-openmp":
+        assert "!$omp target teams distribute parallel do" in fortran.lower()
+        assert "is_device_ptr" in fortran.lower()
+        assert "!$omp declare target" in fortran.lower()
+        assert "collapse(" not in fortran.lower()
+        assert "do n = 1, ntiles_h" in fortran.lower()
+        assert "milhoja_openmp_offloading" in combined
+        assert "synchronizestream" in wrapper.lower()
+        assert "asynchronousqueue()" not in wrapper.lower()
+        assert "!$acc" not in combined
     else:
         assert "!$acc" not in combined
         assert "use openacc" not in combined
@@ -153,7 +166,7 @@ def main():
                 verify_sources(first, execution, layout)
                 compare(first, second)
 
-    print("Milhoja Step 5E HOSTMEM/CUDA-OpenACC generation verification passed")
+    print("Milhoja HOSTMEM/CUDA-OpenACC/HIP-OpenMP generation verification passed")
 
 
 if __name__ == "__main__":
