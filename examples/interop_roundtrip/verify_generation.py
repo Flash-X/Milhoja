@@ -123,6 +123,7 @@ def verify_sources(output, execution, layout):
         assert "MILHOJA_OPENMP_INLINE_ARGUMENT_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_EXTERNAL_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_MULTIPLY_SMOKE" in inline_source
+        assert "MILHOJA_OPENMP_INLINE_FMA_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_METADATA_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_INLINE_SCRATCH_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_DIRECT_CALL_PROBE" in fortran

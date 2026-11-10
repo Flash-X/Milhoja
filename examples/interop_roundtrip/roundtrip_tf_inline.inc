@@ -3,6 +3,10 @@
 #elif defined(MILHOJA_OPENMP_INLINE_MULTIPLY_SMOKE)
             CC_1_d(1, 1, 1, 1, n) = &
                 external_scale_d * CC_1_d(1, 1, 1, 1, n)
+#elif defined(MILHOJA_OPENMP_INLINE_FMA_SMOKE)
+            CC_1_d(1, 1, 1, 1, n) = &
+                external_scale_d * CC_1_d(1, 1, 1, 1, n) + &
+                1.0_MILHOJA_REAL
 #elif defined(MILHOJA_OPENMP_INLINE_METADATA_SMOKE)
             CC_1_d(1, 1, 1, 1, n) = real( &
                 tile_lbound_d(1, n), MILHOJA_REAL)
