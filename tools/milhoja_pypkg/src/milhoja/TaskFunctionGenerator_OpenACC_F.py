@@ -587,11 +587,17 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         lines.append("")
 
         lines.append(f"{indent*2}! Attach pointers")
+        if self._use_openmp:
+            lines.append("#ifndef MILHOJA_OPENMP_BYPASS_WRAPPER_SLICES")
         for arg, ptr in pointer_mapping.items():
             ptr_extents = pointer_extents[arg]
             _ext_str = ", ".join([":"] * ptr_extents) + ", nblk"
             _line = f"{indent*2}{ptr} => {arg}_d({_ext_str})"
             lines.append(_line)
+        if self._use_openmp:
+            lines.append(
+                "#endif /* MILHOJA_OPENMP_BYPASS_WRAPPER_SLICES */"
+            )
         lines.append("")
 
         lines.append(f"{indent*2}! Call subroutine")

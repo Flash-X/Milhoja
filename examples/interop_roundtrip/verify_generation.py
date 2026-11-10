@@ -115,6 +115,7 @@ def verify_sources(output, execution, layout):
         assert "do n = 1, ntiles_h" in fortran.lower()
         assert "MILHOJA_OPENMP_BYPASS_DEVICE_CALL" in fortran
         assert "MILHOJA_OPENMP_BYPASS_KERNEL_CALL" in fortran
+        assert "MILHOJA_OPENMP_BYPASS_WRAPPER_SLICES" in fortran
         assert "milhoja_openmp_offloading" in combined
         assert "synchronizestream" in wrapper.lower()
         assert "asynchronousqueue()" not in wrapper.lower()
