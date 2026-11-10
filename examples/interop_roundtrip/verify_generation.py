@@ -110,7 +110,8 @@ def verify_sources(output, execution, layout):
         assert "milhoja_hostmem_runtime_backend" not in combined
     elif execution == "hip-openmp":
         assert "!$omp target teams distribute parallel do" in fortran.lower()
-        assert "is_device_ptr" in fortran.lower()
+        assert "has_device_addr" in fortran.lower()
+        assert "is_device_ptr" not in fortran.lower()
         assert "!$omp declare target" in fortran.lower()
         assert "collapse(" not in fortran.lower()
         assert "do n = 1, ntiles_h" in fortran.lower()

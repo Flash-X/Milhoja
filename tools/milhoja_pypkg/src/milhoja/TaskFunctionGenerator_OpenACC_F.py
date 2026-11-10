@@ -304,7 +304,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
             if self._use_openmp:
                 # OpenMP uses the host tile count as the loop bound.  Keep the
-                # unused device copy out of is_device_ptr so libgomp never has
+                # unused device copy out of has_device_addr so libgomp never has
                 # to interpret that scalar device allocation.
                 device_args = [
                     argument for argument in
@@ -381,7 +381,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                             f"{INDENT*2}!$omp target teams distribute "
                             "parallel do &\n"
                         )
-                        fptr.write(f"{INDENT*2}!$omp& is_device_ptr( &\n")
+                        fptr.write(f"{INDENT*2}!$omp& has_device_addr( &\n")
                         for argument in device_args[:-1]:
                             fptr.write(
                                 f"{INDENT*2}!$omp&{INDENT*2}{argument}, &\n"
