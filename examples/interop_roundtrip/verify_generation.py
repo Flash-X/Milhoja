@@ -154,6 +154,8 @@ def main():
     assert "LINKER = mpicxx" in makefile
     assert "MIXED_LINK_FLAGS := -fortranlibs -cudalib" in makefile
     assert "mpirun -np 1" in makefile
+    assert "FFLAGS := -O2 -cpp -std=f2008" in makefile
+    assert "OMP_TARGET_OFFLOAD=MANDATORY" in makefile
 
     for execution in EXECUTIONS:
         for layout in LAYOUTS:
