@@ -378,6 +378,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         fptr.write(f"{INDENT*2}!$omp&{INDENT})\n")
                     loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"
                     fptr.write(f"{INDENT*2}do n = 1, {loop_bound}\n")
+                    if self._use_openmp:
+                        fptr.write(
+                            "#ifndef MILHOJA_OPENMP_BYPASS_DEVICE_CALL\n"
+                        )
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
@@ -390,6 +394,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         arg_list.append(f"{INDENT*5}{argument}_d{offs}")
                     fptr.write(", &\n".join(arg_list) + " &\n")
                     fptr.write(f"{INDENT*5})\n")
+                    if self._use_openmp:
+                        fptr.write(
+                            "#endif /* MILHOJA_OPENMP_BYPASS_DEVICE_CALL */\n"
+                        )
                     fptr.write(f"{INDENT*2}end do\n")
                     if self._use_openacc:
                         fptr.write(f"{INDENT*2}!$acc end parallel loop\n")

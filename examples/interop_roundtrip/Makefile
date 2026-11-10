@@ -5,6 +5,7 @@ LAYOUT ?= variable-last
 EXECUTION ?= hostmem
 GPU_ARCH ?= gfx1030
 HIP_LIB_DIR ?=
+DIAGNOSTIC_FLAGS ?=
 
 ifneq ($(strip $(HIP_LIB_DIR)),)
 HIP_LIBRARY_PATH_FLAGS := -L$(HIP_LIB_DIR) -Wl,-rpath,$(HIP_LIB_DIR)
@@ -63,7 +64,7 @@ OFFLOAD_FLAGS ?= -fopenmp -foffload=amdgcn-amdhsa \
                   -foffload-options=amdgcn-amdhsa=-march=$(GPU_ARCH)
 CXX_OFFLOAD_FLAGS := -D__HIP_PLATFORM_AMD__
 FFLAGS := -O2 -cpp -std=f2008 -Wall -Wextra \
-          $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
+          $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) $(DIAGNOSTIC_FLAGS) \
           -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
 else
 $(error Unsupported EXECUTION '$(EXECUTION)'; use hostmem, cuda-openacc, or hip-openmp)
