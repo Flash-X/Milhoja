@@ -60,7 +60,7 @@ MIXED_LINK_FLAGS := $(HIP_LIBRARY_PATH_FLAGS) -lamdhip64
 RUNNER ?= timeout 90s mpirun -np 1
 OFFLOAD_FLAGS ?= -fopenmp -foffload=amdgcn-amdhsa \
                   -foffload-options=amdgcn-amdhsa=-march=$(GPU_ARCH)
-CXX_OFFLOAD_FLAGS :=
+CXX_OFFLOAD_FLAGS := -D__HIP_PLATFORM_AMD__
 FFLAGS := -cpp -std=f2008 -Wall -Wextra \
           $(OFFLOAD_FLAGS) $(LAYOUT_FLAGS) \
           -I$(MILHOJA_PREFIX)/include -I$(BUILD) -J$(BUILD)
