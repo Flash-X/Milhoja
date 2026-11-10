@@ -78,7 +78,8 @@
                     do mh_k = 1, 1 + 2 * MILHOJA_K3D
                         do mh_j = 1, 2 + 2 * MILHOJA_K2D
                             do mh_i = 1, 3 + 2 * MILHOJA_K1D
-#ifdef MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE
+#if defined(MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE) || \
+    defined(MILHOJA_OPENMP_INLINE_LITERAL_FMA_LOOP_SMOKE)
 #elif defined(MILHOJA_OPENMP_INLINE_CONSTANT_INCREMENT_SMOKE)
                                 mh_increment = 1.0_MILHOJA_REAL
 #else
@@ -86,7 +87,12 @@
                                     100 * mh_variable + 10 * mh_j + mh_i, &
                                     MILHOJA_REAL) + mh_metadata
 #endif
-#ifdef MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE
+#ifdef MILHOJA_OPENMP_INLINE_LITERAL_FMA_LOOP_SMOKE
+                                CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) = &
+                                    2.0_MILHOJA_REAL * &
+                                    CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) + &
+                                    1.0_MILHOJA_REAL
+#elif defined(MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE)
                                 CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) = &
                                     external_scale_d * &
                                     CC_1_d(mh_variable, mh_i, mh_j, mh_k, n) + &
@@ -114,7 +120,8 @@
                     do mh_k = 1, 1 + 2 * MILHOJA_K3D
                         do mh_j = 1, 2 + 2 * MILHOJA_K2D
                             do mh_i = 1, 3 + 2 * MILHOJA_K1D
-#ifdef MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE
+#if defined(MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE) || \
+    defined(MILHOJA_OPENMP_INLINE_LITERAL_FMA_LOOP_SMOKE)
 #elif defined(MILHOJA_OPENMP_INLINE_CONSTANT_INCREMENT_SMOKE)
                                 mh_increment = 1.0_MILHOJA_REAL
 #else
@@ -122,7 +129,12 @@
                                     100 * mh_variable + 10 * mh_j + mh_i, &
                                     MILHOJA_REAL) + mh_metadata
 #endif
-#ifdef MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE
+#ifdef MILHOJA_OPENMP_INLINE_LITERAL_FMA_LOOP_SMOKE
+                                CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) = &
+                                    2.0_MILHOJA_REAL * &
+                                    CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) + &
+                                    1.0_MILHOJA_REAL
+#elif defined(MILHOJA_OPENMP_INLINE_DIRECT_FMA_LOOP_SMOKE)
                                 CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) = &
                                     external_scale_d * &
                                     CC_1_d(mh_i, mh_j, mh_k, mh_variable, n) + &
