@@ -120,6 +120,7 @@ def verify_sources(output, execution, layout):
         assert '#include "roundtrip_tf_inline.inc"' in fortran
         inline_source = (output / "roundtrip_tf_inline.inc").read_text()
         assert "MILHOJA_OPENMP_INLINE_ARRAY_SMOKE" in inline_source
+        assert "MILHOJA_OPENMP_INLINE_ARGUMENT_SMOKE" in inline_source
         assert "MILHOJA_OPENMP_DIRECT_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_SCALAR_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_BYPASS_KERNEL_CALL" in fortran

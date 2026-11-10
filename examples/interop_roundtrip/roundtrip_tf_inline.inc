@@ -1,4 +1,13 @@
-#ifdef MILHOJA_OPENMP_INLINE_ARRAY_SMOKE
+#ifdef MILHOJA_OPENMP_INLINE_ARGUMENT_SMOKE
+            scratch_checksum_d(1, n) = &
+                external_scale_d * CC_1_d(1, 1, 1, 1, n) + &
+                real( &
+                    tile_lbound_d(1, n) + &
+                    tile_lbound_d(2, n) + &
+                    tile_lbound_d(3, n), &
+                    MILHOJA_REAL)
+            CC_1_d(1, 1, 1, 1, n) = scratch_checksum_d(1, n)
+#elif defined(MILHOJA_OPENMP_INLINE_ARRAY_SMOKE)
             CC_1_d(1, 1, 1, 1, n) = CC_1_d(1, 1, 1, 1, n) + &
                 1.0_MILHOJA_REAL
 #else
