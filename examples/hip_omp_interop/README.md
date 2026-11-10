@@ -1,15 +1,19 @@
 # HIP allocation to GNU Fortran OpenMP-target interoperability
 
-This standalone prerequisite test asks one narrow question before a Milhoja
+This standalone prerequisite test asks two narrow questions before a Milhoja
 HIP backend is implemented: can a GNU Fortran OpenMP target region directly
-use device memory allocated by the platform HIP runtime?
+use device memory allocated by the platform HIP runtime, and does that path
+preserve both data-layout conventions required by the generated tasks?
 
 The test deliberately has no Milhoja, RecipeTools, or MPI dependency. The C++
-driver allocates and initializes 4096 double-precision values with HIP, passes
-the HIP device pointer through a `bind(C)` interface, and invokes a GNU Fortran
-OpenMP target loop with `is_device_ptr`. The driver then synchronizes HIP,
-copies the values back, and verifies every value. It also requires the Fortran
-region to report that it ran on a non-host OpenMP device.
+driver constructs a logical `5 x 3 x 2` field with four variables. It packs
+that field independently in variable-last and variable-first order, allocates
+each physical field with HIP, passes its HIP device pointer through a `bind(C)`
+interface, and invokes the matching GNU Fortran rank-four OpenMP target loop
+with `is_device_ptr`. Non-unit, unequal extents and index-dependent values make
+permuted dimensions or incorrect strides observable. The driver synchronizes
+HIP, copies each field back, and verifies every logical value. Each Fortran
+region must also report that it ran on a non-host OpenMP device.
 
 The OpenMP specification makes support for device pointers created outside
 OpenMP implementation-defined. Passing this test is therefore a prerequisite
@@ -66,8 +70,10 @@ make run \
 A successful run ends with output similar to:
 
 ```text
+variable-last layout passed
+variable-first layout passed
 HIP device: AMD Radeon RX 6800 XT
-HIP allocation -> GNU Fortran OpenMP target -> HIP copy-back passed
+HIP allocation -> GNU Fortran OpenMP target -> HIP copy-back passed for both layouts
 ```
 
 `OMP_TARGET_OFFLOAD=MANDATORY` is set by the `run` target, so an unavailable
