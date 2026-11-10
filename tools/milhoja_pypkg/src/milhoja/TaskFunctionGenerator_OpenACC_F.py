@@ -115,7 +115,15 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 f"{INDENT}implicit none\n",
                 f"{INDENT}private\n\n",
                 f"{INDENT}public :: {self._tf_spec.function_name}\n",
-                f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n",
+                f"{INDENT}public :: {self._tf_spec.cpp2c_layer_name}\n\n"
+            ])
+            if self._use_openmp:
+                fptr.writelines([
+                    f"{INDENT}integer :: milhoja_openmp_probe_sink = 0\n",
+                    f"{INDENT}!$omp declare target("
+                    "milhoja_openmp_probe_sink)\n\n"
+                ])
+            fptr.writelines([
                 f"{INDENT}interface\n{INDENT*2}",
                 "!> C++ task function that TimeAdvance passes to Orchestration unit\n",
                 f"{INDENT*2}subroutine {self._tf_spec.cpp2c_layer_name}",
@@ -129,6 +137,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 f"{INDENT}end interface\n\n"
             ])
             if self._use_openmp:
+                fptr.write(
+                    f"{INDENT}!$omp declare target("
+                    "milhoja_openmp_scalar_probe)\n"
+                )
                 for node in self._tf_spec.internal_subroutine_graph:
                     for subroutine in node:
                         wrapper = self._get_wrapper_name(subroutine)
@@ -379,9 +391,12 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"
                     fptr.write(f"{INDENT*2}do n = 1, {loop_bound}\n")
                     if self._use_openmp:
-                        fptr.write(
-                            "#ifndef MILHOJA_OPENMP_BYPASS_DEVICE_CALL\n"
-                        )
+                        fptr.writelines([
+                            "#ifdef MILHOJA_OPENMP_SCALAR_CALL_PROBE\n",
+                            f"{INDENT*3}CALL milhoja_openmp_scalar_probe(n)\n",
+                            "#elif !defined("
+                            "MILHOJA_OPENMP_BYPASS_DEVICE_CALL)\n"
+                        ])
                     fptr.write(f"{INDENT*3}CALL {wrapper_name}( &\n")
                     actual_args = \
                         self._tf_spec.subroutine_actual_arguments(subroutine)
@@ -396,7 +411,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     fptr.write(f"{INDENT*5})\n")
                     if self._use_openmp:
                         fptr.write(
-                            "#endif /* MILHOJA_OPENMP_BYPASS_DEVICE_CALL */\n"
+                            "#endif /* scalar probe or normal device call */\n"
                         )
                     fptr.write(f"{INDENT*2}end do\n")
                     if self._use_openacc:
@@ -442,6 +457,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             fptr.write("\n")
 
             # Write subroutine wrappers
+            if self._use_openmp:
+                fptr.writelines([
+                    f"{INDENT}subroutine milhoja_openmp_scalar_probe(value)\n",
+                    f"{INDENT*2}!GCC$ ATTRIBUTES NOINLINE :: "
+                    "milhoja_openmp_scalar_probe\n",
+                    f"{INDENT*2}integer, intent(IN) :: value\n",
+                    f"{INDENT*2}milhoja_openmp_probe_sink = value\n",
+                    f"{INDENT}end subroutine "
+                    "milhoja_openmp_scalar_probe\n\n"
+                ])
             for wrapper, lines in subroutine_wrappers.items():
                 for line in lines:
                     fptr.write(line + "\n")
