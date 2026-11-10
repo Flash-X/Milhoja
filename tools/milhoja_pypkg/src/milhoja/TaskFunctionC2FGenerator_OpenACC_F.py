@@ -170,6 +170,17 @@ class TaskFunctionC2FGenerator_OpenACC_F(AbcCodeGenerator):
         extents = parse_extents(spec['extents'])
         use_shape = ""
 
+        if self._use_openmp and not extents:
+            info = C2FInfo(
+                name=f'{arg}_h', ctype=self._fortran_type(dtype),
+                ftype=self._fortran_type(dtype), shape=[],
+                conversion_eq='{0} = {1}'
+            )
+            info.conversion_eq = info.conversion_eq.format(
+                info.fname, info.cname
+            )
+            return info
+
         if extents:
             extents = extents + ['nTiles']
             use_shape = f", shape=[{','.join(extents)}]"

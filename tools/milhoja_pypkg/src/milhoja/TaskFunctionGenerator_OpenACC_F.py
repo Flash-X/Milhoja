@@ -306,10 +306,16 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                 # OpenMP uses the host tile count as the loop bound.  Keep the
                 # unused device copy out of has_device_addr so libgomp never has
                 # to interpret that scalar device allocation.
+                value_args = []
+                for argument in self._tf_spec.dummy_arguments:
+                    spec = self._tf_spec.argument_specification(argument)
+                    if spec["source"] == EXTERNAL_ARGUMENT and \
+                            spec["extents"] == "()":
+                        value_args.append(f"{argument}_d")
                 device_args = [
                     argument for argument in
                     self._tf_spec.fortran_device_dummy_arguments
-                    if argument != "nTiles_d"
+                    if argument != "nTiles_d" and argument not in value_args
                 ]
                 if len(device_args) == 0:
                     raise NotImplementedError("No test case for no arguments")
@@ -389,7 +395,15 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         fptr.write(
                             f"{INDENT*2}!$omp&{INDENT*2}{device_args[-1]} &\n"
                         )
-                        fptr.write(f"{INDENT*2}!$omp&{INDENT})\n")
+                        continuation = " &" if value_args else ""
+                        fptr.write(
+                            f"{INDENT*2}!$omp&{INDENT}){continuation}\n"
+                        )
+                        if value_args:
+                            fptr.write(
+                                f"{INDENT*2}!$omp& firstprivate("
+                                f"{', '.join(value_args)})\n"
+                            )
                     loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"
                     fptr.write(f"{INDENT*2}do n = 1, {loop_bound}\n")
                     if self._use_openmp:

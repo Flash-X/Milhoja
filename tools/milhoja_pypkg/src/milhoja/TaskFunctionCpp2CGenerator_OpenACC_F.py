@@ -216,9 +216,18 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
                 for i in range(2, n_ex_streams+2)
             ])
             helper.write('const int _nTiles_h,\n')
-            helper.writelines([
-                ',\n'.join(f'const void* _{item}_d' for item in adjusted_args)
-            ])
+            c2f_packet_args = []
+            for item in adjusted_args:
+                spec = spec_func(item) if item != "nTiles" else None
+                if self._use_openmp and spec and \
+                        spec["source"] == EXTERNAL_ARGUMENT and \
+                        spec["extents"] == "()":
+                    c2f_packet_args.append(
+                        f'const {spec["type"]} _{item}_h'
+                    )
+                else:
+                    c2f_packet_args.append(f'const void* _{item}_d')
+            helper.write(',\n'.join(c2f_packet_args))
             helper.write('\n')
 
             helper.writelines([
@@ -258,12 +267,21 @@ class TaskFunctionCpp2CGenerator_OpenACC_F(AbcCodeGenerator):
                 spec = spec_func(var) if var != "nTiles" else None
                 # We just need the naming scheme.
                 var_info = DataPacketMemberVars(var, "", "", False)
-                self._connectors[self._DEVICE_MEMBERS].append(
-                    f"void* {var_info.device} = static_cast<void*>"
-                    f"( packet_h->{var_info.device} )"
-                )
-
-                self._connectors[self._C2F_ARGS].append(var_info.device)
+                scalar_external = self._use_openmp and spec and \
+                    spec["source"] == EXTERNAL_ARGUMENT and \
+                    spec["extents"] == "()"
+                if scalar_external:
+                    self._connectors[self._DEVICE_MEMBERS].append(
+                        f"const {spec['type']} {var_info.host} = "
+                        f"packet_h->{var_info.host}"
+                    )
+                    self._connectors[self._C2F_ARGS].append(var_info.host)
+                else:
+                    self._connectors[self._DEVICE_MEMBERS].append(
+                        f"void* {var_info.device} = static_cast<void*>"
+                        f"( packet_h->{var_info.device} )"
+                    )
+                    self._connectors[self._C2F_ARGS].append(var_info.device)
 
                 if spec:
                     if spec["source"] == EXTERNAL_ARGUMENT:
