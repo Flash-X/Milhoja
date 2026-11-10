@@ -401,7 +401,7 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                         )
                         if value_args:
                             fptr.write(
-                                f"{INDENT*2}!$omp& firstprivate("
+                                f"{INDENT*2}!$omp& map(to: "
                                 f"{', '.join(value_args)})\n"
                             )
                     loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"

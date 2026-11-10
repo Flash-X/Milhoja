@@ -112,7 +112,8 @@ def verify_sources(output, execution, layout):
         assert "!$omp target teams distribute parallel do" in fortran.lower()
         assert "has_device_addr" in fortran.lower()
         assert "is_device_ptr" not in fortran.lower()
-        assert "firstprivate(external_scale_d)" in fortran
+        assert "map(to: external_scale_d)" in fortran
+        assert "firstprivate(external_scale_d)" not in fortran
         assert "const real _external_scale_h" in wrapper
         assert "void* _external_scale_d" not in wrapper
         assert "C_external_scale_h" in c2f
