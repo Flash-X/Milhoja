@@ -13,10 +13,29 @@ contains
 
   subroutine roundtrip_kernel(tile_lbound, field, scale, checksum)
     !$acc routine vector
+#ifdef MILHOJA_OPENMP_OFFLOADING
+    integer, intent(in) :: tile_lbound(MILHOJA_MDIM)
+#ifdef ROUNDTRIP_VARIABLE_FIRST
+    real(MILHOJA_REAL), intent(inout) :: field( &
+      4, &
+      3 + 2 * MILHOJA_K1D, &
+      2 + 2 * MILHOJA_K2D, &
+      1 + 2 * MILHOJA_K3D)
+#else
+    real(MILHOJA_REAL), intent(inout) :: field( &
+      3 + 2 * MILHOJA_K1D, &
+      2 + 2 * MILHOJA_K2D, &
+      1 + 2 * MILHOJA_K3D, &
+      4)
+#endif
+    real(MILHOJA_REAL), intent(in) :: scale
+    real(MILHOJA_REAL), intent(out) :: checksum(1)
+#else
     integer, intent(in) :: tile_lbound(:)
     real(MILHOJA_REAL), intent(inout) :: field(:, :, :, :)
     real(MILHOJA_REAL), intent(in) :: scale
     real(MILHOJA_REAL), intent(out) :: checksum(:)
+#endif
 
     integer :: i, j, k, variable
     real(MILHOJA_REAL) :: checksum_value, increment, metadata_code

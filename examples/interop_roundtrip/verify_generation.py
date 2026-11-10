@@ -114,6 +114,7 @@ def verify_sources(output, execution, layout):
         assert "collapse(" not in fortran.lower()
         assert "do n = 1, ntiles_h" in fortran.lower()
         assert "MILHOJA_OPENMP_BYPASS_DEVICE_CALL" in fortran
+        assert "MILHOJA_OPENMP_DIRECT_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_SCALAR_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_BYPASS_KERNEL_CALL" in fortran
         assert "MILHOJA_OPENMP_BYPASS_WRAPPER_SLICES" in fortran

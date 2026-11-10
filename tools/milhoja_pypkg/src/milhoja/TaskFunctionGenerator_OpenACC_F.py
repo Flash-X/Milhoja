@@ -393,8 +393,22 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     loop_bound = "nTiles_h" if self._use_openmp else "nTiles_d"
                     fptr.write(f"{INDENT*2}do n = 1, {loop_bound}\n")
                     if self._use_openmp:
+                        direct_args = []
+                        for argument in self._tf_spec.subroutine_actual_arguments(
+                            subroutine
+                        ):
+                            spec = self._tf_spec.argument_specification(argument)
+                            direct_args.append(
+                                self._openmp_direct_actual(argument, spec)
+                            )
                         fptr.writelines([
-                            "#ifdef MILHOJA_OPENMP_SCALAR_CALL_PROBE\n",
+                            "#ifdef MILHOJA_OPENMP_DIRECT_CALL_PROBE\n",
+                            f"{INDENT*3}CALL {subroutine}( &\n",
+                            f"{INDENT*5}" + f", &\n{INDENT*5}".join(
+                                direct_args
+                            ) + " &\n",
+                            f"{INDENT*5})\n",
+                            "#elif defined(MILHOJA_OPENMP_SCALAR_CALL_PROBE)\n",
                             f"{INDENT*3}CALL milhoja_openmp_scalar_probe(n)\n",
                             "#elif !defined("
                             "MILHOJA_OPENMP_BYPASS_DEVICE_CALL)\n"
@@ -532,6 +546,38 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         if self._use_openmp:
             return "(" + ", ".join(self._openmp_wrapper_shape(spec)) + ")"
         return "(" + ", ".join([":"] * rank) + ")"
+
+    def _openmp_direct_actual(self, argument, spec):
+        """Return a per-tile actual argument for an OpenMP direct call."""
+        src = spec["source"]
+        name = f"{argument}_d"
+
+        if src == EXTERNAL_ARGUMENT:
+            if spec["extents"] != "()":
+                raise NotImplementedError(
+                    "OpenMP direct calls do not support array externals"
+                )
+            return name
+
+        if src in {
+            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+            TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT,
+            TILE_LEVEL_ARGUMENT
+        }:
+            offset = " + 1" if src == TILE_LEVEL_ARGUMENT else ""
+            return f"{name}(:, n{offset})"
+
+        if src in {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}:
+            return f"{name}(:, :, n)"
+
+        if src == GRID_DATA_ARGUMENT:
+            return f"{name}(:, :, :, :, n)"
+
+        if src == SCRATCH_ARGUMENT:
+            rank = len(parse_extents(spec["extents"]))
+            return f"{name}({', '.join([':'] * rank + ['n'])})"
+
+        raise LogicError(f"No OpenMP direct-call mapping for source {src}")
 
     def _generate_subroutine_wrapper(self, indent, subroutine):
         """
