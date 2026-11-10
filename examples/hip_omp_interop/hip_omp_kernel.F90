@@ -25,7 +25,7 @@ contains
     ran_on_device = 0_c_int
 
     !$omp target teams distribute parallel do is_device_ptr(values) &
-    !$omp& map(from: ran_on_device) collapse(4) private(logical_index)
+    !$omp& map(from: ran_on_device) private(logical_index)
     do variable = 1, n_variables
       do k = 1, n_z
         do j = 1, n_y
@@ -62,7 +62,7 @@ contains
     ran_on_device = 0_c_int
 
     !$omp target teams distribute parallel do is_device_ptr(values) &
-    !$omp& map(from: ran_on_device) collapse(4) private(logical_index)
+    !$omp& map(from: ran_on_device) private(logical_index)
     do k = 1, n_z
       do j = 1, n_y
         do i = 1, n_x

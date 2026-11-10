@@ -15,6 +15,12 @@ permuted dimensions or incorrect strides observable. The driver synchronizes
 HIP, copies each field back, and verifies every logical value. Each Fortran
 region must also report that it ran on a non-host OpenMP device.
 
+The OpenMP kernel distributes only its outer, layout-contiguous loop. The
+inner loops remain serial within each worker. This deliberately follows the
+smallest GPU code-generation pattern already established by the scalar Stage A
+probe; multidimensional collapsed-loop optimization is outside this layout
+interoperability prerequisite.
+
 The OpenMP specification makes support for device pointers created outside
 OpenMP implementation-defined. Passing this test is therefore a prerequisite
 for using HIP-owned Milhoja DataPacket storage directly from generated GNU
