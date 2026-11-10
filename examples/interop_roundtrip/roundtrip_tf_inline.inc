@@ -1,3 +1,7 @@
+#ifdef MILHOJA_OPENMP_INLINE_ARRAY_SMOKE
+            CC_1_d(1, 1, 1, 1, n) = CC_1_d(1, 1, 1, 1, n) + &
+                1.0_MILHOJA_REAL
+#else
             block
                 integer :: mh_i, mh_j, mh_k, mh_variable
                 real(MILHOJA_REAL) :: mh_checksum
@@ -53,3 +57,4 @@
                 CC_1_d(1, 1, 1, 1, n) = mh_checksum
 #endif
             end block
+#endif
