@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .parse_helpers import parse_extents
+from .parse_helpers import parse_extents, get_array_size
 from . import LogicError
 from . import AbcCodeGenerator
 from . import TaskFunction
@@ -9,7 +9,7 @@ from . import (
     TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT, TILE_UBOUND_ARGUMENT,
     TILE_DELTAS_ARGUMENT, GRID_DATA_ARGUMENT, SCRATCH_ARGUMENT, LBOUND_ARGUMENT,
     C2F_TYPE_MAPPING, TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT,
-    TILE_LEVEL_ARGUMENT
+    TILE_LEVEL_ARGUMENT, GRID_DATA_EXTENTS, VARIABLE_FIRST
 )
 
 
@@ -104,6 +104,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         with open(source_filename, "w") as fptr:
             # ----- DEFINE MODULE & MODULE INTERFACE
             # C Preprocessor includes
+            if self._use_openmp:
+                fptr.write('#include "Milhoja.h"\n\n')
             if self._tf_spec.n_streams > 1:
                 fptr.write('#include "Milhoja_interface_error_codes.h"\n')
                 fptr.write("\n")
@@ -480,6 +482,57 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
         """
         return "wrapper_" + subroutine
 
+    def _openmp_wrapper_shape(self, spec):
+        """Return a descriptor-free array shape for an OpenMP wrapper.
+
+        GNU Fortran device calls with assumed-shape dummy arguments pass an
+        array descriptor.  That calling convention is not usable by the
+        gfx1030 offload toolchain exercised by the HIP/OpenMP backend.  All
+        packet dimensions are known from the task-function specification, so
+        use explicit extents and reserve an assumed-size final dimension for
+        the batched tile index.
+        """
+        src = spec["source"]
+
+        if src in {
+            TILE_LO_ARGUMENT, TILE_HI_ARGUMENT, TILE_LBOUND_ARGUMENT,
+            TILE_UBOUND_ARGUMENT, LBOUND_ARGUMENT, TILE_DELTAS_ARGUMENT
+        }:
+            return ["MILHOJA_MDIM", "*"]
+
+        if src in {TILE_INTERIOR_ARGUMENT, TILE_ARRAY_BOUNDS_ARGUMENT}:
+            return ["2", "MILHOJA_MDIM", "*"]
+
+        if src == TILE_LEVEL_ARGUMENT:
+            return ["1", "*"]
+
+        if src == GRID_DATA_ARGUMENT:
+            block_extents = self._tf_spec.block_interior_shape
+            nguard = self._tf_spec.n_guardcells
+            structure = spec["structure_index"][0]
+            extents = list(GRID_DATA_EXTENTS[structure])
+            for idx, extent in enumerate(block_extents):
+                extents[idx] = extents[idx].format(extent, nguard)
+
+            nvars = str(get_array_size(
+                spec.get("variables_in", None),
+                spec.get("variables_out", None)
+            ))
+            if self._tf_spec.data_layout == VARIABLE_FIRST:
+                return [nvars] + extents + ["*"]
+            return extents + [nvars, "*"]
+
+        if src == SCRATCH_ARGUMENT:
+            return parse_extents(spec["extents"]) + ["*"]
+
+        raise LogicError(f"No OpenMP wrapper shape for source {src}")
+
+    def _wrapper_shape(self, spec, rank):
+        """Return the wrapper dummy shape for the selected offload model."""
+        if self._use_openmp:
+            return "(" + ", ".join(self._openmp_wrapper_shape(spec)) + ")"
+        return "(" + ", ".join([":"] * rank) + ")"
+
     def _generate_subroutine_wrapper(self, indent, subroutine):
         """
         A helper function to generate a subroutine wrapper
@@ -542,25 +595,35 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
             elif src in points:
                 pointer_extents[arg] = 1
                 pointer_types[arg] = "integer"
-                lines.append(f"{indent*2}integer, target, intent(IN) :: {arg}_d(:, :)")
+                shape = self._wrapper_shape(spec, 2)
+                lines.append(
+                    f"{indent*2}integer, target, intent(IN) :: {arg}_d{shape}"
+                )
 
             elif src == TILE_DELTAS_ARGUMENT:
                 pointer_extents[arg] = 1
                 pointer_types[arg] = self._real_type
+                shape = self._wrapper_shape(spec, 2)
                 lines.append(
                     f"{indent*2}{self._real_type}, target, intent(IN) :: "
-                    f"{arg}_d(:, :)"
+                    f"{arg}_d{shape}"
                 )
 
             elif src in bounds:
                 pointer_extents[arg] = 2
                 pointer_types[arg] = "integer"
-                lines.append(f"{indent*2}integer, target, intent(IN) :: {arg}_d(:, :, :)")
+                shape = self._wrapper_shape(spec, 3)
+                lines.append(
+                    f"{indent*2}integer, target, intent(IN) :: {arg}_d{shape}"
+                )
 
             elif src == TILE_LEVEL_ARGUMENT:
                 pointer_extents[arg] = 1
                 pointer_types[arg] = "integer"
-                lines.append(f"{indent*2}integer, target, intent(IN) :: {arg}_d(:, :)")
+                shape = self._wrapper_shape(spec, 2)
+                lines.append(
+                    f"{indent*2}integer, target, intent(IN) :: {arg}_d{shape}"
+                )
 
             elif src == GRID_DATA_ARGUMENT:
                 if arg in self._tf_spec.tile_in_arguments:
@@ -574,9 +637,10 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
 
                 pointer_extents[arg] = 4
                 pointer_types[arg] = self._real_type
+                shape = self._wrapper_shape(spec, 5)
                 lines.append(
                     f"{indent*2}{self._real_type}, target, "
-                    f"intent({intent}) :: {arg}_d(:, :, :, :, :)"
+                    f"intent({intent}) :: {arg}_d{shape}"
                 )
 
             elif src == SCRATCH_ARGUMENT:
@@ -585,9 +649,8 @@ class TaskFunctionGenerator_OpenACC_F(AbcCodeGenerator):
                     arg_type = self._real_type
                 dimension = len(parse_extents(spec["extents"]))
                 assert dimension > 0
-                tmp = [":" for _ in range(dimension + 1)]
-                array = "(" + ", ".join(tmp) + ")"
-                pointer_extents[arg] = len(tmp) - 1
+                array = self._wrapper_shape(spec, dimension + 1)
+                pointer_extents[arg] = dimension
                 pointer_types[arg] = arg_type
                 lines.append(f"{indent*2}{arg_type}, target, intent(INOUT) :: {arg}_d{array}")
 

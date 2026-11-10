@@ -117,6 +117,21 @@ def verify_sources(output, execution, layout):
         assert "MILHOJA_OPENMP_SCALAR_CALL_PROBE" in fortran
         assert "MILHOJA_OPENMP_BYPASS_KERNEL_CALL" in fortran
         assert "MILHOJA_OPENMP_BYPASS_WRAPPER_SLICES" in fortran
+        assert '#include "Milhoja.h"' in fortran
+        assert "tile_lbound_d(MILHOJA_MDIM, *)" in fortran
+        if layout == "variable-first":
+            assert (
+                "CC_1_d(4, 3 + 2 * 1 * MILHOJA_K1D, "
+                "2 + 2 * 1 * MILHOJA_K2D, "
+                "1 + 2 * 1 * MILHOJA_K3D, *)"
+            ) in fortran
+        else:
+            assert (
+                "CC_1_d(3 + 2 * 1 * MILHOJA_K1D, "
+                "2 + 2 * 1 * MILHOJA_K2D, "
+                "1 + 2 * 1 * MILHOJA_K3D, 4, *)"
+            ) in fortran
+        assert "scratch_checksum_d(1, *)" in fortran
         assert "milhoja_openmp_offloading" in combined
         assert "synchronizestream" in wrapper.lower()
         assert "asynchronousqueue()" not in wrapper.lower()
